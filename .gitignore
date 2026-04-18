@@ -1,0 +1,62 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# Package.json files
+package-lock.json
+**/package-lock.json
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.log
+
+# Directory used by npm for globally installed node modules
+app/node_modules/
+app/package-lock.json
+
+server/node_modules/
+server/dist/
+server/package-lock.json
+
+shared/node_modules/
+shared/dist/
+shared/package-lock.json
+
+# Yarn Integrity file
+server/.yarn-integrity
+
+# Environment secrets
+server/.env
+server/.env.local
+server/.env.*.local
+app/.env
+
+# MacOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+
+# Expo OTA update
+app/.expo/
+app/.expo-shared/
+
+# Turtle
+turtle-build/
+
+# Uploads folder contents (keep the folder structure but ignore uploaded files)
+public/uploads/*
+!public/uploads/.gitkeep

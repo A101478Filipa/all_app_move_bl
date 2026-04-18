@@ -1,0 +1,7 @@
+export enum MedicationStatus {
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  PAUSED = "PAUSED",
+  DISCONTINUED = "DISCONTINUED",
+  COMPLETED = "COMPLETED"
+}

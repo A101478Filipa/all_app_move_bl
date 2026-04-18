@@ -1,0 +1,655 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// MARK: Role
+enum UserRole {
+  ELDERLY
+  CAREGIVER
+  INSTITUTION_ADMIN
+  CLINICIAN
+  PROGRAMMER
+  UNKNOWN
+}
+
+// MARK: ActivityType
+enum ActivityType {
+  LOGIN
+  LOGOUT
+  DATA_ENTRY
+  DATA_VIEW
+  OTHER
+}
+
+// MARK: Gender
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+// MARK: MeasurementUnit
+enum MeasurementUnit {
+  POINTS
+  CENTIMETERS
+  KILOGRAMS
+  SECONDS
+  BPM
+  MMHG
+  PERCENTAGE
+}
+
+// MARK: MeasurementType
+enum MeasurementType {
+  BLOOD_PRESSURE_SYSTOLIC
+  BLOOD_PRESSURE_DIASTOLIC
+  HEART_RATE
+  WEIGHT
+  HEIGHT
+  BODY_TEMPERATURE
+  BLOOD_GLUCOSE
+  OXYGEN_SATURATION
+  BALANCE_SCORE
+  MOBILITY_SCORE
+  COGNITIVE_SCORE
+}
+
+// MARK: MedicationStatus
+enum MedicationStatus {
+  ACTIVE
+  INACTIVE
+  PAUSED
+  DISCONTINUED
+  COMPLETED
+}
+
+// MARK: PathologyStatus
+enum PathologyStatus {
+  ACTIVE
+  INACTIVE
+  CHRONIC
+  RESOLVED
+  UNDER_TREATMENT
+  MONITORING
+}
+
+// MARK: TimelineActivityType
+enum TimelineActivityType {
+  FALL_OCCURRENCE
+  MEASUREMENT_ADDED
+  MEDICATION_ADDED
+  MEDICATION_UPDATED
+  PATHOLOGY_ADDED
+  USER_ADDED
+  USER_UPDATED
+}
+
+// MARK: CalendarEventType
+enum CalendarEventType {
+  APPOINTMENT
+  PHYSIOTHERAPY
+  NURSING_CARE
+  BATH
+  MEAL
+  ACTIVITY
+  OTHER
+}
+
+// MARK: TimeOffType
+enum TimeOffType {
+  VACATION
+  DAY_OFF
+  SICK_LEAVE
+}
+
+// MARK: DataAccessRequestStatus
+enum DataAccessRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+  REVOKED
+}
+
+// MARK: Address
+model Address {
+  id           Int      @id @default(autoincrement())
+  street       String
+  municipality String
+  district     String
+  country      String
+  postalCode   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// MARK: User
+model User {
+  id                      Int       @id @default(autoincrement())
+  username                String    @unique
+  email                   String    @unique
+  password                String
+  role                    UserRole
+  avatarUrl               String?
+  pushToken               String?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  programmer              Programmer?
+  clinician               Clinician?
+  caregiver               Caregiver?
+  elderly                 Elderly?
+  institutionAdmin        InstitutionAdmin?
+  externalPersonnel       ExternalPersonnel?
+
+  assessmentsPerformed    Assessment[] @relation("PerformedBy")
+  assessmentsRegistered   Assessment[] @relation("RegisteredBy")
+  activityLogs            ActivityLog[]
+  deviceMaintenance       DeviceMaintenance[]
+  pathologies             Pathology[]
+  medications             Medication[]
+  sessionsInitiated       Session[]
+  fallOccurrencesHandled  FallOccurrence[]
+  sosOccurrencesHandled   SosOccurrence[] @relation("SosOccurrencesHandled")
+  refreshTokens           RefreshToken[]
+  timelineActivities      TimelineActivity[]
+  measurementsMeasured    Measurement[] @relation("MeasurementsMeasuredBy")
+  notifications           Notification[]
+  invitationsCreated      Invitation[] @relation("InvitationsCreated")
+  calendarEventsCreated   CalendarEvent[] @relation("CalendarEventsCreated")
+  calendarEventsAssigned  CalendarEvent[] @relation("CalendarEventsAssigned")
+  workSchedule            StaffWorkSchedule?
+  timeOffs                StaffTimeOff[] @relation("TimeOffUser")
+  timeOffsCreated         StaffTimeOff[] @relation("TimeOffCreatedBy")
+  elderlyAbsencesCreated  ElderlyAbsence[]
+}
+
+// MARK: RefreshToken
+model RefreshToken {
+  id          Int      @id @default(autoincrement())
+  token       String   @unique
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  @@map("refresh_tokens")
+}
+
+// MARK: InvitationStatus
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  PROFILE_INCOMPLETE
+  EXPIRED
+  CANCELLED
+}
+
+// MARK: Invitation
+model Invitation {
+  id             Int              @id @default(autoincrement())
+  email          String
+  role           UserRole
+  institutionId  Int?
+  institution    Institution?     @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  invitedById    Int
+  invitedBy      User             @relation("InvitationsCreated", fields: [invitedById], references: [id])
+  token          String           @unique
+  status         InvitationStatus @default(PENDING)
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([email])
+  @@index([token])
+  @@index([status])
+  @@map("invitations")
+}
+
+// MARK: Institution
+model Institution {
+  id                Int      @id @default(autoincrement())
+  name              String
+  nickname          String?
+  address           String?
+  phone             String?
+  email             String?
+  website           String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  clinicians        Clinician[]
+  caregivers        Caregiver[]
+  elderlyProfiles   Elderly[]
+  admins            InstitutionAdmin[]
+  externalPersonnel ExternalPersonnel[]
+  timelineActivities TimelineActivity[]
+  invitations       Invitation[]
+}
+
+// MARK: Programmer
+model Programmer {
+  id          Int    @id @default(autoincrement())
+  userId      Int    @unique
+  name        String
+  phoneNumber String?
+  gender      Gender
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+// MARK: Clinician
+model Clinician {
+  id            Int    @id @default(autoincrement())
+  userId        Int    @unique
+  name          String
+  phone         String?  
+  address       String?  
+  nif           String?  
+  institutionId Int?
+  birthDate     DateTime
+  gender        Gender
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User       @relation(fields: [userId], references: [id])
+  institution   Institution? @relation(fields: [institutionId], references: [id])
+  dataAccessRequests DataAccessRequest[]
+}
+
+// MARK: Caregiver
+model Caregiver {
+  id            Int    @id @default(autoincrement())
+  userId        Int    @unique
+  name          String
+  phone         String?
+  address       String?
+  nif           String?   
+  institutionId Int
+  birthDate     DateTime
+  gender        Gender
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User       @relation(fields: [userId], references: [id])
+  institution   Institution? @relation(fields: [institutionId], references: [id])
+}
+
+// MARK: Elderly
+model Elderly {
+  id               Int    @id @default(autoincrement())
+  userId           Int    @unique
+  medicalId        Int
+  name             String
+  institutionId    Int
+  birthDate        DateTime
+  gender           Gender
+  floor            Int?
+  address          String?
+  nif              String? 
+  phone            String?
+  emergencyContact String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User       @relation(fields: [userId], references: [id])
+  institution      Institution @relation(fields: [institutionId], references: [id])
+  assessments      Assessment[]
+  sessions         Session[]
+  fallDetections   FallDetection[]
+  fallRisks        FallRisk[]
+  fallOccurrences  FallOccurrence[]
+  sosOccurrences   SosOccurrence[]
+  pathologies      Pathology[]
+  medications      Medication[]
+  measurements     Measurement[]
+  timelineActivities TimelineActivity[]
+  dataAccessRequests DataAccessRequest[]
+  calendarEvents   CalendarEvent[]
+  elderlyAbsences  ElderlyAbsence[]
+}
+
+// MARK: Assessment
+model Assessment {
+  id                  Int    @id @default(autoincrement())
+  elderlyId           Int
+  performedByUserId   Int
+  registeredByUserId  Int
+  elderly             Elderly @relation(fields: [elderlyId], references: [id])
+  performedBy         User    @relation("PerformedBy", fields: [performedByUserId], references: [id])
+  registeredBy        User    @relation("RegisteredBy", fields: [registeredByUserId], references: [id])
+  measurements        Measurement[]
+}
+
+// MARK: Device
+model Device {
+  id                 Int    @id @default(autoincrement())
+  name               String
+  type               String
+  serialNumber       String @unique
+  status             String
+  lastMaintenance    DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  sessions           Session[]
+  maintenanceRecords DeviceMaintenance[]
+}
+
+// MARK: Session
+model Session {
+  id              Int    @id @default(autoincrement())
+  deviceId        Int
+  elderlyId       Int
+  initiatedById   Int
+  startTime       DateTime
+  endTime         DateTime?
+  createdAt       DateTime @default(now())
+  device          Device   @relation(fields: [deviceId], references: [id])
+  elderly         Elderly  @relation(fields: [elderlyId], references: [id])
+  initiatedBy     User     @relation(fields: [initiatedById], references: [id])
+  fallDetections  FallDetection[]
+}
+
+// MARK: ActivityLog
+model ActivityLog {
+  id           Int    @id @default(autoincrement())
+  userId       Int
+  type         ActivityType
+  time         DateTime
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+// MARK: FallDetection
+model FallDetection {
+  id          Int    @id @default(autoincrement())
+  elderlyId   Int
+  sessionId   Int
+  time        DateTime
+  location    String?
+  severity    String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  elderly     Elderly  @relation(fields: [elderlyId], references: [id])
+  session     Session  @relation(fields: [sessionId], references: [id])
+  occurrences FallOccurrence[]
+}
+
+// MARK: FallOccurrence
+model FallOccurrence {
+  id                 Int    @id @default(autoincrement())
+  elderlyId          Int
+  detectionId        Int?
+  handlerUserId      Int?
+  date               DateTime
+  description        String?
+  recovery           String?
+  preActivity        String?
+  postActivity       String?
+  direction          String?
+  environment        String?
+  injured            Boolean
+  injuryDescription  String?
+  measuresTaken      String?
+  isFalseAlarm       Boolean @default(false)
+  createdAt          DateTime @default(now())
+  elderly            Elderly  @relation(fields: [elderlyId], references: [id])
+  detection          FallDetection? @relation(fields: [detectionId], references: [id])
+  handler            User? @relation(fields: [handlerUserId], references: [id])
+}
+
+// MARK: SosOccurrence
+model SosOccurrence {
+  id             Int      @id @default(autoincrement())
+  elderlyId      Int
+  handlerUserId  Int?
+  date           DateTime
+  wasActualFall  Boolean?
+  notes          String?
+  isFalseAlarm   Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  elderly        Elderly  @relation(fields: [elderlyId], references: [id])
+  handler        User?    @relation("SosOccurrencesHandled", fields: [handlerUserId], references: [id])
+}
+
+// MARK: FallRisk
+model FallRisk {
+  elderlyId Int
+  date      DateTime
+  score     Float
+  elderly   Elderly @relation(fields: [elderlyId], references: [id])
+  @@id([elderlyId, date])
+}
+
+// MARK: Pathology
+model Pathology {
+  id              Int    @id @default(autoincrement())
+  elderlyId       Int
+  registeredById  Int
+  name            String
+  description     String?
+  diagnosisSite   String?
+  diagnosisDate   DateTime?
+  status          PathologyStatus? @default(ACTIVE)
+  notes           String?
+  createdAt       DateTime @default(now())
+  elderly         Elderly  @relation(fields: [elderlyId], references: [id])
+  registeredBy    User     @relation(fields: [registeredById], references: [id])
+}
+
+// MARK: InstitutionAdmin
+model InstitutionAdmin {
+  id            Int    @id @default(autoincrement())
+  userId        Int    @unique
+  institutionId Int
+  name          String 
+  gender        Gender
+  phoneNumber   String?
+  address       String?  
+  nif           String?  
+  birthDate     DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User        @relation(fields: [userId], references: [id])
+  institution   Institution @relation(fields: [institutionId], references: [id])
+}
+
+// MARK: ExternalPersonnel
+model ExternalPersonnel {
+  id            Int    @id @default(autoincrement())
+  userId        Int    @unique
+  institutionId Int?
+  firstName     String
+  lastName      String
+  phoneNumber   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User        @relation(fields: [userId], references: [id])
+  institution   Institution? @relation(fields: [institutionId], references: [id])
+}
+
+// MARK: DeviceMaintenance
+model DeviceMaintenance {
+  id            Int    @id @default(autoincrement())
+  performedById Int
+  deviceId      Int
+  performedAt   DateTime
+  reason        String?
+  createdAt     DateTime @default(now())
+  performedBy   User     @relation(fields: [performedById], references: [id])
+  device        Device   @relation(fields: [deviceId], references: [id])
+}
+
+// MARK: Measurement
+model Measurement {
+  id              Int    @id @default(autoincrement())
+  elderlyId       Int
+  assessmentId    Int?
+  measuredById    Int?
+  type            MeasurementType
+  value           Float
+  unit            MeasurementUnit
+  notes           String?
+  createdAt       DateTime @default(now())
+  elderly         Elderly @relation(fields: [elderlyId], references: [id])
+  assessment      Assessment? @relation(fields: [assessmentId], references: [id])
+  measuredBy      User? @relation("MeasurementsMeasuredBy", fields: [measuredById], references: [id])
+}
+
+// MARK: Medication
+model Medication {
+  id                Int    @id @default(autoincrement())
+  elderlyId         Int
+  registeredById    Int
+  name              String
+  activeIngredient  String?
+  dosage            String?
+  frequency         String?
+  administration    String?
+  startDate         DateTime?
+  endDate           DateTime?
+  status            MedicationStatus? @default(ACTIVE)
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt @default(now())
+  elderly           Elderly @relation(fields: [elderlyId], references: [id])
+  registeredBy      User    @relation(fields: [registeredById], references: [id])
+}
+
+// MARK: TimelineActivity
+model TimelineActivity {
+  id            Int                   @id @default(autoincrement())
+  institutionId Int
+  type          TimelineActivityType
+  elderlyId     Int?                  // Optional: if activity relates to specific elderly
+  userId        Int?                  // Optional: user who performed the action
+  relatedId     Int?                  // ID of the related entity (medication, pathology, etc.)
+  metadata      Json?                 // Additional data specific to activity type
+  createdAt     DateTime              @default(now())
+
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  elderly       Elderly?    @relation(fields: [elderlyId], references: [id])
+  user          User?       @relation(fields: [userId], references: [id])
+}
+
+// MARK: DataAccessRequest
+model DataAccessRequest {
+  id            Int                      @id @default(autoincrement())
+  clinicianId   Int
+  elderlyId     Int
+  status        DataAccessRequestStatus  @default(PENDING)
+  requestedAt   DateTime                 @default(now())
+  respondedAt   DateTime?
+  expiresAt     DateTime?                // Optional: auto-revoke after certain time
+  notes         String?                  // Optional: reason for request
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+
+  clinician     Clinician @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  elderly       Elderly   @relation(fields: [elderlyId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicianId, elderlyId])
+  @@index([clinicianId])
+  @@index([elderlyId])
+  @@index([status])
+}
+
+// MARK: CalendarEvent
+model CalendarEvent {
+  id                       Int               @id @default(autoincrement())
+  elderlyId                Int
+  createdById              Int
+  assignedToId             Int?
+  externalProfessionalName String?
+  type                     CalendarEventType
+  title                    String
+  description              String?
+  startDate                DateTime
+  endDate                  DateTime?
+  allDay                   Boolean           @default(false)
+  location                 String?
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+  elderly                  Elderly           @relation(fields: [elderlyId], references: [id], onDelete: Cascade)
+  createdBy                User              @relation("CalendarEventsCreated", fields: [createdById], references: [id])
+  assignedTo               User?             @relation("CalendarEventsAssigned", fields: [assignedToId], references: [id])
+
+  @@index([elderlyId])
+  @@index([startDate])
+}
+
+// MARK: Notification
+model Notification {
+  id            Int       @id @default(autoincrement())
+  userId        Int
+  type          String    // notification type (fall_occurrence, data_access_request, etc.)
+  title         String    // translated title or translation key
+  body          String    // translated body or translation key
+  data          Json?     // notification payload data (NotificationData interface)
+  read          Boolean   @default(false)
+  readAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+// MARK: StaffWorkSchedule
+model StaffWorkSchedule {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @unique
+  workDays   Int[]    // 1=Mon … 7=Sun (ISO)
+  startTime  String   // "HH:MM"
+  endTime    String   // "HH:MM"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// MARK: StaffTimeOff
+model StaffTimeOff {
+  id           Int         @id @default(autoincrement())
+  userId       Int
+  createdById  Int
+  type         TimeOffType
+  startDate    DateTime
+  endDate      DateTime
+  note         String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  user         User        @relation("TimeOffUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy    User        @relation("TimeOffCreatedBy", fields: [createdById], references: [id])
+
+  @@index([userId])
+  @@index([startDate])
+}
+
+// MARK: ElderlyAbsence
+model ElderlyAbsence {
+  id           Int      @id @default(autoincrement())
+  elderlyId    Int
+  createdById  Int
+  startDate    DateTime
+  endDate      DateTime
+  reason       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  elderly      Elderly  @relation(fields: [elderlyId], references: [id], onDelete: Cascade)
+  createdBy    User     @relation(fields: [createdById], references: [id])
+
+  @@index([elderlyId])
+  @@index([startDate])
+}

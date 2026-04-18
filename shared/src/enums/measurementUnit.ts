@@ -1,0 +1,9 @@
+export enum MeasurementUnit {
+  POINTS = "POINTS",
+  CENTIMETERS = "CENTIMETERS",
+  KILOGRAMS = "KILOGRAMS",
+  SECONDS = "SECONDS",
+  BPM = "BPM",
+  MMHG = "MMHG",
+  PERCENTAGE = "PERCENTAGE"
+}

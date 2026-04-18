@@ -1,0 +1,6 @@
+{
+  "fallAlertTitle": "⚠️ Fall Alert",
+  "fallAlertBody": "{elderlyName} reported a fall. Please check immediately.",
+  "sosAlertTitle": "🆘 SOS Alert",
+  "sosAlertBody": "{elderlyName} is requesting help. Please respond immediately."
+}

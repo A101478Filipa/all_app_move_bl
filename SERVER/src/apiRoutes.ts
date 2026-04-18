@@ -1,0 +1,49 @@
+import express from 'express';
+import authRoutes from './modules/auth/authRoutes';
+import institutionsRoutes from './modules/institutions/institutionsRoutes';
+import elderlyRoutes from './modules/elderly/elderlyRoutes';
+import caregiverRoutes from './modules/caregiver/caregiverRoutes';
+import clinicianRoutes from './modules/clinician/clinicianRoutes';
+import programmerRoutes from './modules/programmer/programmerRoutes';
+import avatarRoutes from './modules/avatar/avatarRoutes';
+import adminsRoutes from './modules/institutionAdmins/institutionAdminsRoutes';
+import fallOccurrenceRoutes from './modules/fallOccurrence/fallOccurrenceRoutes';
+import timelineRoutes from './modules/timeline/timelineRoutes';
+import medicationRoutes from './modules/medication/medicationRoutes';
+import measurementRoutes from './modules/measurements/measurementRoutes';
+import pathologyRoutes from './modules/pathology/pathologyRoutes';
+import dataAccessRequestRoutes from './modules/dataAccessRequest/dataAccessRequestRoutes';
+import notificationRoutes from './modules/notifications/notificationRoutes';
+import invitationRoutes from './modules/invitation/invitationRoutes';
+import sosOccurrenceRoutes from './modules/sosOccurrence/sosOccurrenceRoutes';
+import calendarEventRoutes from './modules/calendarEvent/calendarEventRoutes';
+import staffScheduleRoutes from './modules/staffSchedule/staffScheduleRoutes';
+import timeOffRoutes from './modules/timeOff/timeOffRoutes';
+import elderlyAbsenceRoutes from './modules/elderlyAbsence/elderlyAbsenceRoutes';
+
+const apiRoutes = express.Router();
+
+// Define nested routes
+apiRoutes.use('/auth', authRoutes);
+apiRoutes.use('/institutions', institutionsRoutes);
+apiRoutes.use('/elderly', elderlyRoutes);
+apiRoutes.use('/caregivers', caregiverRoutes);
+apiRoutes.use('/clinicians', clinicianRoutes);
+apiRoutes.use('/programmers', programmerRoutes);
+apiRoutes.use('/institution-admins', adminsRoutes);
+apiRoutes.use('/fall-occurrences', fallOccurrenceRoutes);
+apiRoutes.use('/timeline', timelineRoutes);
+apiRoutes.use('/avatar', avatarRoutes);
+apiRoutes.use('/medications', medicationRoutes);
+apiRoutes.use('/measurements', measurementRoutes);
+apiRoutes.use('/pathologies', pathologyRoutes);
+apiRoutes.use('/data-access-requests', dataAccessRequestRoutes);
+apiRoutes.use('/notifications', notificationRoutes);
+apiRoutes.use('/invitations', invitationRoutes);
+apiRoutes.use('/sos-occurrences', sosOccurrenceRoutes);
+apiRoutes.use('/calendar-events', calendarEventRoutes);
+apiRoutes.use('/staff-schedules', staffScheduleRoutes);
+apiRoutes.use('/time-off', timeOffRoutes);
+apiRoutes.use('/elderly-absences', elderlyAbsenceRoutes);
+
+export default apiRoutes;

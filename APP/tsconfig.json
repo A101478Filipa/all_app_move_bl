@@ -1,0 +1,33 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "baseUrl": "./",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "resolveJsonModule": true,
+    "typeRoots": ["node_modules/@types", "src/types"],
+    "paths": {
+      "@assets/*": ["assets/*"],
+      "@icons/*": ["assets/icons/*"],
+      "@fonts/*": ["assets/fonts/*"],
+      "@api/*": ["src/api/*"],
+      "@components/*": ["src/components/*"],
+      "@constants/*": ["src/constants/*"],
+      "@hooks/*": ["src/hooks/*"],
+      "@navigation/*": ["src/navigation/*"],
+      "@providers/*": ["src/providers/*"],
+      "@screens/*": ["src/screens/*"],
+      "@services/*": ["src/services/*"],
+      "@stores/*": ["src/stores/*"],
+      "@styles/*": ["src/styles/*"],
+      "@types/*": ["src/types/*"],
+      "@utils/*": ["src/utils/*"],
+      "@src/*": ["src/*"]
+    }
+  },
+  "include": [
+    "src",
+    "env.d.ts",
+    "src/types"
+  ]
+}
