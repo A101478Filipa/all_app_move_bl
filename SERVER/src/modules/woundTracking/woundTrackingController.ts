@@ -155,6 +155,81 @@ export const addSosWoundTracking = async (req, res) => {
   }
 };
 
+// GET /elderly/:elderlyId/wound-tracking
+export const getElderlyWoundTrackings = async (req, res) => {
+  const elderlyId = Number(req.params.elderlyId);
+  const { role, institutionId, userId } = req.user;
+
+  try {
+    const elderly = await prisma.elderly.findUnique({ where: { id: elderlyId } });
+    if (!elderly) return sendError(res, 'Elderly not found', 404);
+
+    const hasAccess =
+      role === UserRole.PROGRAMMER ||
+      elderly.institutionId === institutionId ||
+      (role === UserRole.CLINICIAN && await checkClinicianAccess(userId, elderlyId));
+
+    if (!hasAccess) return sendError(res, 'Forbidden', 403);
+
+    const trackings = await prisma.woundTracking.findMany({
+      where: {
+        OR: [
+          { elderlyId },
+          { fallOccurrence: { elderlyId } },
+          { sosOccurrence: { elderlyId } },
+        ],
+      },
+      include: woundTrackingInclude,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return sendSuccess(res, trackings, 'Wound trackings fetched');
+  } catch (e) {
+    console.error('Error fetching elderly wound trackings:', e);
+    return sendError(res, 'Internal server error', 500);
+  }
+};
+
+// POST /elderly/:elderlyId/wound-tracking
+export const addElderlyWoundTracking = async (req, res) => {
+  const elderlyId = Number(req.params.elderlyId);
+  const { notes } = req.body;
+  const isResolved = req.body.isResolved === 'true' || req.body.isResolved === true;
+
+  try {
+    const elderly = await prisma.elderly.findUnique({ where: { id: elderlyId } });
+    if (!elderly) return sendError(res, 'Elderly not found', 404);
+
+    const { role, institutionId: userInstitutionId, userId } = req.user;
+    const hasAccess =
+      role === UserRole.PROGRAMMER ||
+      elderly.institutionId === userInstitutionId ||
+      (role === UserRole.CLINICIAN && await checkClinicianAccess(userId, elderlyId));
+
+    if (!hasAccess) return sendError(res, 'Forbidden', 403);
+
+    if (!notes?.trim() && !req.file && !isResolved) {
+      return sendError(res, 'Add notes, a photo, or mark the wound as resolved', 400);
+    }
+
+    const tracking = await prisma.woundTracking.create({
+      data: {
+        elderlyId,
+        createdByUserId: req.user.userId,
+        notes: notes?.trim() || null,
+        photoUrl: req.file ? req.file.filename : null,
+        isResolved,
+      } as any,
+      include: woundTrackingInclude,
+    });
+
+    return sendSuccess(res, tracking, 'Wound tracking added', 201);
+  } catch (e) {
+    console.error('Error adding elderly wound tracking:', e);
+    return sendError(res, 'Internal server error', 500);
+  }
+};
+
 // DELETE /wound-tracking/:trackingId
 export const deleteWoundTracking = async (req, res) => {
   const trackingId = Number(req.params.trackingId);
@@ -165,6 +240,7 @@ export const deleteWoundTracking = async (req, res) => {
       include: {
         fallOccurrence: { include: { elderly: true } },
         sosOccurrence:  { include: { elderly: true } },
+        elderly:        true,
       },
     });
 
@@ -172,7 +248,8 @@ export const deleteWoundTracking = async (req, res) => {
 
     const institutionId =
       tracking.fallOccurrence?.elderly.institutionId ??
-      tracking.sosOccurrence?.elderly.institutionId;
+      tracking.sosOccurrence?.elderly.institutionId ??
+      tracking.elderly?.institutionId;
 
     if (institutionId !== req.user.institutionId) return sendError(res, 'Forbidden', 403);
 
