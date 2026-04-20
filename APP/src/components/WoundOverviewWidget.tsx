@@ -44,6 +44,7 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
     return Array.from({ length: 6 }, (_, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
       const count = overview.cases.filter(c => {
+        if (c.isResolved) return false;
         const cd = new Date(c.occurrenceDate);
         return cd.getFullYear() === d.getFullYear() && cd.getMonth() === d.getMonth();
       }).length;
@@ -67,7 +68,7 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
 
   // Always render — even with 0 cases show the widget so the section headline is visible
   return (
-    <VStack style={styles.section}>
+    <View style={styles.section}>
       {/* ── Compact hero card ── */}
       <TouchableOpacity
         style={styles.heroCard}
@@ -204,7 +205,7 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
           </View>
         </View>
       </Modal>
-    </VStack>
+    </View>
   );
 };
 
@@ -226,6 +227,7 @@ const WoundCaseCard: React.FC<{ item: WoundOverviewCase; onPress: () => void }> 
         )}
 
         <VStack align="flex-start" style={styles.caseBody} spacing={Spacing.xs_4}>
+          {/* Name + status */}
           <HStack align="center" style={styles.caseHeaderRow}>
             <Text style={styles.caseName}>{item.elderly.name}</Text>
             <View style={[styles.statusBadge, statusStyle]}>
@@ -235,21 +237,31 @@ const WoundCaseCard: React.FC<{ item: WoundOverviewCase; onPress: () => void }> 
             </View>
           </HStack>
 
-          <Text style={styles.caseMeta}>
-            {item.occurrenceType === 'fall' ? t('dashboard.woundFromFall') : t('dashboard.woundFromSos')}
-          </Text>
+          {/* Occurrence date */}
+          <HStack spacing={Spacing.xs_4} align="center">
+            <MaterialIcons name="event" size={13} color={Color.Gray.v400} />
+            <Text style={styles.caseOccurrenceDate}>
+              {item.occurrenceType === 'fall' ? t('dashboard.woundFromFall') : t('dashboard.woundFromSos')} · {formatDateTime(item.occurrenceDate)}
+            </Text>
+          </HStack>
 
+          {/* injury description */}
           {item.injuryDescription ? (
             <Text style={styles.caseDescription} numberOfLines={2}>{item.injuryDescription}</Text>
           ) : null}
 
-          {item.latestTracking?.notes ? (
-            <Text style={styles.caseTracking} numberOfLines={2}>{item.latestTracking.notes}</Text>
+          {/* latest tracking update */}
+          {item.latestTracking ? (
+            <View style={styles.latestTrackingBox}>
+              <HStack spacing={Spacing.xs_4} align="center">
+                <MaterialIcons name="update" size={12} color={Color.primary} />
+                <Text style={styles.latestTrackingLabel}>{t('dashboard.lastTrackingDate')}: {formatDateTime(item.latestTracking.createdAt)}</Text>
+              </HStack>
+              {item.latestTracking.notes ? (
+                <Text style={styles.caseTracking} numberOfLines={2}>{item.latestTracking.notes}</Text>
+              ) : null}
+            </View>
           ) : null}
-
-          <Text style={styles.caseDate}>
-            {t('dashboard.lastTrackingDate')}: {formatDateTime(item.latestTracking?.createdAt ?? item.occurrenceDate)}
-          </Text>
         </VStack>
 
         <MaterialIcons name="chevron-right" size={20} color={Color.Gray.v400} />
@@ -510,10 +522,22 @@ const styles = StyleSheet.create({
     fontSize: FontSize.bodysmall_14,
     color: Color.Gray.v400,
   },
-  caseDate: {
-    fontFamily: FontFamily.medium,
+  caseOccurrenceDate: {
+    fontFamily: FontFamily.regular,
     fontSize: FontSize.caption_12,
     color: Color.Gray.v400,
+  },
+  latestTrackingBox: {
+    backgroundColor: Color.primary + '0D',
+    borderRadius: Border.sm_8,
+    padding: Spacing.xs_4 + 2,
+    gap: 2,
+    alignSelf: 'stretch',
+  },
+  latestTrackingLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.caption_12,
+    color: Color.primary,
   },
   statusBadge: {
     borderRadius: Border.full,

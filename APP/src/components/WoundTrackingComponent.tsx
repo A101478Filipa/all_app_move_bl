@@ -198,18 +198,19 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <MaterialIcons name="healing" size={20} color={Color.primary} />
-          <Text style={styles.title}>{t('woundTracking.title')}</Text>
-        </View>
-        {canAdd && (
-          <TouchableOpacity style={styles.addButton} onPress={openModal}>
-            <MaterialIcons name="add" size={18} color={Color.white} />
-            <Text style={styles.addButtonText}>{t('woundTracking.addUpdate')}</Text>
-          </TouchableOpacity>
-        )}
+      {/* Title row */}
+      <View style={styles.headerLeft}>
+        <MaterialIcons name="healing" size={20} color={Color.primary} />
+        <Text style={styles.title}>{t('woundTracking.title')}</Text>
       </View>
+
+      {/* Add button below title */}
+      {canAdd && (
+        <TouchableOpacity style={styles.addButton} onPress={openModal}>
+          <MaterialIcons name="add" size={18} color={Color.white} />
+          <Text style={styles.addButtonText}>{t('woundTracking.addUpdate')}</Text>
+        </TouchableOpacity>
+      )}
 
       {loading ? (
         <ActivityIndicator size="small" color={Color.primary} style={styles.loader} />
@@ -310,16 +311,11 @@ const styles = StyleSheet.create({
     padding: Spacing.lg_24,
     ...shadowStyles.cardShadow,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.md_16,
-  },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs_4,
+    marginBottom: Spacing.sm_8,
   },
   title: {
     fontFamily: FontFamily.bold,
@@ -329,11 +325,13 @@ const styles = StyleSheet.create({
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
     gap: Spacing.xs_4,
     backgroundColor: Color.primary,
     paddingHorizontal: Spacing.sm_8,
     paddingVertical: Spacing.xs_4 + 2,
     borderRadius: Border.sm_8,
+    marginBottom: Spacing.md_16,
   },
   addButtonText: {
     fontFamily: FontFamily.medium,
