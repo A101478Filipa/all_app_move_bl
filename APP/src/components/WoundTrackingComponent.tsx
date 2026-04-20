@@ -25,7 +25,7 @@ import { shadowStyles } from '@src/styles/shadow';
 import { buildAvatarUrl } from '@src/services/ApiService';
 import { woundTrackingApi, WoundTracking } from '@src/api/endpoints/woundTracking';
 
-type OccurrenceType = 'fall' | 'sos';
+type OccurrenceType = 'fall' | 'sos' | 'elderly';
 
 type Props = {
   occurrenceId: number;
@@ -34,10 +34,13 @@ type Props = {
   canDelete?: boolean;
 };
 
+type FilterTab = 'all' | 'ongoing' | 'resolved';
+
 const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType, canAdd = false, canDelete = false }) => {
   const { t } = useTranslation();
   const [trackings, setTrackings] = useState<WoundTracking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [modalVisible, setModalVisible] = useState(false);
   const [notes, setNotes] = useState('');
   const [isResolved, setIsResolved] = useState(false);
@@ -50,7 +53,9 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
     try {
       const res = occurrenceType === 'fall'
         ? await woundTrackingApi.getFallWoundTrackings(occurrenceId)
-        : await woundTrackingApi.getSosWoundTrackings(occurrenceId);
+        : occurrenceType === 'sos'
+        ? await woundTrackingApi.getSosWoundTrackings(occurrenceId)
+        : await woundTrackingApi.getElderlyWoundTrackings(occurrenceId);
       setTrackings(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       setTrackings([]);
@@ -60,6 +65,12 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
   }, [occurrenceId, occurrenceType]);
 
   useEffect(() => { fetchTrackings(); }, [fetchTrackings]);
+
+  const filteredTrackings = trackings.filter(item => {
+    if (activeFilter === 'ongoing') return !item.isResolved;
+    if (activeFilter === 'resolved') return item.isResolved;
+    return true;
+  });
 
   const openModal = () => {
     setNotes('');
@@ -118,7 +129,9 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
       }
       const res = occurrenceType === 'fall'
         ? await woundTrackingApi.addFallWoundTracking(occurrenceId, formData)
-        : await woundTrackingApi.addSosWoundTracking(occurrenceId, formData);
+        : occurrenceType === 'sos'
+        ? await woundTrackingApi.addSosWoundTracking(occurrenceId, formData)
+        : await woundTrackingApi.addElderlyWoundTracking(occurrenceId, formData);
       if (res.data) {
         setTrackings(prev => [res.data, ...prev]);
         setModalVisible(false);
@@ -204,6 +217,23 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
         <Text style={styles.title}>{t('woundTracking.title')}</Text>
       </View>
 
+      {/* Filter tabs */}
+      {!loading && trackings.length > 0 && (
+        <View style={styles.filterRow}>
+          {(['all', 'ongoing', 'resolved'] as FilterTab[]).map(tab => (
+            <TouchableOpacity
+              key={tab}
+              style={[styles.filterTab, activeFilter === tab && styles.filterTabActive]}
+              onPress={() => setActiveFilter(tab)}
+            >
+              <Text style={[styles.filterTabText, activeFilter === tab && styles.filterTabTextActive]}>
+                {t(`woundTracking.filter_${tab}`)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
       {/* Add button below title */}
       {canAdd && (
         <TouchableOpacity style={styles.addButton} onPress={openModal}>
@@ -214,11 +244,11 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
 
       {loading ? (
         <ActivityIndicator size="small" color={Color.primary} style={styles.loader} />
-      ) : trackings.length === 0 ? (
+      ) : filteredTrackings.length === 0 ? (
         <Text style={styles.emptyText}>{t('woundTracking.noUpdates')}</Text>
       ) : (
         <View style={styles.timeline}>
-          {trackings.map(renderTrackingCard)}
+          {filteredTrackings.map(renderTrackingCard)}
         </View>
       )}
 
@@ -332,6 +362,33 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs_4 + 2,
     borderRadius: Border.sm_8,
     marginBottom: Spacing.md_16,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: Spacing.xs_4,
+    marginBottom: Spacing.sm_12,
+  },
+  filterTab: {
+    flex: 1,
+    paddingVertical: Spacing.xs_4 + 2,
+    paddingHorizontal: Spacing.xs_4,
+    borderRadius: Border.sm_8,
+    borderWidth: 1,
+    borderColor: Color.Gray.v200,
+    alignItems: 'center',
+  },
+  filterTabActive: {
+    backgroundColor: Color.primary,
+    borderColor: Color.primary,
+  },
+  filterTabText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.bodysmall_14 - 1,
+    color: Color.Gray.v400,
+    textAlign: 'center',
+  },
+  filterTabTextActive: {
+    color: Color.white,
   },
   addButtonText: {
     fontFamily: FontFamily.medium,

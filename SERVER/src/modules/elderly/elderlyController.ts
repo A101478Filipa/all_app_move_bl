@@ -98,34 +98,46 @@ export const showElderly = async (req, res) => {
   const id = Number(req.params.elderlyId || userId);
 
   try {
-    const elderly = await prisma.elderly.findUnique({
-      where: { id },
-      include: {
-        user: true,
-        institution: true,
-        measurements: true,
-        pathologies: true,
-        medications: true,
-        fallOccurrences: true,
-        sosOccurrences: true,
-        woundTrackings: { select: { id: true } },
-      }
-    });
+    const [elderly, woundTrackingCount] = await Promise.all([
+      prisma.elderly.findUnique({
+        where: { id },
+        include: {
+          user: true,
+          institution: true,
+          measurements: true,
+          pathologies: true,
+          medications: true,
+          fallOccurrences: true,
+          sosOccurrences: true,
+        }
+      }),
+      prisma.woundTracking.count({
+        where: {
+          OR: [
+            { elderlyId: id },
+            { fallOccurrence: { elderlyId: id } },
+            { sosOccurrence: { elderlyId: id } },
+          ]
+        }
+      }),
+    ]);
 
     if (!elderly) {
       return sendError(res, 'Elderly not found', 404);
     }
 
+    const elderlyWithCount = { ...elderly, woundTrackingCount };
+
     if (role === UserRole.PROGRAMMER) {
-      return sendSuccess(res, elderly, 'Elderly details retrieved successfully');
+      return sendSuccess(res, elderlyWithCount, 'Elderly details retrieved successfully');
     }
 
     if (userId === id) {
-      return sendSuccess(res, elderly, 'Elderly details retrieved successfully');
+      return sendSuccess(res, elderlyWithCount, 'Elderly details retrieved successfully');
     }
 
     if (institutionId === elderly.institutionId) {
-      return sendSuccess(res, elderly, 'Elderly details retrieved successfully');
+      return sendSuccess(res, elderlyWithCount, 'Elderly details retrieved successfully');
     }
 
     if (role === UserRole.CLINICIAN) {
@@ -144,7 +156,7 @@ export const showElderly = async (req, res) => {
         });
 
         if (accessRequest?.status === DataAccessRequestStatus.APPROVED) {
-          return sendSuccess(res, elderly, 'Elderly details retrieved successfully');
+          return sendSuccess(res, elderlyWithCount, 'Elderly details retrieved successfully');
         }
       }
     }

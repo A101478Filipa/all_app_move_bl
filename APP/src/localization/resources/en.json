@@ -547,7 +547,12 @@
     "deleteTitle": "Delete Update",
     "deleteConfirm": "Are you sure you want to delete this update?",
     "uploadFailed": "Failed to save update",
-    "errorEmpty": "Please add at least a note or a photo"
+    "errorEmpty": "Please add at least a note or a photo",
+    "addWound": "Register Wound",
+    "addWoundSubtitle": "Add wound tracking without linking to a fall or SOS",
+    "filter_all": "All",
+    "filter_ongoing": "Ongoing",
+    "filter_resolved": "Resolved"
   },
   "pathology": {
     "title": "Pathology",
@@ -676,7 +681,9 @@
     "updateFailed": "Failed to update elderly profile",
     "saveChanges": "Save Changes",
     "saving": "Saving...",
-    "floorInvalid": "Floor must be a positive whole number"
+    "floorInvalid": "Floor must be a positive whole number",
+    "addFall": "Register Fall",
+    "addFallSubtitle": "Manually register a fall occurrence"
   },
   "caregiver": {
     "title": "Caregiver",

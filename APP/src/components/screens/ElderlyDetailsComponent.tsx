@@ -296,7 +296,7 @@ const ElderlyDetailsComponent = ({ screenState, elderly, onRefresh, navigation, 
                   iconName="healing"
                   iconColor={Color.Error.default}
                   title={t('woundTracking.title')}
-                  count={elderly.woundTrackings?.length ?? 0}
+                  count={elderly.woundTrackingCount ?? 0}
                   onAdd={onAddWound}
                   fullWidth
                   onPress={() => navigation.push('ElderlyWoundTrackingScreen', { elderlyId: elderly.id })}

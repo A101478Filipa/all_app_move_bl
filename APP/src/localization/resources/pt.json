@@ -545,7 +545,12 @@
     "deleteTitle": "Eliminar Atualização",
     "deleteConfirm": "Tem a certeza que deseja eliminar esta atualização?",
     "uploadFailed": "Falha ao guardar atualização",
-    "errorEmpty": "Adicione pelo menos uma nota ou fotografia"
+    "errorEmpty": "Adicione pelo menos uma nota ou fotografia",
+    "addWound": "Registar Ferida",
+    "addWoundSubtitle": "Adicionar acompanhamento de ferida sem associar a queda ou SOS",
+    "filter_all": "Todas",
+    "filter_ongoing": "Em acompanhamento",
+    "filter_resolved": "Resolvidas"
   },
   "pathology": {
     "title": "Patologia",
@@ -677,7 +682,9 @@
     "updateFailed": "Falha ao atualizar o perfil do idoso",
     "saveChanges": "Guardar Alterações",
     "saving": "A guardar...",
-    "floorInvalid": "O piso deve ser um número inteiro positivo"
+    "floorInvalid": "O piso deve ser um número inteiro positivo",
+    "addFall": "Registar Queda",
+    "addFallSubtitle": "Registar manualmente uma ocorrência de queda"
   },
   "caregiver": {
   "title": "Cuidador",

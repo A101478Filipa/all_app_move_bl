@@ -39,5 +39,5 @@ export interface Elderly extends BaseUser {
   pathologies: Pathology[];
   medications: Medication[];
   measurements: Measurement[];
-  woundTrackings?: { id: number }[];
+  woundTrackingCount?: number;
 }
