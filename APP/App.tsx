@@ -1,5 +1,10 @@
 import '@src/localization';
 import React from 'react';
+import { LogBox } from 'react-native';
+
+LogBox.ignoreLogs([
+  'A props object containing a "key" prop is being spread into JSX',
+]);
 import { Text, StatusBar } from 'react-native';
 import { useFonts } from 'expo-font';
 import AppNavigator from '@navigation/AppNavigator';

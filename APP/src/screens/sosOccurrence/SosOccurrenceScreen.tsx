@@ -120,6 +120,7 @@ const SosOccurrenceScreen: React.FC<Props> = ({ route }) => {
           onSubmit={handleSubmit}
           loading={submitting}
           sos={data}
+          occurrenceId={occurrenceId}
         />
       )}
     </View>

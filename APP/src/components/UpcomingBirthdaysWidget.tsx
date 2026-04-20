@@ -80,7 +80,7 @@ export const UpcomingBirthdaysWidget: React.FC<UpcomingBirthdaysWidgetProps> = (
   return (
     <VStack spacing={Spacing.sm_12} style={styles.container}>
       <HStack spacing={Spacing.sm_8} align="center">
-        <MaterialIcons name="cake" size={20} color={Color.Orange.v300} />
+        <MaterialIcons name="cake" size={20} color={Color.primary} />
         <Text style={styles.sectionTitle}>{t('dashboard.upcomingBirthdays')}</Text>
       </HStack>
 

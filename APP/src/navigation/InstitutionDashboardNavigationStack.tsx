@@ -38,7 +38,10 @@ export type InstitutionDashboardNavigationStackParamList = {
   InstitutionDashboardScreen: undefined;
   NotificationCenter: undefined;
   InstitutionTimelineScreen: undefined;
-  SelectElderlyScreen: undefined;
+  SelectElderlyScreen: {
+    calendarMode?: boolean;
+    selectedDate?: string;
+  } | undefined;
   AddMeasurement: {
     elderlyId: number;
     prefillType?: MeasurementType;

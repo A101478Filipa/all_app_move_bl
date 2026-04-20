@@ -17,4 +17,9 @@ export const sosOccurrenceApi = {
 
   getInstitutionSosOccurrences: (): Promise<ApiResponse<SosOccurrence[]>> =>
     api.get('/sos-occurrences/institution').then(response => response.data),
+
+  uploadSosOccurrencePhoto: (occurrenceId: number, formData: FormData): Promise<ApiResponse<{ injuryPhotoUrl: string }>> =>
+    api.post(`/sos-occurrences/${occurrenceId}/photo`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(response => response.data),
 };

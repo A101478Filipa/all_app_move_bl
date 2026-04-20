@@ -149,3 +149,35 @@ export const handleSosOccurrence = async (req, res) => {
     return sendError(res, 'Internal server error', 500);
   }
 };
+export const uploadSosOccurrencePhoto = async (req, res) => {
+  const occurrenceId = Number(req.params.occurrenceId);
+
+  if (!req.file) {
+    return sendError(res, 'No photo file provided', 400);
+  }
+
+  try {
+    const occurrence = await prisma.sosOccurrence.findUnique({
+      where: { id: occurrenceId },
+      include: { elderly: true },
+    });
+
+    if (!occurrence) {
+      return sendError(res, 'SOS occurrence not found', 404);
+    }
+
+    if (occurrence.elderly.institutionId !== req.user.institutionId) {
+      return sendError(res, 'You do not have permission to update this occurrence', 403);
+    }
+
+    const updated = await prisma.sosOccurrence.update({
+      where: { id: occurrenceId },
+      data: { injuryPhotoUrl: req.file.filename },
+    });
+
+    return sendSuccess(res, { injuryPhotoUrl: updated.injuryPhotoUrl }, 'Photo uploaded successfully');
+  } catch (error) {
+    console.error('Error uploading SOS occurrence photo:', error);
+    return sendError(res, 'Internal server error', 500);
+  }
+};

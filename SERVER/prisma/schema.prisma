@@ -398,6 +398,7 @@ model FallOccurrence {
   environment        String?
   injured            Boolean
   injuryDescription  String?
+  injuryPhotoUrl     String?
   measuresTaken      String?
   isFalseAlarm       Boolean @default(false)
   createdAt          DateTime @default(now())
@@ -408,16 +409,25 @@ model FallOccurrence {
 
 // MARK: SosOccurrence
 model SosOccurrence {
-  id             Int      @id @default(autoincrement())
-  elderlyId      Int
-  handlerUserId  Int?
-  date           DateTime
-  wasActualFall  Boolean?
-  notes          String?
-  isFalseAlarm   Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  elderly        Elderly  @relation(fields: [elderlyId], references: [id])
-  handler        User?    @relation("SosOccurrencesHandled", fields: [handlerUserId], references: [id])
+  id                 Int      @id @default(autoincrement())
+  elderlyId          Int
+  handlerUserId      Int?
+  date               DateTime
+  wasActualFall      Boolean?
+  notes              String?
+  isFalseAlarm       Boolean  @default(false)
+  recovery           String?
+  preActivity        String?
+  postActivity       String?
+  direction          String?
+  environment        String?
+  injured            Boolean?
+  injuryDescription  String?
+  injuryPhotoUrl     String?
+  measuresTaken      String?
+  createdAt          DateTime @default(now())
+  elderly            Elderly  @relation(fields: [elderlyId], references: [id])
+  handler            User?    @relation("SosOccurrencesHandled", fields: [handlerUserId], references: [id])
 }
 
 // MARK: FallRisk

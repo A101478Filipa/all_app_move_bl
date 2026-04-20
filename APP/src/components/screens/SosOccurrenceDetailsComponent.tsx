@@ -1,6 +1,6 @@
 import React from 'react';
 import { VStack } from '@components/CoreComponents';
-import { StyleSheet, Text, ScrollView, View } from 'react-native';
+import { StyleSheet, Text, ScrollView, View, Image } from 'react-native';
 import { Color } from '@src/styles/colors';
 import { Spacing, spacingStyles } from '@src/styles/spacings';
 import { Border } from '@src/styles/borders';
@@ -8,6 +8,7 @@ import { FontFamily, FontSize } from '@src/styles/fonts';
 import { shadowStyles } from '@src/styles/shadow';
 import { formatDateLong } from '@src/utils/Date';
 import { useTranslation } from 'react-i18next';
+import { buildAvatarUrl } from '@src/services/ApiService';
 
 type Props = {
   data: any;
@@ -78,6 +79,18 @@ const SosOccurrenceDetailsComponent: React.FC<Props> = ({ data }) => {
                   </View>
                 )}
                 <DetailRow label={t('fallOccurrence.measuresTaken')} value={data?.measuresTaken} />
+
+                {/* Injury photo */}
+                {data?.injuryPhotoUrl && (
+                  <View style={styles.photoContainer}>
+                    <Text style={styles.detailLabel}>{t('fallOccurrence.injuryPhoto')}</Text>
+                    <Image
+                      source={{ uri: buildAvatarUrl(data.injuryPhotoUrl) }}
+                      style={styles.injuryPhoto}
+                      resizeMode="cover"
+                    />
+                  </View>
+                )}
               </VStack>
             </Card>
           </>
@@ -161,7 +174,18 @@ const styles = StyleSheet.create({
     borderRadius: Border.sm_8,
     borderLeftWidth: 3,
     borderLeftColor: Color.Error.default,
-  }
+  },
+  photoContainer: {
+    marginTop: Spacing.sm_8,
+    gap: Spacing.sm_8,
+    width: '100%',
+  },
+  injuryPhoto: {
+    width: '100%',
+    height: 220,
+    borderRadius: Border.md_12,
+    backgroundColor: Color.Gray.v100,
+  },
 });
 
 export default SosOccurrenceDetailsComponent;

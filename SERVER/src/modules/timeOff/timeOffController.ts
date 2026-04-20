@@ -146,3 +146,51 @@ export const deleteTimeOff = async (req, res) => {
     return sendError(res, 'Internal Server Error', 500);
   }
 };
+
+// GET /time-off/institution — all staff time-offs for the admin's institution
+export const getInstitutionTimeOffs = async (req, res) => {
+  const { userId, role } = req.user;
+
+  if (role !== UserRole.INSTITUTION_ADMIN && role !== UserRole.PROGRAMMER) {
+    return sendError(res, 'Forbidden', 403);
+  }
+
+  try {
+    const admin = await prisma.institutionAdmin.findUnique({
+      where: { userId },
+      select: { institutionId: true },
+    });
+
+    if (!admin) return sendError(res, 'Admin not found', 404);
+
+    const [caregivers, clinicians, admins] = await Promise.all([
+      prisma.caregiver.findMany({ where: { institutionId: admin.institutionId }, select: { userId: true } }),
+      prisma.clinician.findMany({ where: { institutionId: admin.institutionId }, select: { userId: true } }),
+      prisma.institutionAdmin.findMany({ where: { institutionId: admin.institutionId }, select: { userId: true } }),
+    ]);
+
+    const staffUserIds = [
+      ...caregivers.map(c => c.userId),
+      ...clinicians.map(c => c.userId),
+      ...admins.map(a => a.userId),
+    ];
+
+    const timeOffs = await prisma.staffTimeOff.findMany({
+      where: { userId: { in: staffUserIds } },
+      orderBy: { startDate: 'asc' },
+      include: {
+        user: { select: userSummarySelect },
+        createdBy: { select: userSummarySelect },
+      },
+    });
+
+    return sendSuccess(res, timeOffs.map(t => ({
+      ...t,
+      user: formatUser(t.user),
+      createdBy: formatUser(t.createdBy),
+    })));
+  } catch (error) {
+    console.error('Error fetching institution time-offs:', error);
+    return sendError(res, 'Internal Server Error', 500);
+  }
+};

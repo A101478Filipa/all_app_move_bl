@@ -3,10 +3,11 @@ import * as Notifications from 'expo-notifications';
 import notificationService from '@src/services/notificationService';
 import { notificationApi } from '@src/api/endpoints/notifications';
 import { useAuthStore } from '@stores/authStore';
-import type { NotificationData, FallOccurrenceNotificationData, SosOccurrenceNotificationData } from 'moveplus-shared';
+import type { NotificationData, FallOccurrenceNotificationData, SosOccurrenceNotificationData, FallDetectionAlertNotificationData } from 'moveplus-shared';
 import { NotificationType } from 'moveplus-shared';
 import { CommonActions } from '@react-navigation/native';
 import { navigationRef } from '@src/services/NavigationService';
+import { useInstitutionDashboardStore } from '@src/stores';
 
 interface NotificationContextType {
   expoPushToken: string | undefined;
@@ -37,6 +38,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const [unreadCount, setUnreadCount] = useState(0);
   const notificationListener = useRef<Notifications.Subscription | undefined>(undefined);
   const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
+  const handledResponseIds = useRef<Set<string>>(new Set());
   const { user } = useAuthStore();
 
   const handleNotificationNavigation = useCallback((data: NotificationData | undefined) => {
@@ -73,7 +75,32 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         );
       }
     }
+
+    if (data.type === NotificationType.FALL_DETECTION_ALERT) {
+      const alertData = data as unknown as FallDetectionAlertNotificationData;
+
+      if (alertData.fallOccurrenceId && navigationRef.isReady()) {
+        navigationRef.dispatch(
+          CommonActions.navigate({
+            name: 'InstitutionDashboardTab',
+            params: {
+              screen: 'FallOccurrenceScreen',
+              params: { occurrenceId: alertData.fallOccurrenceId },
+            },
+          })
+        );
+      }
+    }
   }, []);
+
+  const handleNotificationResponse = useCallback((response: Notifications.NotificationResponse) => {
+    const id = response.notification.request.identifier;
+    if (handledResponseIds.current.has(id)) return;
+    handledResponseIds.current.add(id);
+
+    const data = response.notification.request.content.data as unknown as NotificationData | undefined;
+    handleNotificationNavigation(data);
+  }, [handleNotificationNavigation]);
 
   const refreshUnreadCount = useCallback(async () => {
     if (!user) return;
@@ -94,26 +121,44 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     notificationListener.current = notificationService.addNotificationReceivedListener(
       (notification) => {
         console.log('Notification received:', notification);
+        // Skip the original push when it carries translation keys — the service will
+        // re-schedule a translated copy that will fire a second event without these keys.
+        const rawData = notification.request.content.data as any;
+        if (rawData?.titleKey || rawData?.bodyKey) return;
+
         setNotification(notification);
         setUnreadCount((prev) => prev + 1);
+
+        // Refresh the institution dashboard when a fall or SOS notification arrives
+        // so the caregiver sees the new occurrence immediately without navigating away.
+        const type = rawData?.type as string | undefined;
+        if (
+          type === NotificationType.FALL_DETECTION_ALERT ||
+          type === NotificationType.FALL_OCCURRENCE ||
+          type === NotificationType.SOS_OCCURRENCE
+        ) {
+          useInstitutionDashboardStore.getState().fetch();
+        }
       }
     );
 
     responseListener.current = notificationService.addNotificationResponseReceivedListener(
       (response) => {
         console.log('Notification response:', response);
-        const data = response.notification.request.content.data as unknown as NotificationData | undefined;
-        handleNotificationNavigation(data);
+        handleNotificationResponse(response);
       }
     );
 
-    // Tratar o caso de cold start (app estava completamente fechada)
-    Notifications.getLastNotificationResponseAsync().then((response) => {
-      if (response) {
-        const data = response.notification.request.content.data as unknown as NotificationData | undefined;
-        handleNotificationNavigation(data);
-      }
-    });
+    // Tratar o caso de cold start (app estava completamente fechada).
+    // Use a microtask delay so that addNotificationResponseReceivedListener fires first
+    // when the app is resumed via notification tap, avoiding double navigation.
+    setTimeout(() => {
+      Notifications.getLastNotificationResponseAsync().then((response) => {
+        if (response) {
+          handleNotificationResponse(response);
+        }
+      });
+    }, 0);
 
     return () => {
       if (notificationListener.current) {

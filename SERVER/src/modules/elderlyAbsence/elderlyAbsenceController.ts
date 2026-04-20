@@ -1,4 +1,4 @@
-import { CreateElderlyAbsenceRequest, UpdateElderlyAbsenceRequest } from 'moveplus-shared';
+import { CreateElderlyAbsenceRequest, UpdateElderlyAbsenceRequest, UserRole } from 'moveplus-shared';
 import { sendSuccess, sendError, sendInputValidationError, sendEmptySuccess } from '../../utils/apiResponse';
 import prisma from '../../prisma';
 
@@ -23,6 +23,15 @@ const formatCreator = (u: any) => ({
 // GET /elderly-absences/:elderlyId
 export const getAbsences = async (req, res) => {
   const elderlyId = Number(req.params.elderlyId);
+  const { userId, role } = req.user;
+
+  // Elderly users may only read their own absences
+  if (role === UserRole.ELDERLY) {
+    const elderly = await prisma.elderly.findUnique({ where: { userId }, select: { id: true } });
+    if (!elderly || elderly.id !== elderlyId) {
+      return sendError(res, 'Forbidden', 403);
+    }
+  }
 
   try {
     const absences = await prisma.elderlyAbsence.findMany({
@@ -109,6 +118,38 @@ export const deleteAbsence = async (req, res) => {
     return sendEmptySuccess(res, 'Absence deleted');
   } catch (error) {
     console.error('Error deleting elderly absence:', error);
+    return sendError(res, 'Internal Server Error', 500);
+  }
+};
+
+// GET /elderly-absences/institution — all absences for all elderly in admin's institution
+export const getInstitutionAbsences = async (req, res) => {
+  const { userId, role } = req.user;
+
+  if (role !== UserRole.INSTITUTION_ADMIN && role !== UserRole.PROGRAMMER) {
+    return sendError(res, 'Forbidden', 403);
+  }
+
+  try {
+    const admin = await prisma.institutionAdmin.findUnique({
+      where: { userId },
+      select: { institutionId: true },
+    });
+
+    if (!admin) return sendError(res, 'Admin not found', 404);
+
+    const absences = await prisma.elderlyAbsence.findMany({
+      where: { elderly: { institutionId: admin.institutionId } },
+      orderBy: { startDate: 'asc' },
+      include: {
+        createdBy: { select: creatorSelect },
+        elderly: { select: { id: true, name: true, medicalId: true } },
+      },
+    });
+
+    return sendSuccess(res, absences.map(a => ({ ...a, createdBy: formatCreator(a.createdBy) })));
+  } catch (error) {
+    console.error('Error fetching institution absences:', error);
     return sendError(res, 'Internal Server Error', 500);
   }
 };

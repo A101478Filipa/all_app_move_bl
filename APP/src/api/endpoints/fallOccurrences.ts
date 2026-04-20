@@ -15,4 +15,9 @@ export const fallOccurrenceApi = {
     injured: boolean;
   }): Promise<ApiResponse<FallOccurrence>> =>
     api.post(`/elderly/${elderlyId}/fall-occurrences`, data).then(response => response.data),
+
+  uploadFallOccurrencePhoto: (occurrenceId: number, formData: FormData): Promise<ApiResponse<{ injuryPhotoUrl: string }>> =>
+    api.post(`/fall-occurrences/${occurrenceId}/photo`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(response => response.data),
 };

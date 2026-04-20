@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { VStack, HStack, Spacer } from "@components/CoreComponents";
-import { StyleSheet, Text, ScrollView, View } from "react-native";
+import { StyleSheet, Text, ScrollView, View, Image, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { MaterialIcons } from '@expo/vector-icons';
 import { Color } from '@src/styles/colors';
 import { Spacing, spacingStyles } from '@src/styles/spacings';
 import { Border } from '@src/styles/borders';
@@ -8,9 +9,18 @@ import { FontFamily, FontSize } from '@src/styles/fonts';
 import { shadowStyles } from '@src/styles/shadow';
 import { formatDateLong } from '@src/utils/Date';
 import { useTranslation } from 'react-i18next';
+import { buildAvatarUrl } from '@src/services/ApiService';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
+import { fallOccurrenceApi } from '@src/api/endpoints/fallOccurrences';
 
 type Props = {
   data: any;
+  occurrenceId?: number;
+  canAddPhoto?: boolean;
+  onDataRefresh?: () => void;
 };
 
 const DetailRow = ({ label, value, important = false }: {
@@ -33,9 +43,176 @@ const Card = ({ title, children }: { title: string, children: React.ReactNode })
   </View>
 );
 
-const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data }) => {
+const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, canAddPhoto = false, onDataRefresh }) => {
   const { t } = useTranslation();
   const handled = Boolean(data?.handlerUserId);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const buildPdfFilename = () => {
+    const name = (data?.elderly?.name ?? 'Utente').replace(/\s+/g, '_');
+    const d = data?.date ? new Date(data.date) : new Date();
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${name}_Queda_${day}${month}`;
+  };
+
+  const generatePdfHtml = () => {
+    const elderlyName = data?.elderly?.name ?? '-';
+    const date = data?.date ? formatDateLong(data.date) : '-';
+    const status = handled ? t('fallOccurrence.handled') : t('fallOccurrence.unhandled');
+    const handlerName = data?.handler?.name ?? '-';
+    const isFalseAlarm = data?.isFalseAlarm;
+    const primaryColor = '#35C2C1';
+    const darkColor = '#1a2b3c';
+    const mutedColor = '#6b7280';
+    const borderColor = '#e5e7eb';
+    const lightBg = '#f8fffe';
+    const accentBg = '#f0fffe';
+
+    const row = (label: string, value: string) =>
+      `<tr><td class="td-label">${label}</td><td class="td-value">${value || '-'}</td></tr>`;
+
+    return `
+      <!DOCTYPE html>
+      <html lang="pt">
+      <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: ${darkColor}; font-size: 13px; }
+          .header { background: ${primaryColor}; color: #fff; padding: 28px 36px 22px; }
+          .header-title { font-size: 26px; font-weight: bold; letter-spacing: 1px; }
+          .header-subtitle { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+          .header-meta { margin-top: 14px; font-size: 12px; opacity: 0.9; background: rgba(0,0,0,0.12); display: inline-block; padding: 4px 12px; border-radius: 20px; }
+          .content { padding: 28px 36px; }
+          .section { margin-bottom: 24px; }
+          .section-title { font-size: 14px; font-weight: bold; color: ${primaryColor}; text-transform: uppercase; letter-spacing: 0.8px; padding-bottom: 8px; border-bottom: 2px solid ${primaryColor}; margin-bottom: 12px; }
+          table { width: 100%; border-collapse: collapse; }
+          .td-label { font-weight: bold; color: ${mutedColor}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 12px; width: 40%; background: ${lightBg}; border-bottom: 1px solid ${borderColor}; vertical-align: top; }
+          .td-value { color: ${darkColor}; font-size: 13px; padding: 8px 12px; border-bottom: 1px solid ${borderColor}; vertical-align: top; }
+          .badge-false-alarm { display: inline-block; background: #fef3c7; color: #b45309; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; border: 1px solid #fbbf24; }
+          .badge-handled { display: inline-block; background: #d1fae5; color: #065f46; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; border: 1px solid #6ee7b7; }
+          .badge-unhandled { display: inline-block; background: #fee2e2; color: #991b1b; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; border: 1px solid #fca5a5; }
+          .badge-injured { display: inline-block; background: #fee2e2; color: #991b1b; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+          .badge-ok { display: inline-block; background: #d1fae5; color: #065f46; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+          .footer { margin-top: 36px; padding: 16px 36px; background: ${lightBg}; border-top: 1px solid ${borderColor}; font-size: 11px; color: ${mutedColor}; display: flex; justify-content: space-between; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="header-title">Move+</div>
+          <div class="header-subtitle">${t('fallOccurrence.title')}</div>
+          <div class="header-meta">${t('fallOccurrence.elderly')}: ${elderlyName}</div>
+        </div>
+
+        <div class="content">
+          <div class="section">
+            <div class="section-title">${t('fallOccurrence.basicInformation')}</div>
+            <table>
+              ${row(t('fallOccurrence.elderly'), `<strong>${elderlyName}</strong>`)}
+              ${row(t('fallOccurrence.date'), `<strong>${date}</strong>`)}
+              ${row(t('fallOccurrence.status'), handled
+                ? `<span class="badge-handled">${t('fallOccurrence.handled')}</span>`
+                : `<span class="badge-unhandled">${t('fallOccurrence.unhandled')}</span>`)}
+              ${isFalseAlarm ? row('', `<span class="badge-false-alarm">${t('fallOccurrence.falseAlarm')}</span>`) : ''}
+              ${data?.handler ? row(t('fallOccurrence.handledBy'), handlerName) : ''}
+              ${row(t('fallOccurrence.description'), data?.description ?? '-')}
+            </table>
+          </div>
+
+          ${handled && !isFalseAlarm ? `
+          <div class="section">
+            <div class="section-title">${t('fallOccurrence.fallDetails')}</div>
+            <table>
+              ${row(t('fallOccurrence.recoveryProcess'), data?.recovery ?? '-')}
+              ${row(t('fallOccurrence.preActivity'), data?.preActivity ?? '-')}
+              ${row(t('fallOccurrence.postActivity'), data?.postActivity ?? '-')}
+              ${row(t('fallOccurrence.fallDirection'), data?.direction ?? '-')}
+              ${row(t('fallOccurrence.environment'), data?.environment ?? '-')}
+            </table>
+          </div>
+
+          <div class="section">
+            <div class="section-title">${t('fallOccurrence.injuryInformation')}</div>
+            <table>
+              ${row(t('fallOccurrence.injured'), data?.injured
+                ? `<span class="badge-injured">${t('fallOccurrence.yes')}</span>`
+                : `<span class="badge-ok">${t('fallOccurrence.no')}</span>`)}
+              ${data?.injured ? row(t('fallOccurrence.injuryDescription'), data?.injuryDescription ?? '-') : ''}
+              ${row(t('fallOccurrence.measuresTaken'), data?.measuresTaken ?? '-')}
+            </table>
+          </div>
+          ` : ''}
+        </div>
+
+        <div class="footer">
+          <span>Move+ &copy; ${new Date().getFullYear()}</span>
+          <span>${t('fallOccurrence.generatingPdf').replace('...', '')} ${new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
+  const downloadPdf = async () => {
+    setGeneratingPdf(true);
+    try {
+      const html = generatePdfHtml();
+      const { uri } = await Print.printToFileAsync({ html, base64: false });
+      const filename = buildPdfFilename();
+      const destUri = `${FileSystem.documentDirectory}${filename}.pdf`;
+      await FileSystem.moveAsync({ from: uri, to: destUri });
+      await Sharing.shareAsync(destUri, { mimeType: 'application/pdf', dialogTitle: filename, UTI: 'com.adobe.pdf' });
+    } catch (e) {
+      console.error('Error generating PDF:', e);
+      Alert.alert(t('fallOccurrence.pdfError'));
+    }
+    setGeneratingPdf(false);
+  };
+
+  const pickAndUploadPhoto = async (fromCamera: boolean) => {
+    if (!occurrenceId) return;
+    try {
+      let result: ImagePicker.ImagePickerResult;
+      if (fromCamera) {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') return;
+        result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+      } else {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') return;
+        result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+      }
+      if (!result.canceled && result.assets.length > 0) {
+        setUploadingPhoto(true);
+        const uri = result.assets[0].uri;
+        const formData = new FormData();
+        const filename = uri.split('/').pop() || 'photo.jpg';
+        const ext = /\.(\w+)$/.exec(filename);
+        formData.append('photo', { uri, name: filename, type: ext ? `image/${ext[1]}` : 'image/jpeg' } as any);
+        await fallOccurrenceApi.uploadFallOccurrencePhoto(occurrenceId, formData);
+        setUploadingPhoto(false);
+        onDataRefresh?.();
+      }
+    } catch (e) {
+      console.error('Error uploading photo:', e);
+      setUploadingPhoto(false);
+    }
+  };
+
+  const showPhotoOptions = () => {
+    Alert.alert(
+      t('fallOccurrence.injuryPhoto'),
+      undefined,
+      [
+        { text: t('fallOccurrence.takePhoto'), onPress: () => pickAndUploadPhoto(true) },
+        { text: t('fallOccurrence.chooseFromGallery'), onPress: () => pickAndUploadPhoto(false) },
+        { text: t('common.cancel'), style: 'cancel' },
+      ]
+    );
+  };
 
   return (
     <ScrollView
@@ -87,10 +264,51 @@ const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data }) => {
                 )}
 
                 <DetailRow label={t('fallOccurrence.measuresTaken')} value={data?.measuresTaken} />
+
+                {/* Injury photo */}
+                {data?.injuryPhotoUrl ? (
+                  <View style={styles.photoContainer}>
+                    <Text style={styles.detailLabel}>{t('fallOccurrence.injuryPhoto')}</Text>
+                    <Image
+                      source={{ uri: buildAvatarUrl(data.injuryPhotoUrl) }}
+                      style={styles.injuryPhoto}
+                      resizeMode="cover"
+                    />
+                    {canAddPhoto && (
+                      <TouchableOpacity style={styles.changePhotoButton} onPress={showPhotoOptions} disabled={uploadingPhoto}>
+                        {uploadingPhoto
+                          ? <ActivityIndicator size="small" color={Color.primary} />
+                          : <Text style={styles.changePhotoText}>{t('fallOccurrence.addInjuryPhoto')}</Text>
+                        }
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ) : canAddPhoto ? (
+                  <View style={styles.photoContainer}>
+                    <Text style={styles.detailLabel}>{t('fallOccurrence.injuryPhoto')}</Text>
+                    <TouchableOpacity style={styles.addPhotoButton} onPress={showPhotoOptions} disabled={uploadingPhoto}>
+                      {uploadingPhoto
+                        ? <ActivityIndicator size="small" color={Color.primary} />
+                        : <Text style={styles.addPhotoText}>📷  {t('fallOccurrence.addInjuryPhoto')}</Text>
+                      }
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
               </VStack>
             </Card>
           </>
         )}
+
+        {/* PDF Download Button */}
+        <TouchableOpacity style={styles.pdfButton} onPress={downloadPdf} disabled={generatingPdf}>
+          {generatingPdf
+            ? <ActivityIndicator size="small" color={Color.white} />
+            : <View style={styles.pdfButtonInner}>
+                <MaterialIcons name="picture-as-pdf" size={22} color={Color.white} />
+                <Text style={styles.pdfButtonText}>{t('fallOccurrence.downloadPdf')}</Text>
+              </View>
+          }
+        </TouchableOpacity>
       </VStack>
     </ScrollView>
   );
@@ -162,6 +380,61 @@ const styles = StyleSheet.create({
     color: Color.Warning.amber,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  photoContainer: {
+    marginTop: Spacing.sm_8,
+    gap: Spacing.sm_8,
+    width: '100%',
+  },
+  injuryPhoto: {
+    width: '100%',
+    height: 220,
+    borderRadius: Border.md_12,
+    backgroundColor: Color.Gray.v100,
+  },
+  addPhotoButton: {
+    borderWidth: 1.5,
+    borderColor: Color.primary + '60',
+    borderStyle: 'dashed',
+    borderRadius: Border.md_12,
+    padding: Spacing.md_16,
+    alignItems: 'center',
+    backgroundColor: Color.primary + '05',
+  },
+  addPhotoText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.bodymedium_16,
+    color: Color.primary,
+  },
+  changePhotoButton: {
+    alignSelf: 'flex-end',
+    paddingHorizontal: Spacing.md_16,
+    paddingVertical: Spacing.xs_4,
+    backgroundColor: Color.primary + '15',
+    borderRadius: Border.sm_8,
+  },
+  changePhotoText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.bodysmall_14,
+    color: Color.primary,
+  },
+  pdfButton: {
+    backgroundColor: Color.primary,
+    paddingVertical: Spacing.md_16,
+    borderRadius: Border.md_12,
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    ...shadowStyles.cardShadow,
+  },
+  pdfButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm_8,
+  },
+  pdfButtonText: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.bodymedium_16,
+    color: Color.white,
   },
 });
 

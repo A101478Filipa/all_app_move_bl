@@ -9,6 +9,7 @@ export const HandleFallOccurrenceRequest = z.object({
   environment: z.string().optional(),
   injured: z.boolean(),
   injuryDescription: z.string().optional(),
+  injuryPhotoUrl: z.string().optional(),
   measuresTaken: z.string().optional(),
   isFalseAlarm: z.boolean().optional(),
 });

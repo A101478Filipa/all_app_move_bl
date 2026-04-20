@@ -2,6 +2,8 @@ import express from 'express';
 import { UserRole } from 'moveplus-shared';
 import * as controller from './fallOccurrenceController';
 import { authenticate, authorizeRoles } from '../../middleware/authMiddleware';
+import { uploadIncidentPhoto } from '../../middleware/uploadMiddleware';
+import { sendError } from '../../utils/apiResponse';
 
 const fallOccurrenceRoutes = express.Router();
 
@@ -11,6 +13,13 @@ const writeOccurrenceRoles = [
   UserRole.INSTITUTION_ADMIN,
   UserRole.CAREGIVER,
 ];
+
+const handleMulterError = (error, req, res, next) => {
+  if (error) {
+    return sendError(res, 'File upload error: ' + error.message, 400);
+  }
+  next();
+};
 
 // Define routes
 fallOccurrenceRoutes.get(
@@ -23,6 +32,14 @@ fallOccurrenceRoutes.put(
   '/:occurrenceId',
   authenticate, authorizeRoles(writeOccurrenceRoles),
   controller.handleFallOccurrence
+);
+
+fallOccurrenceRoutes.post(
+  '/:occurrenceId/photo',
+  authenticate, authorizeRoles(writeOccurrenceRoles),
+  uploadIncidentPhoto.single('photo'),
+  handleMulterError,
+  controller.uploadFallOccurrencePhoto
 );
 
 export default fallOccurrenceRoutes;

@@ -68,10 +68,13 @@ const ElderlyCard: React.FC<ElderlyCardProps> = ({ elderly, t,onPress }) => {
   );
 };
 
-const SelectElderlyScreen: React.FC<Props> = ({ navigation }) => {
+const SelectElderlyScreen: React.FC<Props> = ({ navigation, route }) => {
   const { t } = useTranslation();
   const { users, fetchUsers, refreshUsers, state } = useInstitutionMembersStore();
   const [searchQuery, setSearchQuery] = useState('');
+
+  const calendarMode = (route.params as any)?.calendarMode as boolean | undefined;
+  const selectedDate = (route.params as any)?.selectedDate as string | undefined;
 
   useFocusEffect(
     useCallback(() => {
@@ -81,9 +84,13 @@ const SelectElderlyScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleElderlySelect = useCallback(
     (elderly: Elderly) => {
-      navigation.navigate('AddMeasurement', { elderlyId: elderly.id });
+      if (calendarMode) {
+        navigation.navigate('AddCalendarEvent', { elderlyId: elderly.id, selectedDate });
+      } else {
+        navigation.navigate('AddMeasurement', { elderlyId: elderly.id });
+      }
     },
-    [navigation]
+    [navigation, calendarMode, selectedDate]
   );
 
   const handleRefresh = useCallback(() => {

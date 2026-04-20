@@ -114,7 +114,12 @@
     "sortFallRisk": "Fall Risk",
     "sortPatientAge": "Patient Age",
     "bathSchedule": "Bath Schedule",
-    "bathScheduleSubtitle": "Manage and schedule resident baths"
+    "bathScheduleSubtitle": "Manage and schedule resident baths",
+    "upcomingBirthdays": "Upcoming Birthdays",
+    "birthdayToday": "Today! 🎂",
+    "birthdayTomorrow": "Tomorrow",
+    "birthdayInDays": "In {{days}} days",
+    "birthdayAge": "{{age}} years old"
   },
   "bath": {
     "title": "Baths",
@@ -461,7 +466,20 @@
     "markAsFalseAlarm": "Mark as False Alarm",
     "falseAlarmWarning": "This will mark the fall occurrence as a false alarm. This action cannot be undone.",
     "falseAlarm": "False Alarm",
-    "fillRequiredFields": "Please fill in all required fields before submitting"
+    "fillRequiredFields": "Please fill in all required fields before submitting",
+    "injuryPhoto": "Injury Photo",
+    "addInjuryPhoto": "Add Injury Photo",
+    "takePhoto": "Take Photo",
+    "chooseFromGallery": "Choose from Gallery",
+    "removePhoto": "Remove Photo",
+    "uploadingPhoto": "Uploading photo...",
+    "photoUploadFailed": "Failed to upload photo",
+    "downloadPdf": "Download PDF Report",
+    "generatingPdf": "Generating PDF...",
+    "pdfError": "Error generating PDF",
+    "permissionRequired": "Permission Required",
+    "cameraPermissionMessage": "Permission to access camera is required",
+    "galleryPermissionMessage": "Permission to access gallery is required"
   },
   "sosOccurrence": {
     "title": "SOS Alert",

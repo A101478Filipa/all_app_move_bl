@@ -84,6 +84,9 @@ export const NotificationCenterScreen: React.FC = () => {
     if (notification.type === 'fall_occurrence' && notification.data.fallOccurrenceId) {
       params.occurrenceId = notification.data.fallOccurrenceId;
       (navigation as any).navigate('FallOccurrenceScreen', params);
+    } else if (notification.type === 'fall_detection_alert' && notification.data.fallOccurrenceId) {
+      params.occurrenceId = notification.data.fallOccurrenceId;
+      (navigation as any).navigate('FallOccurrenceScreen', params);
     } else if (notification.type === 'data_access_request') {
       // Navigate to data access requests screen if needed
     }

@@ -17,6 +17,7 @@ import Toast from 'react-native-toast-message';
 import { CalendarEvent, CalendarEventType } from 'moveplus-shared';
 import { calendarEventApi } from '@src/api/endpoints/calendarEvents';
 import { EVENT_TYPE_CONFIG } from '@components/CalendarEventCard';
+import { UpcomingBirthdaysWidget } from '@components/UpcomingBirthdaysWidget';
 
 
 const SOS_COLOR = Color.Warning.amber;
@@ -306,6 +307,9 @@ const ElderlyDashboardScreen = () => {
             </VStack>
           )}
         </View>
+
+        {/* Upcoming Birthdays */}
+        <UpcomingBirthdaysWidget />
 
         {/* Pending Data Access Requests */}
         <PendingDataAccessRequestsWidget

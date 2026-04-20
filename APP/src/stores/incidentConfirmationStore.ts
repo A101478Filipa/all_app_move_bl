@@ -45,7 +45,7 @@ export const useIncidentConfirmationStore = create<IncidentConfirmationStore>((s
     if (pendingIncident?.timeoutId) {
       clearTimeout(pendingIncident.timeoutId);
     }
-    set({ isModalVisible: false });
+    set({ isModalVisible: false, pendingIncident: null });
   },
 
   cancelIncident: () => {

@@ -14,6 +14,13 @@ const institutionManagementRoles = [
   UserRole.CLINICIAN
 ];
 
+const institutionUsersRoles = [
+  UserRole.INSTITUTION_ADMIN,
+  UserRole.CAREGIVER,
+  UserRole.CLINICIAN,
+  UserRole.ELDERLY,
+];
+
 institutionsRoutes.get(
   '/',
   authenticate, authorizeRoles([UserRole.PROGRAMMER]),
@@ -28,7 +35,7 @@ institutionsRoutes.post(
 
 institutionsRoutes.get(
   '/users',
-  authenticate, authorizeRoles(institutionManagementRoles), authorizeSameInstitution,
+  authenticate, authorizeRoles(institutionUsersRoles), authorizeSameInstitution,
   controller.indexInstitutionUsers
 );
 

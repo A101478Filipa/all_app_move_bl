@@ -6,12 +6,22 @@ import { authenticate, authorizeRoles } from '../../middleware/authMiddleware';
 const elderlyAbsenceRoutes = express.Router();
 
 const STAFF = [UserRole.CAREGIVER, UserRole.INSTITUTION_ADMIN, UserRole.CLINICIAN, UserRole.PROGRAMMER];
+const ADMIN_ONLY = [UserRole.INSTITUTION_ADMIN, UserRole.PROGRAMMER];
+const STAFF_OR_ELDERLY = [...STAFF, UserRole.ELDERLY];
+
+// GET /elderly-absences/institution — all absences for admin's institution (must be before /:elderlyId)
+elderlyAbsenceRoutes.get(
+  '/institution',
+  authenticate,
+  authorizeRoles(ADMIN_ONLY),
+  controller.getInstitutionAbsences,
+);
 
 // GET /elderly-absences/:elderlyId  — list absences for an elderly
 elderlyAbsenceRoutes.get(
   '/:elderlyId',
   authenticate,
-  authorizeRoles(STAFF),
+  authorizeRoles(STAFF_OR_ELDERLY),
   controller.getAbsences,
 );
 

@@ -12,6 +12,7 @@ import { useTranslation } from '@src/localization/hooks/useTranslation';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ClinicianDashboardNavigationStackParamList } from '@navigation/ClinicianDashboardNavigationStack';
+import { UpcomingBirthdaysWidget } from '@components/UpcomingBirthdaysWidget';
 
 // MARK: Types
 type NavigationProp = NativeStackNavigationProp<ClinicianDashboardNavigationStackParamList>;
@@ -96,10 +97,14 @@ const ClinicianDashboardScreen = () => {
         showsVerticalScrollIndicator={false}
       >
 
+        {/* Upcoming Birthdays */}
+        <UpcomingBirthdaysWidget
+          onElderlyPress={(elderly) => navigation.push('ElderlyDetails', { elderlyId: elderly.id, name: elderly.name })}
+        />
+
         {/* Quick Actions Section */}
         <VStack spacing={Spacing.sm_8} style={styles.section}>
           <Text style={styles.sectionTitle}>{t('dashboard.quickActions')}</Text>
-
           <VStack style={{ alignSelf: 'stretch' }} spacing={Spacing.md_16}>
             <DashboardWidget
               title={t('dataAccessRequest.approvedRequests')}

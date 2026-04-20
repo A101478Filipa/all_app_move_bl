@@ -105,7 +105,12 @@
     "sortFallRisk": "Risco de Queda",
     "sortPatientAge": "Idade dos Pacientes",
     "bathSchedule": "Calendário de Banhos",
-    "bathScheduleSubtitle": "Gerir e agendar banhos dos residentes"
+    "bathScheduleSubtitle": "Gerir e agendar banhos dos residentes",
+    "upcomingBirthdays": "Próximos Aniversários",
+    "birthdayToday": "Hoje! 🎂",
+    "birthdayTomorrow": "Amanhã",
+    "birthdayInDays": "Em {{days}} dias",
+    "birthdayAge": "{{age}} anos"
   },
   "bath": {
     "title": "Banhos",
@@ -459,7 +464,20 @@
     "markAsFalseAlarm": "Marcar como Falso Alarme",
     "falseAlarmWarning": "Isto irá marcar a ocorrência de queda como um falso alarme. Esta ação não pode ser desfeita.",
     "falseAlarm": "Falso Alarme",
-    "fillRequiredFields": "Por favor preencha todos os campos obrigatórios antes de submeter"
+    "fillRequiredFields": "Por favor preencha todos os campos obrigatórios antes de submeter",
+    "injuryPhoto": "Foto da Ferida",
+    "addInjuryPhoto": "Adicionar Foto da Ferida",
+    "takePhoto": "Tirar Foto",
+    "chooseFromGallery": "Escolher da Galeria",
+    "removePhoto": "Remover Foto",
+    "uploadingPhoto": "A carregar foto...",
+    "photoUploadFailed": "Falha ao carregar foto",
+    "downloadPdf": "Descarregar Relatório PDF",
+    "generatingPdf": "A gerar PDF...",
+    "pdfError": "Erro ao gerar o PDF",
+    "permissionRequired": "Permissão Necessária",
+    "cameraPermissionMessage": "É necessária permissão para aceder à câmara",
+    "galleryPermissionMessage": "É necessária permissão para aceder à galeria"
   },
   "sosOccurrence": {
     "title": "Alerta SOS",

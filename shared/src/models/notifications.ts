@@ -28,6 +28,7 @@ export interface FallOccurrenceNotificationData extends NotificationData {
 export interface FallDetectionAlertNotificationData extends NotificationData {
   type: 'fall_detection_alert';
   elderlyId: number;
+  fallOccurrenceId?: number;
   detectedAt: string;
   magnitude?: number;
   params: {

@@ -1,6 +1,8 @@
 {
   "fallAlertTitle": "⚠️ Fall Alert",
   "fallAlertBody": "{elderlyName} reported a fall. Please check immediately.",
+  "fallDetectionAlertTitle": "🚨 Fall Detected",
+  "fallDetectionAlertBody": "{elderlyName} may have suffered a fall (detected by accelerometer). Please check immediately.",
   "sosAlertTitle": "🆘 SOS Alert",
   "sosAlertBody": "{elderlyName} is requesting help. Please respond immediately."
 }

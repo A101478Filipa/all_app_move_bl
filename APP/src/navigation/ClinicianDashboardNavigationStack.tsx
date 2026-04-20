@@ -12,6 +12,7 @@ import { ElderlyMeasurementsComponent, ElderlyMeasurementsArgs } from "@componen
 import { NotificationCenterStack } from "@src/navigation/NotificationCenterStack";
 import ElderlyCalendarScreen from "@src/screens/elderly/ElderlyCalendarScreen";
 import AddCalendarEventScreen from "@src/screens/elderly/AddCalendarEventScreen";
+import SelectElderlyScreen from "@src/screens/elderly/SelectElderlyScreen";
 import ElderlyMedicationsListScreen from "@src/screens/elderly/ElderlyMedicationsListScreen";
 import ElderlyPathologiesListScreen from "@src/screens/elderly/ElderlyPathologiesListScreen";
 import ElderlyFallsListScreen from "@src/screens/elderly/ElderlyFallsListScreen";
@@ -30,6 +31,10 @@ export type ClinicianDashboardNavigationStackParamList = {
   DataAccessRequests: {
     filter: 'APPROVED' | 'PENDING';
   };
+  SelectElderlyScreen: {
+    calendarMode?: boolean;
+    selectedDate?: string;
+  } | undefined;
   ElderlyDetails: {
     name: string;
     elderlyId: number;
@@ -115,6 +120,11 @@ export const ClinicianDashboardNavigationStack = () => {
             ? t('dataAccessRequest.approvedRequests')
             : t('dataAccessRequest.pendingRequests'),
         })}
+      />
+      <Stack.Screen
+        name='SelectElderlyScreen'
+        component={SelectElderlyScreen}
+        options={{ title: t('navigation.selectPatient') }}
       />
       <Stack.Screen
         name='ElderlyDetails'

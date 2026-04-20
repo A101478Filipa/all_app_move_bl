@@ -105,15 +105,30 @@ const FallOccurrenceScreen: React.FC<Props> = ({ route, navigation }) => {
   const handled = Boolean(data.handlerUserId);
   const showDetailsOnly = shouldShowDetailsOnly || handled;
 
+  const canAddPhoto = !shouldShowDetailsOnly;
+
+  const refreshData = async () => {
+    try {
+      const res = await fallOccurrenceApi.getFallOccurrence(occurrenceId);
+      setData(res.data);
+    } catch {}
+  };
+
   return (
     <View style={styles.safeArea}>
       {showDetailsOnly ? (
-        <FallOccurrenceDetailsComponent data={data} />
+        <FallOccurrenceDetailsComponent
+          data={data}
+          occurrenceId={occurrenceId}
+          canAddPhoto={canAddPhoto}
+          onDataRefresh={refreshData}
+        />
       ) : (
         <HandleFallOccurrenceComponent
           onSubmit={handleSubmit}
           loading={submitting}
           fall={data}
+          occurrenceId={occurrenceId}
         />
       )}
     </View>

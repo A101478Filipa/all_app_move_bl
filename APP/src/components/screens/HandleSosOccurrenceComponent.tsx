@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { VStack } from "@components/CoreComponents";
-import { StyleSheet, Text, TextInput, View, Switch, ScrollView } from "react-native";
+import { StyleSheet, Text, TextInput, View, Switch, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert } from "react-native";
 import { Color } from '@src/styles/colors';
 import { Spacing, spacingStyles } from '@src/styles/spacings';
 import { Border } from '@src/styles/borders';
@@ -8,11 +8,14 @@ import { FontFamily, FontSize } from '@src/styles/fonts';
 import { PrimaryButton } from '@components/ButtonComponents';
 import { shadowStyles } from '@src/styles/shadow';
 import { useTranslation } from 'react-i18next';
+import * as ImagePicker from 'expo-image-picker';
+import { sosOccurrenceApi } from '@src/api/endpoints/sosOccurrences';
 
 type Props = {
   onSubmit: (data: any) => void;
   loading?: boolean;
   sos?: any;
+  occurrenceId: number;
 };
 
 const LabeledInput: React.FC<{
@@ -40,7 +43,7 @@ const LabeledInput: React.FC<{
   </View>
 );
 
-const HandleSosOccurrenceComponent: React.FC<Props> = ({ onSubmit, loading = false, sos }) => {
+const HandleSosOccurrenceComponent: React.FC<Props> = ({ onSubmit, loading = false, sos, occurrenceId }) => {
   const { t } = useTranslation();
   
   // Estados base do SOS
@@ -57,10 +60,50 @@ const HandleSosOccurrenceComponent: React.FC<Props> = ({ onSubmit, loading = fal
   const [injured, setInjured] = useState(sos?.injured || false);
   const [injuryDescription, setInjuryDescription] = useState(sos?.injuryDescription || '');
   const [measuresTaken, setMeasuresTaken] = useState(sos?.measuresTaken || '');
+  const [injuryPhotoUri, setInjuryPhotoUri] = useState<string | null>(sos?.injuryPhotoUrl || null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  const handleSubmit = () => {
+  const pickPhoto = async (fromCamera: boolean) => {
+    try {
+      let result: ImagePicker.ImagePickerResult;
+      if (fromCamera) {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(t('fallOccurrence.permissionRequired'), t('fallOccurrence.cameraPermissionMessage'));
+          return;
+        }
+        result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+      } else {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(t('fallOccurrence.permissionRequired'), t('fallOccurrence.galleryPermissionMessage'));
+          return;
+        }
+        result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+      }
+      if (!result.canceled && result.assets.length > 0) {
+        setInjuryPhotoUri(result.assets[0].uri);
+      }
+    } catch (e) {
+      console.error('Error picking photo:', e);
+    }
+  };
+
+  const showPhotoOptions = () => {
+    Alert.alert(
+      t('fallOccurrence.injuryPhoto'),
+      undefined,
+      [
+        { text: t('fallOccurrence.takePhoto'), onPress: () => pickPhoto(true) },
+        { text: t('fallOccurrence.chooseFromGallery'), onPress: () => pickPhoto(false) },
+        { text: t('common.cancel'), style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleSubmit = async () => {
     if (!isFalseAlarm) {
       const missingFields =
         !measuresTaken.trim() ||
@@ -71,6 +114,22 @@ const HandleSosOccurrenceComponent: React.FC<Props> = ({ onSubmit, loading = fal
       }
     }
     setValidationError(null);
+
+    // Upload photo first if one was picked locally
+    if (injured && injuryPhotoUri && injuryPhotoUri.startsWith('file')) {
+      setUploadingPhoto(true);
+      try {
+        const formData = new FormData();
+        const filename = injuryPhotoUri.split('/').pop() || 'photo.jpg';
+        const ext = /\.(\w+)$/.exec(filename);
+        formData.append('photo', { uri: injuryPhotoUri, name: filename, type: ext ? `image/${ext[1]}` : 'image/jpeg' } as any);
+        await sosOccurrenceApi.uploadSosOccurrencePhoto(occurrenceId, formData);
+      } catch (e) {
+        console.error('Error uploading injury photo:', e);
+      }
+      setUploadingPhoto(false);
+    }
+
     const payload = {
       isFalseAlarm,
       wasActualFall: isFalseAlarm ? false : wasActualFall,
@@ -195,6 +254,23 @@ const HandleSosOccurrenceComponent: React.FC<Props> = ({ onSubmit, loading = fal
                   placeholder={t('fallOccurrence.describeInjuries')}
                   required
                 />
+
+                {/* Photo picker */}
+                <View style={styles.photoSection}>
+                  <Text style={styles.label}>{t('fallOccurrence.injuryPhoto')}</Text>
+                  {injuryPhotoUri ? (
+                    <View style={styles.photoPreviewContainer}>
+                      <Image source={{ uri: injuryPhotoUri }} style={styles.photoPreview} resizeMode="cover" />
+                      <TouchableOpacity style={styles.removePhotoButton} onPress={() => setInjuryPhotoUri(null)}>
+                        <Text style={styles.removePhotoText}>{t('fallOccurrence.removePhoto')}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity style={styles.addPhotoButton} onPress={showPhotoOptions}>
+                      <Text style={styles.addPhotoText}>📷  {t('fallOccurrence.addInjuryPhoto')}</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
             )}
 
@@ -213,8 +289,14 @@ const HandleSosOccurrenceComponent: React.FC<Props> = ({ onSubmit, loading = fal
         {validationError && (
           <Text style={styles.validationError}>{validationError}</Text>
         )}
+        {uploadingPhoto && (
+          <View style={styles.uploadingRow}>
+            <ActivityIndicator size="small" color={Color.primary} />
+            <Text style={styles.uploadingText}>{t('fallOccurrence.uploadingPhoto')}</Text>
+          </View>
+        )}
         <PrimaryButton
-          title={loading ? t('common.generating') : t('sosOccurrence.submitReport')}
+          title={loading || uploadingPhoto ? t('common.generating') : t('sosOccurrence.submitReport')}
           onPress={handleSubmit}
         />
       </View>
@@ -237,11 +319,20 @@ const styles = StyleSheet.create({
   halfWidth: { flex: 1 },
   switchContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: Color.white, padding: Spacing.md_16, borderRadius: Border.md_12, borderWidth: 1, borderColor: Color.Gray.v200, ...shadowStyles.cardShadow },
   switchLabel: { fontFamily: FontFamily.bold, fontSize: FontSize.bodymedium_16, color: Color.Gray.v500 },
-  injurySection: { backgroundColor: Color.Error.default + '10', padding: Spacing.md_16, borderRadius: Border.md_12, borderWidth: 1, borderColor: Color.Error.default + '30' },
+  injurySection: { backgroundColor: Color.Error.default + '10', padding: Spacing.md_16, borderRadius: Border.md_12, borderWidth: 1, borderColor: Color.Error.default + '30', gap: Spacing.md_16 },
   warningSection: { backgroundColor: Color.Warning.amber + '10', padding: Spacing.md_16, borderRadius: Border.md_12, borderWidth: 1, borderColor: Color.Warning.amber + '30' },
   warningText: { fontFamily: FontFamily.regular, fontSize: FontSize.bodysmall_14, color: Color.Gray.v500, textAlign: 'center' },
   buttonContainer: { marginTop: Spacing.xl_32, ...shadowStyles.floatingButtonShadow },
   validationError: { fontFamily: FontFamily.medium, fontSize: FontSize.bodysmall_14, color: Color.Error.default, textAlign: 'center', marginBottom: Spacing.sm_8 },
+  photoSection: { gap: Spacing.sm_8 },
+  addPhotoButton: { borderWidth: 1.5, borderColor: Color.primary + '60', borderStyle: 'dashed', borderRadius: Border.md_12, padding: Spacing.md_16, alignItems: 'center', backgroundColor: Color.primary + '05' },
+  addPhotoText: { fontFamily: FontFamily.medium, fontSize: FontSize.bodymedium_16, color: Color.primary },
+  photoPreviewContainer: { gap: Spacing.sm_8 },
+  photoPreview: { width: '100%', height: 200, borderRadius: Border.md_12, backgroundColor: Color.Gray.v100 },
+  removePhotoButton: { alignSelf: 'flex-end', paddingHorizontal: Spacing.md_16, paddingVertical: Spacing.xs_4, backgroundColor: Color.Error.default + '15', borderRadius: Border.sm_8 },
+  removePhotoText: { fontFamily: FontFamily.medium, fontSize: FontSize.bodysmall_14, color: Color.Error.default },
+  uploadingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm_8, marginBottom: Spacing.sm_8 },
+  uploadingText: { fontFamily: FontFamily.medium, fontSize: FontSize.bodysmall_14, color: Color.primary },
 });
 
 export default HandleSosOccurrenceComponent;

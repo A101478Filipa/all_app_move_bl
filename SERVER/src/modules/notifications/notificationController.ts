@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from '../../constants/AuthenticatedRequest';
 import prisma from '../../prisma';
 import { sendSuccess, sendError } from '../../utils/apiResponse';
 import notificationService from '../../services/notificationService';
+import { getTranslation } from '../../localization/translation';
 import {
   UserRole,
   FallDetectionAlertNotificationData,
@@ -320,6 +321,17 @@ export const reportFallAlert = async (req: AuthenticatedRequest, res: Response) 
 
     console.log(`[Fall Alert] Fall detected for elderly ${elderly.name} (ID: ${elderly.id})`);
 
+    // Create a FallOccurrence record so it appears in the dashboard
+    const fallOccurrence = await prisma.fallOccurrence.create({
+      data: {
+        elderlyId: elderly.id,
+        date: new Date(detectedAt || new Date().toISOString()),
+        injured: false,
+      },
+    });
+
+    console.log(`[Fall Alert] Created FallOccurrence ID: ${fallOccurrence.id}`);
+
     const pushTokens: string[] = [];
     const userIdsToNotify: number[] = [];
 
@@ -337,9 +349,14 @@ export const reportFallAlert = async (req: AuthenticatedRequest, res: Response) 
       }
     });
 
+    const userLang = 'pt';
+    const pushTitle = getTranslation(userLang, 'fallDetectionAlertTitle');
+    const pushBody = getTranslation(userLang, 'fallDetectionAlertBody', { elderlyName: elderly.name });
+
     const notificationData: FallDetectionAlertNotificationData = {
       type: NotificationType.FALL_DETECTION_ALERT,
       elderlyId: elderly.id,
+      fallOccurrenceId: fallOccurrence.id,
       detectedAt: detectedAt || new Date().toISOString(),
       magnitude,
       timestamp: new Date().toISOString(),
@@ -356,8 +373,8 @@ export const reportFallAlert = async (req: AuthenticatedRequest, res: Response) 
           data: {
             userId: targetUserId,
             type: NotificationType.FALL_DETECTION_ALERT,
-            title: NotificationKeys.fallDetectionAlert.titleKey,
-            body: NotificationKeys.fallDetectionAlert.bodyKey,
+            title: pushTitle,
+            body: pushBody,
             data: notificationData as any,
             read: false,
           },
@@ -371,8 +388,8 @@ export const reportFallAlert = async (req: AuthenticatedRequest, res: Response) 
       try {
         await notificationService.sendPushNotifications(
           pushTokens,
-          NotificationKeys.fallDetectionAlert.titleKey,
-          NotificationKeys.fallDetectionAlert.bodyKey,
+          pushTitle,
+          pushBody,
           notificationData
         );
         console.log(`[Fall Alert] Sent push notifications to ${pushTokens.length} devices`);
@@ -383,6 +400,7 @@ export const reportFallAlert = async (req: AuthenticatedRequest, res: Response) 
 
     return sendSuccess(res, {
       notificationsSent: userIdsToNotify.length,
+      fallOccurrenceId: fallOccurrence.id,
       message: 'Fall alert sent to caregivers'
     }, 'Fall detected and caregivers notified', 200);
   } catch (error) {

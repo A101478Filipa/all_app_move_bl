@@ -8,6 +8,14 @@ const timeOffRoutes = express.Router();
 const ALL_STAFF = [UserRole.CAREGIVER, UserRole.INSTITUTION_ADMIN, UserRole.CLINICIAN, UserRole.PROGRAMMER];
 const ADMIN_ONLY = [UserRole.INSTITUTION_ADMIN, UserRole.PROGRAMMER];
 
+// GET /time-off/institution — all time-offs for admin's institution (must be before /:userId)
+timeOffRoutes.get(
+  '/institution',
+  authenticate,
+  authorizeRoles(ADMIN_ONLY),
+  controller.getInstitutionTimeOffs,
+);
+
 // GET /time-off/:userId  — list time-off for a user
 timeOffRoutes.get(
   '/:userId',
