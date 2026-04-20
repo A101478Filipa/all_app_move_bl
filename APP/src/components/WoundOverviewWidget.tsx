@@ -28,24 +28,16 @@ type Props = {
 export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) => {
   const { t } = useTranslation();
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState<'open' | 'resolved' | 'chart'>('open');
+  const [sortMethod, setSortMethod] = useState<'date_desc' | 'date_asc' | 'name'>('date_desc');
 
-  const orderedCases = useMemo(() => {
-    return [...overview.cases].sort((left, right) => {
-      if (left.isResolved !== right.isResolved) {
-        return Number(left.isResolved) - Number(right.isResolved);
-      }
-      return new Date(right.referenceDate).getTime() - new Date(left.referenceDate).getTime();
-    });
-  }, [overview.cases]);
-
-  // Monthly bar chart data: last 6 months
+  // Monthly bar chart: all cases grouped by referenceDate (date of last activity)
   const monthlyBarData = useMemo(() => {
     const now = new Date();
     return Array.from({ length: 6 }, (_, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
       const count = overview.cases.filter(c => {
-        if (c.isResolved) return false;
-        const cd = new Date(c.occurrenceDate);
+        const cd = new Date(c.referenceDate);
         return cd.getFullYear() === d.getFullYear() && cd.getMonth() === d.getMonth();
       }).length;
       const label = d.toLocaleDateString('pt-PT', { month: 'short' });
@@ -60,15 +52,21 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
   const lastMonthCount = monthlyBarData[4]?.value ?? 0;
   const thisMonthCount = monthlyBarData[5]?.value ?? 0;
   const maxBarValue = Math.max(...monthlyBarData.map(d => d.value), 2);
+  // "Este mês" = cases with last activity this month
+  const thisMonthAllCount = thisMonthCount;
 
-  // "Este mês" counts ALL cases (open + resolved) whose occurrenceDate falls this month
-  const thisMonthAllCount = useMemo(() => {
-    const now = new Date();
-    return overview.cases.filter(c => {
-      const cd = new Date(c.occurrenceDate);
-      return cd.getFullYear() === now.getFullYear() && cd.getMonth() === now.getMonth();
-    }).length;
-  }, [overview.cases]);
+  const openCases = useMemo(() => overview.cases.filter(c => !c.isResolved), [overview.cases]);
+  const resolvedCases = useMemo(() => overview.cases.filter(c => c.isResolved), [overview.cases]);
+
+  const sortedCases = useMemo(() => {
+    const list = activeTab === 'open' ? openCases : (activeTab === 'resolved' ? resolvedCases : []);
+    return [...list].sort((a, b) => {
+      if (sortMethod === 'date_desc') return new Date(b.referenceDate).getTime() - new Date(a.referenceDate).getTime();
+      if (sortMethod === 'date_asc') return new Date(a.referenceDate).getTime() - new Date(b.referenceDate).getTime();
+      if (sortMethod === 'name') return a.elderly.name.localeCompare(b.elderly.name, 'pt');
+      return 0;
+    });
+  }, [openCases, resolvedCases, activeTab, sortMethod]);
 
   const handleCasePress = (item: WoundOverviewCase) => {
     setIsModalVisible(false);
@@ -79,11 +77,7 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
   return (
     <View style={styles.section}>
       {/* ── Compact hero card ── */}
-      <TouchableOpacity
-        style={styles.heroCard}
-        activeOpacity={0.85}
-        onPress={() => setIsModalVisible(true)}
-      >
+      <View style={styles.heroCard}>
         {/* Header */}
         <HStack spacing={Spacing.sm_8} align="center" style={styles.heroHeader}>
           <View style={styles.heroIconBg}>
@@ -100,16 +94,24 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
           )}
         </HStack>
 
-        {/* Stats row */}
+        {/* Stats row — each card opens modal on its tab */}
         <View style={styles.statsRow}>
-          <View style={[styles.statCard, styles.statCardOpen]}>
+          <TouchableOpacity
+            style={[styles.statCard, styles.statCardOpen]}
+            onPress={() => { setActiveTab('open'); setIsModalVisible(true); }}
+            activeOpacity={0.75}
+          >
             <Text style={[styles.statNumber, { color: Color.Orange.v500 }]}>{overview.openCount}</Text>
             <Text style={styles.statLabel}>{t('dashboard.woundsOpen')}</Text>
-          </View>
-          <View style={[styles.statCard, styles.statCardResolved]}>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.statCard, styles.statCardResolved]}
+            onPress={() => { setActiveTab('resolved'); setIsModalVisible(true); }}
+            activeOpacity={0.75}
+          >
             <Text style={[styles.statNumber, { color: Color.Cyan.v500 }]}>{overview.resolvedCount}</Text>
             <Text style={styles.statLabel}>{t('dashboard.woundsResolved')}</Text>
-          </View>
+          </TouchableOpacity>
           <View style={[styles.statCard, styles.statCardMonth]}>
             <Text style={[styles.statNumber, { color: Color.primary }]}>{thisMonthAllCount}</Text>
             <Text style={styles.statLabel}>{t('dashboard.woundThisMonth')}</Text>
@@ -117,11 +119,15 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
         </View>
 
         {/* Footer */}
-        <HStack style={styles.heroFooter} align="center">
+        <TouchableOpacity
+          style={styles.heroFooter}
+          onPress={() => { setActiveTab('open'); setIsModalVisible(true); }}
+          activeOpacity={0.75}
+        >
           <Text style={styles.heroFooterText}>{t('dashboard.woundSeeDetails')}</Text>
           <MaterialIcons name="chevron-right" size={18} color={Color.primary} />
-        </HStack>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </View>
 
       {/* ── Full detail modal ── */}
       <Modal
@@ -143,74 +149,122 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
               </TouchableOpacity>
             </HStack>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalListContent}>
-              {/* Summary stats */}
-              <View style={styles.modalStatsRow}>
-                <View style={[styles.modalStatCard, { borderColor: Color.Orange.v200 }]}>
-                  <Text style={[styles.modalStatNumber, { color: Color.Orange.v500 }]}>{overview.openCount}</Text>
-                  <Text style={styles.modalStatLabel}>{t('dashboard.woundsOpen')}</Text>
-                </View>
-                <View style={[styles.modalStatCard, { borderColor: Color.Cyan.v200 }]}>
-                  <Text style={[styles.modalStatNumber, { color: Color.Cyan.v500 }]}>{overview.resolvedCount}</Text>
-                  <Text style={styles.modalStatLabel}>{t('dashboard.woundsResolved')}</Text>
-                </View>
-              </View>
+            {/* Tabs */}
+            <View style={styles.tabsRow}>
+              <TouchableOpacity
+                style={[styles.tab, activeTab === 'open' && styles.tabActive]}
+                onPress={() => setActiveTab('open')}
+              >
+                <Text style={[styles.tabText, activeTab === 'open' && styles.tabTextActive]}>
+                  {t('dashboard.woundsOpen')} ({overview.openCount})
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, activeTab === 'resolved' && styles.tabActive]}
+                onPress={() => setActiveTab('resolved')}
+              >
+                <Text style={[styles.tabText, activeTab === 'resolved' && styles.tabTextActive]}>
+                  {t('dashboard.woundsResolved')} ({overview.resolvedCount})
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, styles.tabIcon, activeTab === 'chart' && styles.tabActive]}
+                onPress={() => setActiveTab('chart')}
+              >
+                <MaterialIcons name="bar-chart" size={18} color={activeTab === 'chart' ? Color.primary : Color.Gray.v400} />
+              </TouchableOpacity>
+            </View>
 
-              {/* Monthly chart */}
-              <View style={styles.chartSection}>
-                <HStack align="center" style={styles.chartHeader} spacing={Spacing.xs_4}>
-                  <MaterialIcons name="bar-chart" size={18} color={Color.primary} />
-                  <Text style={styles.chartTitle}>{t('dashboard.woundMonthlyChart')}</Text>
-                </HStack>
+            {/* Sort chips — only for case tabs */}
+            {activeTab !== 'chart' && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.sortChipsContent}
+              >
+                <TouchableOpacity
+                  style={[styles.filterChip, sortMethod === 'date_desc' && styles.filterChipActive]}
+                  onPress={() => setSortMethod('date_desc')}
+                >
+                  <Text style={[styles.filterText, sortMethod === 'date_desc' && styles.filterTextActive]}>
+                    {t('dashboard.sortDateNewest')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterChip, sortMethod === 'date_asc' && styles.filterChipActive]}
+                  onPress={() => setSortMethod('date_asc')}
+                >
+                  <Text style={[styles.filterText, sortMethod === 'date_asc' && styles.filterTextActive]}>
+                    {t('dashboard.sortDateOldest')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterChip, sortMethod === 'name' && styles.filterChipActive]}
+                  onPress={() => setSortMethod('name')}
+                >
+                  <Text style={[styles.filterText, sortMethod === 'name' && styles.filterTextActive]}>
+                    {t('dashboard.sortName')}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            )}
 
-                <View style={styles.chartBadgesRow}>
-                  <View style={styles.chartBadge}>
-                    <Text style={styles.chartBadgeText}>
-                      {t('dashboard.woundLastMonth')}: <Text style={{ color: Color.primary, fontFamily: FontFamily.bold }}>{lastMonthCount}</Text>
-                    </Text>
+            {/* Content */}
+            {activeTab === 'chart' ? (
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: Spacing.sm_8, gap: Spacing.md_16 }}>
+                <View style={styles.chartSection}>
+                  <HStack align="center" style={styles.chartHeader} spacing={Spacing.xs_4}>
+                    <MaterialIcons name="bar-chart" size={18} color={Color.primary} />
+                    <Text style={styles.chartTitle}>{t('dashboard.woundMonthlyChart')}</Text>
+                  </HStack>
+                  <View style={styles.chartBadgesRow}>
+                    <View style={styles.chartBadge}>
+                      <Text style={styles.chartBadgeText}>
+                        {t('dashboard.woundLastMonth')}: <Text style={{ color: Color.primary, fontFamily: FontFamily.bold }}>{lastMonthCount}</Text>
+                      </Text>
+                    </View>
+                    <View style={styles.chartBadge}>
+                      <Text style={styles.chartBadgeText}>
+                        {t('dashboard.woundThisMonth')}: <Text style={{ color: Color.primary, fontFamily: FontFamily.bold }}>{thisMonthCount}</Text>
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.chartBadge}>
-                    <Text style={styles.chartBadgeText}>
-                      {t('dashboard.woundThisMonth')}: <Text style={{ color: Color.primary, fontFamily: FontFamily.bold }}>{thisMonthCount}</Text>
-                    </Text>
-                  </View>
+                  <BarChart
+                    data={monthlyBarData}
+                    barWidth={32}
+                    barBorderRadius={6}
+                    spacing={18}
+                    noOfSections={3}
+                    maxValue={maxBarValue + 1}
+                    xAxisThickness={1}
+                    xAxisColor={Color.Gray.v200}
+                    yAxisThickness={0}
+                    yAxisTextStyle={{ color: Color.Gray.v400, fontSize: 10, fontFamily: FontFamily.regular }}
+                    xAxisLabelTextStyle={{ color: Color.Gray.v400, fontSize: 10, fontFamily: FontFamily.regular }}
+                    isAnimated
+                    disablePress
+                  />
                 </View>
-
-                <BarChart
-                  data={monthlyBarData}
-                  barWidth={32}
-                  barBorderRadius={6}
-                  spacing={18}
-                  noOfSections={3}
-                  maxValue={maxBarValue + 1}
-                  xAxisThickness={1}
-                  xAxisColor={Color.Gray.v200}
-                  yAxisThickness={0}
-                  yAxisTextStyle={{ color: Color.Gray.v400, fontSize: 10, fontFamily: FontFamily.regular }}
-                  xAxisLabelTextStyle={{ color: Color.Gray.v400, fontSize: 10, fontFamily: FontFamily.regular }}
-                  isAnimated
-                  disablePress
-                />
-              </View>
-
-              {/* Divider */}
-              <View style={styles.divider} />
-
-              {/* Case list */}
-              {orderedCases.length === 0 ? (
-                <Text style={styles.emptyText}>{t('dashboard.woundNoCases')}</Text>
-              ) : (
-                <VStack spacing={Spacing.sm_12} align="stretch">
-                  {orderedCases.map((item) => (
+              </ScrollView>
+            ) : (
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                style={{ flexShrink: 1 }}
+                contentContainerStyle={{ paddingBottom: Spacing.lg_24, gap: Spacing.sm_12 }}
+              >
+                {sortedCases.length === 0 ? (
+                  <Text style={styles.emptyText}>{t('dashboard.woundNoCases')}</Text>
+                ) : (
+                  sortedCases.map((item) => (
                     <WoundCaseCard
                       key={`modal-${item.occurrenceType}-${item.occurrenceId}`}
                       item={item}
                       onPress={() => handleCasePress(item)}
                     />
-                  ))}
-                </VStack>
-              )}
-            </ScrollView>
+                  ))
+                )}
+              </ScrollView>
+            )}
           </View>
         </View>
       </Modal>
@@ -369,6 +423,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   heroFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 2,
   },
@@ -406,33 +462,64 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: Spacing.xs_4,
   },
-  modalListContent: {
-    paddingTop: Spacing.sm_8,
-    paddingBottom: Spacing.lg_24,
-    gap: Spacing.md_16,
-  },
-  modalStatsRow: {
+  tabsRow: {
     flexDirection: 'row',
-    gap: Spacing.sm_12,
-  },
-  modalStatCard: {
-    flex: 1,
+    backgroundColor: Color.Gray.v100,
     borderRadius: Border.md_12,
-    borderWidth: 1.5,
-    padding: Spacing.md_16,
-    alignItems: 'center',
+    padding: 4,
     gap: 4,
-    backgroundColor: Color.Background.white,
+    marginBottom: Spacing.sm_8,
   },
-  modalStatNumber: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSize.heading2_28,
+  tab: {
+    flex: 1,
+    paddingVertical: Spacing.sm_8,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    borderRadius: Border.sm_8,
   },
-  modalStatLabel: {
+  tabIcon: {
+    flex: 0,
+    paddingHorizontal: Spacing.sm_8,
+  },
+  tabActive: {
+    backgroundColor: Color.white,
+    ...shadowStyles.cardShadow,
+  },
+  tabText: {
     fontFamily: FontFamily.medium,
-    fontSize: FontSize.bodysmall_14,
+    fontSize: FontSize.caption_12,
     color: Color.Gray.v400,
     textAlign: 'center',
+  },
+  tabTextActive: {
+    fontFamily: FontFamily.bold,
+    color: Color.primary,
+  },
+  sortChipsContent: {
+    gap: 8,
+    paddingBottom: Spacing.sm_8,
+    paddingHorizontal: 2,
+  },
+  filterChip: {
+    paddingVertical: Spacing.xs_4 + 2,
+    paddingHorizontal: Spacing.md_16,
+    borderRadius: Border.full,
+    backgroundColor: Color.Gray.v100,
+    borderWidth: 1,
+    borderColor: Color.Gray.v200,
+  },
+  filterChipActive: {
+    backgroundColor: Color.primary + '1A',
+    borderColor: Color.primary,
+  },
+  filterText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.bodysmall_14,
+    color: Color.Gray.v500,
+  },
+  filterTextActive: {
+    fontFamily: FontFamily.bold,
+    color: Color.primary,
   },
   // ── Chart section ──
   chartSection: {
@@ -465,10 +552,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.regular,
     fontSize: FontSize.bodysmall_14,
     color: Color.Gray.v400,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Color.Gray.v100,
   },
   emptyText: {
     fontFamily: FontFamily.regular,
