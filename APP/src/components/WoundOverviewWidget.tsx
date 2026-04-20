@@ -61,6 +61,15 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
   const thisMonthCount = monthlyBarData[5]?.value ?? 0;
   const maxBarValue = Math.max(...monthlyBarData.map(d => d.value), 2);
 
+  // "Este mês" counts ALL cases (open + resolved) whose occurrenceDate falls this month
+  const thisMonthAllCount = useMemo(() => {
+    const now = new Date();
+    return overview.cases.filter(c => {
+      const cd = new Date(c.occurrenceDate);
+      return cd.getFullYear() === now.getFullYear() && cd.getMonth() === now.getMonth();
+    }).length;
+  }, [overview.cases]);
+
   const handleCasePress = (item: WoundOverviewCase) => {
     setIsModalVisible(false);
     onCasePress(item);
@@ -102,7 +111,7 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
             <Text style={styles.statLabel}>{t('dashboard.woundsResolved')}</Text>
           </View>
           <View style={[styles.statCard, styles.statCardMonth]}>
-            <Text style={[styles.statNumber, { color: Color.primary }]}>{thisMonthCount}</Text>
+            <Text style={[styles.statNumber, { color: Color.primary }]}>{thisMonthAllCount}</Text>
             <Text style={styles.statLabel}>{t('dashboard.woundThisMonth')}</Text>
           </View>
         </View>
@@ -191,7 +200,7 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
               {orderedCases.length === 0 ? (
                 <Text style={styles.emptyText}>{t('dashboard.woundNoCases')}</Text>
               ) : (
-                <VStack spacing={Spacing.sm_12}>
+                <VStack spacing={Spacing.sm_12} align="stretch">
                   {orderedCases.map((item) => (
                     <WoundCaseCard
                       key={`modal-${item.occurrenceType}-${item.occurrenceId}`}
@@ -336,7 +345,7 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     borderRadius: Border.md_12,
-    padding: Spacing.sm_12,
+    padding: Spacing.sm_8,
     alignItems: 'center',
     gap: 2,
   },
@@ -351,11 +360,11 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontFamily: FontFamily.bold,
-    fontSize: FontSize.heading3_24,
+    fontSize: FontSize.bodylarge_18,
   },
   statLabel: {
     fontFamily: FontFamily.medium,
-    fontSize: 11,
+    fontSize: 10,
     color: Color.Gray.v400,
     textAlign: 'center',
   },
@@ -470,6 +479,7 @@ const styles = StyleSheet.create({
   },
   // ── Case cards ──
   caseCard: {
+    alignSelf: 'stretch',
     backgroundColor: Color.white,
     borderRadius: Border.lg_16,
     padding: Spacing.md_16,
