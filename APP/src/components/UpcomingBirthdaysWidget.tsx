@@ -48,7 +48,7 @@ function getDayLabel(days: number, t: (k: string) => string): string {
   return t('dashboard.birthdayInDays').replace('{{days}}', String(days));
 }
 
-const BIRTHDAY_COLOR = '#FF9F43'; // consistent warm orange for all birthday cards
+const BIRTHDAY_COLOR = Color.Cyan.v300; // consistent teal for all birthday cards
 
 function getAvatarColor(_name: string): string {
   return BIRTHDAY_COLOR;
