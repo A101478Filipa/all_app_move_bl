@@ -29,15 +29,15 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
   const { t } = useTranslation();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'open' | 'resolved' | 'chart'>('open');
-  const [sortMethod, setSortMethod] = useState<'date_desc' | 'date_asc' | 'name'>('date_desc');
+  const [sortMethod, setSortMethod] = useState<'date_desc' | 'date_asc'>('date_desc');
 
-  // Monthly bar chart: all cases grouped by referenceDate (date of last activity)
+  // Monthly bar chart: all cases grouped by occurrenceDate (when the wound was registered)
   const monthlyBarData = useMemo(() => {
     const now = new Date();
     return Array.from({ length: 6 }, (_, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
       const count = overview.cases.filter(c => {
-        const cd = new Date(c.referenceDate);
+        const cd = new Date(c.occurrenceDate);
         return cd.getFullYear() === d.getFullYear() && cd.getMonth() === d.getMonth();
       }).length;
       const label = d.toLocaleDateString('pt-PT', { month: 'short' });
@@ -52,7 +52,7 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
   const lastMonthCount = monthlyBarData[4]?.value ?? 0;
   const thisMonthCount = monthlyBarData[5]?.value ?? 0;
   const maxBarValue = Math.max(...monthlyBarData.map(d => d.value), 2);
-  // "Este mês" = cases with last activity this month
+  // "Este mês" = wounds registered this month (by occurrenceDate)
   const thisMonthAllCount = thisMonthCount;
 
   const openCases = useMemo(() => overview.cases.filter(c => !c.isResolved), [overview.cases]);
@@ -63,7 +63,6 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
     return [...list].sort((a, b) => {
       if (sortMethod === 'date_desc') return new Date(b.referenceDate).getTime() - new Date(a.referenceDate).getTime();
       if (sortMethod === 'date_asc') return new Date(a.referenceDate).getTime() - new Date(b.referenceDate).getTime();
-      if (sortMethod === 'name') return a.elderly.name.localeCompare(b.elderly.name, 'pt');
       return 0;
     });
   }, [openCases, resolvedCases, activeTab, sortMethod]);
@@ -196,14 +195,6 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
                 >
                   <Text style={[styles.filterText, sortMethod === 'date_asc' && styles.filterTextActive]}>
                     {t('dashboard.sortDateOldest')}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.filterChip, sortMethod === 'name' && styles.filterChipActive]}
-                  onPress={() => setSortMethod('name')}
-                >
-                  <Text style={[styles.filterText, sortMethod === 'name' && styles.filterTextActive]}>
-                    {t('dashboard.sortName')}
                   </Text>
                 </TouchableOpacity>
               </ScrollView>
