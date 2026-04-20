@@ -107,7 +107,8 @@ export const showElderly = async (req, res) => {
         pathologies: true,
         medications: true,
         fallOccurrences: true,
-        sosOccurrences: true
+        sosOccurrences: true,
+        woundTrackings: { select: { id: true } },
       }
     });
 
