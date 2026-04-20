@@ -211,7 +211,6 @@ export const getInstitutionWoundOverview = async (req, res) => {
         where: {
           elderly: elderlyWhere,
           injured: true,
-          handlerUserId: { not: null },
           isFalseAlarm: false,
         },
         include: {
@@ -224,7 +223,6 @@ export const getInstitutionWoundOverview = async (req, res) => {
         where: {
           elderly: elderlyWhere,
           injured: true,
-          handlerUserId: { not: null },
           isFalseAlarm: false,
         },
         include: {
