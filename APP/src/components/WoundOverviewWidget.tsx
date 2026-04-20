@@ -29,7 +29,7 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
   const { t } = useTranslation();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'open' | 'resolved' | 'chart'>('open');
-  const [sortMethod, setSortMethod] = useState<'date_desc' | 'date_asc'>('date_desc');
+  const [sortMethod, setSortMethod] = useState<'date_desc' | 'date_asc' | 'name'>('date_desc');
 
   // Monthly bar chart: all cases grouped by occurrenceDate (when the wound was registered)
   const monthlyBarData = useMemo(() => {
@@ -63,6 +63,7 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
     return [...list].sort((a, b) => {
       if (sortMethod === 'date_desc') return new Date(b.referenceDate).getTime() - new Date(a.referenceDate).getTime();
       if (sortMethod === 'date_asc') return new Date(a.referenceDate).getTime() - new Date(b.referenceDate).getTime();
+      if (sortMethod === 'name') return a.elderly.name.localeCompare(b.elderly.name, 'pt');
       return 0;
     });
   }, [openCases, resolvedCases, activeTab, sortMethod]);
@@ -197,6 +198,14 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
                     {t('dashboard.sortDateOldest')}
                   </Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterChip, sortMethod === 'name' && styles.filterChipActive]}
+                  onPress={() => setSortMethod('name')}
+                >
+                  <Text style={[styles.filterText, sortMethod === 'name' && styles.filterTextActive]}>
+                    Nome
+                  </Text>
+                </TouchableOpacity>
               </ScrollView>
             )}
 
@@ -206,7 +215,7 @@ export const WoundOverviewWidget: React.FC<Props> = ({ overview, onCasePress }) 
                 <View style={styles.chartSection}>
                   <HStack align="center" style={styles.chartHeader} spacing={Spacing.xs_4}>
                     <MaterialIcons name="bar-chart" size={18} color={Color.primary} />
-                    <Text style={styles.chartTitle}>{t('dashboard.woundMonthlyChart')}</Text>
+                    <Text style={styles.chartTitle}>Feridas registadas por mês (últimos 6 meses)</Text>
                   </HStack>
                   <View style={styles.chartBadgesRow}>
                     <View style={styles.chartBadge}>
