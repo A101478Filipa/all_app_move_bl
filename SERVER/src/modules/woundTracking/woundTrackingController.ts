@@ -171,17 +171,32 @@ export const getElderlyWoundTrackings = async (req, res) => {
 
     if (!hasAccess) return sendError(res, 'Forbidden', 403);
 
-    const trackings = await prisma.woundTracking.findMany({
-      where: {
-        OR: [
-          { elderlyId },
-          { fallOccurrence: { elderlyId } },
-          { sosOccurrence: { elderlyId } },
-        ],
-      },
-      include: woundTrackingInclude,
-      orderBy: { createdAt: 'desc' },
-    });
+    let trackings;
+    try {
+      trackings = await prisma.woundTracking.findMany({
+        where: {
+          OR: [
+            { elderlyId },
+            { fallOccurrence: { elderlyId } },
+            { sosOccurrence: { elderlyId } },
+          ],
+        },
+        include: woundTrackingInclude,
+        orderBy: { createdAt: 'desc' },
+      });
+    } catch {
+      // Fallback: elderlyId column may not exist yet, query without it
+      trackings = await prisma.woundTracking.findMany({
+        where: {
+          OR: [
+            { fallOccurrence: { elderlyId } },
+            { sosOccurrence: { elderlyId } },
+          ],
+        },
+        include: woundTrackingInclude,
+        orderBy: { createdAt: 'desc' },
+      });
+    }
 
     return sendSuccess(res, trackings, 'Wound trackings fetched');
   } catch (e) {
