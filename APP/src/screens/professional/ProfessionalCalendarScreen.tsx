@@ -15,6 +15,7 @@ import { calendarEventApi } from '@src/api/endpoints/calendarEvents';
 import { staffScheduleApi } from '@src/api/endpoints/staffSchedule';
 import { timeOffApi, StaffTimeOffWithUser } from '@src/api/endpoints/timeOff';
 import { elderlyAbsenceApi, ElderlyAbsenceWithElderly } from '@src/api/endpoints/elderlyAbsence';
+import { api } from '@src/services/ApiService';
 import { EVENT_TYPE_CONFIG } from '@components/CalendarEventCard';
 import { ActivityIndicatorOverlay } from '@components/ActivityIndicatorOverlay';
 import { useAuthStore } from '@src/stores/authStore';
@@ -183,8 +184,8 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
       // Fetch institution-wide time-offs and absences for admin
       if (isAdmin) {
         const [instTimeOffRes, instAbsencesRes] = await Promise.all([
-          timeOffApi.getInstitutionTimeOffs().catch(() => ({ data: [] })),
-          elderlyAbsenceApi.getInstitutionAbsences().catch(() => ({ data: [] })),
+          api.get('time-off/institution', { _silentError: true } as any).then((r: any) => r.data).catch(() => ({ data: [] })),
+          api.get('elderly-absences/institution', { _silentError: true } as any).then((r: any) => r.data).catch(() => ({ data: [] })),
         ]);
         setAdminTimeOffs(instTimeOffRes.data ?? []);
         setAdminAbsences(instAbsencesRes.data ?? []);

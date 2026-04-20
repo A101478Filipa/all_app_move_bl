@@ -104,8 +104,8 @@ const UnhandledFallsSection: React.FC<{
   // Ordenar a lista consoante o botão escolhido
   const sortedFalls = [...unhandledFalls].sort((a, b) => {
     if (sortMethod === 'date_desc' || sortMethod === 'date_asc') {
-      const dateA = new Date(a.createdAt || 0).getTime();
-      const dateB = new Date(b.createdAt || 0).getTime();
+      const dateA = new Date(a.date || 0).getTime();
+      const dateB = new Date(b.date || 0).getTime();
       return sortMethod === 'date_desc' ? dateB - dateA : dateA - dateB;
     }
     
@@ -295,8 +295,8 @@ const UnhandledSosSection: React.FC<{
   // Ordenar a lista consoante o botão escolhido
   const sortedSOS = [...unhandledSOS].sort((a, b) => {
     if (sortMethod === 'date_desc' || sortMethod === 'date_asc') {
-      const dateA = new Date(a.createdAt || 0).getTime();
-      const dateB = new Date(b.createdAt || 0).getTime();
+      const dateA = new Date(a.date || 0).getTime();
+      const dateB = new Date(b.date || 0).getTime();
       return sortMethod === 'date_desc' ? dateB - dateA : dateA - dateB;
     }
     

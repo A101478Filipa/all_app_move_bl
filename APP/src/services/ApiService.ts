@@ -1,8 +1,9 @@
 import axios, { AxiosResponse, AxiosError, AxiosRequestConfig } from 'axios';
 import { asyncStorageService } from './AsyncStorageService';
-import { SERVER_ADDRESS as _SERVER_ADDRESS, SERVER_PORT as _SERVER_PORT } from '@env';
+import { SERVER_ADDRESS as _SERVER_ADDRESS, SERVER_PORT as _SERVER_PORT, SERVER_URL as _SERVER_URL } from '@env';
 const SERVER_ADDRESS = _SERVER_ADDRESS?.trim();
 const SERVER_PORT = _SERVER_PORT?.trim();
+const SERVER_URL = _SERVER_URL?.trim();
 import Toast from 'react-native-toast-message';
 import { Platform } from 'react-native';
 
@@ -39,21 +40,22 @@ const getServerAddress = () => {
 };
 
 const serverAddress = getServerAddress();
+const baseServerUrl = SERVER_URL || `http://${serverAddress}:${SERVER_PORT}`;
 
-console.log(`[ApiService] Platform: ${Platform.OS}, Server Address: ${serverAddress}:${SERVER_PORT}`);
+console.log(`[ApiService] Platform: ${Platform.OS}, Base URL: ${baseServerUrl}`);
 
 export const api = axios.create({
-  baseURL: `http://${serverAddress}:${SERVER_PORT}/api`,
+  baseURL: `${baseServerUrl}/api`,
   timeout: 15000,
   withCredentials: true,
 });
 
 export const buildAvatarUrl = (avatar: string) => {
   if (avatar && avatar.startsWith('default/')) {
-    return `http://${serverAddress}:${SERVER_PORT}/${avatar}`;
+    return `${baseServerUrl}/${avatar}`;
   }
 
-  return `http://${serverAddress}:${SERVER_PORT}/uploads/${avatar}`;
+  return `${baseServerUrl}/uploads/${avatar}`;
 };
 
 api.interceptors.request.use(async (config) => {
@@ -139,15 +141,18 @@ api.interceptors.response.use(
 
     if (message) {
       console.error('Server error message:', message);
-      Toast.show({
-        type: 'error',
-        text1: 'Server Error',
-        text2: message,
-        position: 'top',
-        visibilityTime: 5000,
-        autoHide: true,
-        topOffset: 60,
-      });
+      const isSilent = (error.config as any)?._silentError === true;
+      if (!isSilent) {
+        Toast.show({
+          type: 'error',
+          text1: 'Server Error',
+          text2: message,
+          position: 'top',
+          visibilityTime: 5000,
+          autoHide: true,
+          topOffset: 60,
+        });
+      }
       return Promise.reject(new Error(message));
     }
 
