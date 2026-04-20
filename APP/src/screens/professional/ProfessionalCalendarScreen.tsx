@@ -13,7 +13,8 @@ import {
 } from 'moveplus-shared';
 import { calendarEventApi } from '@src/api/endpoints/calendarEvents';
 import { staffScheduleApi } from '@src/api/endpoints/staffSchedule';
-import { timeOffApi } from '@src/api/endpoints/timeOff';
+import { timeOffApi, StaffTimeOffWithUser } from '@src/api/endpoints/timeOff';
+import { elderlyAbsenceApi, ElderlyAbsenceWithElderly } from '@src/api/endpoints/elderlyAbsence';
 import { EVENT_TYPE_CONFIG } from '@components/CalendarEventCard';
 import { ActivityIndicatorOverlay } from '@components/ActivityIndicatorOverlay';
 import { useAuthStore } from '@src/stores/authStore';
@@ -119,6 +120,16 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
   const scrollRef = useRef<ScrollView>(null);
   const slideAnim = useRef(new Animated.Value(500)).current;
 
+  // Admin-only institution-wide data
+  const [adminTimeOffs, setAdminTimeOffs] = useState<StaffTimeOffWithUser[]>([]);
+  const [adminAbsences, setAdminAbsences] = useState<ElderlyAbsenceWithElderly[]>([]);
+  const [filterHolidays, setFilterHolidays] = useState(true);
+  const [filterStaffVacations, setFilterStaffVacations] = useState(true);
+  const [filterElderlyAbsences, setFilterElderlyAbsences] = useState(true);
+  // Role-based event filters (admin only) — true = show that role's events
+  const [filterCaregivers, setFilterCaregivers] = useState(true);
+  const [filterClinicians, setFilterClinicians] = useState(true);
+
   const openModal = (ev: ProfessionalCalendarEvent) => {
     slideAnim.setValue(500);
     setSelectedModal(ev);
@@ -168,6 +179,16 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
         setWorkSchedule(schedRes.data);
         setTimeOffs(timeOffRes.data ?? []);
       }
+
+      // Fetch institution-wide time-offs and absences for admin
+      if (isAdmin) {
+        const [instTimeOffRes, instAbsencesRes] = await Promise.all([
+          timeOffApi.getInstitutionTimeOffs().catch(() => ({ data: [] })),
+          elderlyAbsenceApi.getInstitutionAbsences().catch(() => ({ data: [] })),
+        ]);
+        setAdminTimeOffs(instTimeOffRes.data ?? []);
+        setAdminAbsences(instAbsencesRes.data ?? []);
+      }
     } catch (err) {
       handleError(err);
     } finally {
@@ -192,17 +213,28 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     return s.charAt(0).toUpperCase() + s.slice(1);
   }, [selectedDate]);
 
+  // Events filtered by role (admin only) – used everywhere instead of raw `events`
+  const displayedEvents = useMemo(() => {
+    if (!isAdmin || (filterCaregivers && filterClinicians)) return events;
+    return events.filter(e => {
+      const role = (e as any).assignedTo?.role;
+      if (role === 'CAREGIVER' && !filterCaregivers) return false;
+      if (role === 'CLINICIAN' && !filterClinicians) return false;
+      return true;
+    });
+  }, [events, isAdmin, filterCaregivers, filterClinicians]);
+
   const selectedDayEvents = useMemo(
     () =>
-      events
+      displayedEvents
         .filter(e => isSameDay(new Date(e.startDate), selectedDate))
         .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()),
-    [events, selectedDate]
+    [displayedEvents, selectedDate]
   );
 
   const dayDotMap = useMemo(() => {
     const map = new Map<string, string[]>();
-    for (const e of events) {
+    for (const e of displayedEvents) {
       const d = new Date(e.startDate);
       const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
       const color = (EVENT_TYPE_CONFIG[e.type] ?? EVENT_TYPE_CONFIG[CalendarEventType.OTHER]).color;
@@ -210,7 +242,7 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
       if (!prev.includes(color) && prev.length < 3) map.set(key, [...prev, color]);
     }
     return map;
-  }, [events]);
+  }, [displayedEvents]);
 
   // ── Month view derived ────────────────────────────────────────────────────
   const mvYear = selectedDate.getFullYear();
@@ -218,7 +250,7 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const monthDotMap = useMemo(() => {
     const map = new Map<number, string[]>();
-    for (const e of events) {
+    for (const e of displayedEvents) {
       const d = new Date(e.startDate);
       if (d.getFullYear() !== mvYear || d.getMonth() !== mvMonth) continue;
       const day = d.getDate();
@@ -227,7 +259,7 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
       if (!prev.includes(color) && prev.length < 3) map.set(day, [...prev, color]);
     }
     return map;
-  }, [events, mvYear, mvMonth]);
+  }, [displayedEvents, mvYear, mvMonth]);
 
   const monthCellRows = useMemo(() => {
     const daysInMonth = getDaysInMonth(mvYear, mvMonth);
@@ -288,6 +320,62 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     return null;
   }, [isAdmin, getHolidayForDay, getTimeOffForDay, isWorkDay]);
 
+  /** For admin view: category dots to show on each day (filtered by toggles) */
+  const getAdminDayDots = useCallback((d: Date): { color: string; key: string }[] => {
+    if (!isAdmin) return [];
+    const dots: { color: string; key: string }[] = [];
+
+    if (filterHolidays) {
+      const holiday = getHolidayForDay(d);
+      if (holiday) dots.push({ color: '#FF4C4C', key: 'holiday' });
+    }
+
+    if (filterStaffVacations) {
+      const hits = adminTimeOffs.filter(t => {
+        const start = new Date(t.startDate); start.setHours(0, 0, 0, 0);
+        const end = new Date(t.endDate); end.setHours(23, 59, 59, 999);
+        return d >= start && d <= end;
+      });
+      if (hits.length > 0) {
+        const colors = hits.slice(0, 3).map(t => {
+          if (t.type === TimeOffType.VACATION) return '#22C55E';
+          if (t.type === TimeOffType.SICK_LEAVE) return '#A855F7';
+          return '#F97316';
+        });
+        colors.forEach((c, i) => dots.push({ color: c, key: `timeoff-${i}` }));
+      }
+    }
+
+    if (filterElderlyAbsences) {
+      const hasAbsence = adminAbsences.some(a => {
+        const start = new Date(a.startDate); start.setHours(0, 0, 0, 0);
+        const end = new Date(a.endDate); end.setHours(23, 59, 59, 999);
+        return d >= start && d <= end;
+      });
+      if (hasAbsence) dots.push({ color: Color.Gray.v400, key: 'absence' });
+    }
+
+    return dots.slice(0, 5);
+  }, [isAdmin, filterHolidays, filterStaffVacations, filterElderlyAbsences, getHolidayForDay, adminTimeOffs, adminAbsences]);
+
+  /** For admin view: get time-offs and absences for a specific day (for banner in week view) */
+  const getAdminDayInfo = useCallback((d: Date): { timeOffs: StaffTimeOffWithUser[]; absences: ElderlyAbsenceWithElderly[]; holiday?: string } | null => {
+    if (!isAdmin) return null;
+    const holiday = filterHolidays ? getHolidayForDay(d) : undefined;
+    const dayTimeOffs = filterStaffVacations ? adminTimeOffs.filter(t => {
+      const start = new Date(t.startDate); start.setHours(0, 0, 0, 0);
+      const end = new Date(t.endDate); end.setHours(23, 59, 59, 999);
+      return d >= start && d <= end;
+    }) : [];
+    const dayAbsences = filterElderlyAbsences ? adminAbsences.filter(a => {
+      const start = new Date(a.startDate); start.setHours(0, 0, 0, 0);
+      const end = new Date(a.endDate); end.setHours(23, 59, 59, 999);
+      return d >= start && d <= end;
+    }) : [];
+    if (!holiday && dayTimeOffs.length === 0 && dayAbsences.length === 0) return null;
+    return { timeOffs: dayTimeOffs, absences: dayAbsences, holiday };
+  }, [isAdmin, filterHolidays, filterStaffVacations, filterElderlyAbsences, getHolidayForDay, adminTimeOffs, adminAbsences]);
+
   // ── Navigation ────────────────────────────────────────────────────────────
   const navigateWeek = (delta: number) =>
     setSelectedDate(d => {
@@ -312,6 +400,11 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     closeModal();
     setTimeout(() => navigation.push('AddCalendarEvent', { elderlyId: ev.elderlyId, editEvent: ev }), 250);
   };
+
+  const handleAddEvent = useCallback(() => {
+    const dateStr = selectedDate.toISOString();
+    navigation.push('SelectElderlyScreen', { calendarMode: true, selectedDate: dateStr } as any);
+  }, [navigation, selectedDate]);
 
   const currentTimeY = (currentTime.getHours() + currentTime.getMinutes() / 60) * HOUR_HEIGHT;
 
@@ -464,6 +557,7 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
             const isToday = isSameDay(cellDate, todayMemo);
             const dots = monthDotMap.get(day) ?? [];
             const overlay = getDayOverlay(cellDate);
+            const adminDots = getAdminDayDots(cellDate);
             return (
               <TouchableOpacity
                 key={`${mvYear}-${mvMonth}-${day}`}
@@ -490,6 +584,9 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
                   <View style={styles.dotRow}>
                     {dots.map((c, i) => (
                       <View key={i} style={[styles.dot, { backgroundColor: selected ? '#fff' : c }]} />
+                    ))}
+                    {adminDots.map((d, i) => (
+                      <View key={`a${i}`} style={[styles.dot, { backgroundColor: selected ? '#fff' : d.color }]} />
                     ))}
                   </View>
                 )}
@@ -560,6 +657,7 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
           const dotKey = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
           const dots = dayDotMap.get(dotKey) ?? [];
           const overlay = getDayOverlay(day);
+          const adminDots = getAdminDayDots(day);
           return (
             <TouchableOpacity
               key={dotKey}
@@ -589,6 +687,9 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
                 <View style={styles.dotRow}>
                   {dots.map((c, i) => (
                     <View key={i} style={[styles.dot, { backgroundColor: selected ? '#fff' : c }]} />
+                  ))}
+                  {adminDots.map((d, i) => (
+                    <View key={`a${i}`} style={[styles.dot, { backgroundColor: selected ? '#fff' : d.color }]} />
                   ))}
                 </View>
               )}
@@ -645,6 +746,42 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         );
         return null;
+      })()}
+
+      {/* Admin overlays: time-offs and elderly absences for selected day */}
+      {(() => {
+        const adminInfo = getAdminDayInfo(selectedDate);
+        if (!adminInfo) return null;
+        return (
+          <>
+            {adminInfo.holiday && (
+              <View style={[styles.dayBanner, { backgroundColor: '#FF4C4C18', borderColor: '#FF4C4C' }]}>
+                <MaterialIcons name="event-busy" size={15} color="#FF4C4C" />
+                <Text style={[styles.dayBannerText, { color: '#FF4C4C' }]}>Feriado: {adminInfo.holiday}</Text>
+              </View>
+            )}
+            {adminInfo.timeOffs.length > 0 && (
+              <View style={[styles.dayBanner, { backgroundColor: '#22C55E18', borderColor: '#22C55E' }]}>
+                <MaterialIcons name="beach-access" size={15} color="#22C55E" />
+                <Text style={[styles.dayBannerText, { color: '#22C55E' }]} numberOfLines={1}>
+                  {adminInfo.timeOffs.map(t => {
+                    const label = t.type === TimeOffType.VACATION ? 'Férias'
+                      : t.type === TimeOffType.SICK_LEAVE ? 'Baixa' : 'Folga';
+                    return `${t.user.name} (${label})`;
+                  }).join(', ')}
+                </Text>
+              </View>
+            )}
+            {adminInfo.absences.length > 0 && (
+              <View style={[styles.dayBanner, { backgroundColor: Color.Gray.v200 + '55', borderColor: Color.Gray.v300 }]}>
+                <MaterialIcons name="person-off" size={15} color={Color.Gray.v500} />
+                <Text style={[styles.dayBannerText, { color: Color.Gray.v500 }]} numberOfLines={1}>
+                  Fora: {adminInfo.absences.map(a => a.elderly.name).join(', ')}
+                </Text>
+              </View>
+            )}
+          </>
+        );
       })()}
 
       <View style={styles.divider} />
@@ -758,11 +895,65 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
             <MaterialIcons name="chevron-right" size={26} color={Color.dark} />
           </TouchableOpacity>
         </View>
+
+        {/* Admin filter chips */}
+        {isAdmin && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterChipsRow}
+          >
+            <TouchableOpacity
+              style={[styles.filterChip, filterHolidays && styles.filterChipActive]}
+              onPress={() => setFilterHolidays(v => !v)}
+            >
+              <View style={[styles.filterDot, { backgroundColor: '#FF4C4C' }]} />
+              <Text style={[styles.filterChipText, filterHolidays && styles.filterChipTextActive]}>Feriados</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterChip, filterStaffVacations && styles.filterChipActive]}
+              onPress={() => setFilterStaffVacations(v => !v)}
+            >
+              <View style={[styles.filterDot, { backgroundColor: '#22C55E' }]} />
+              <Text style={[styles.filterChipText, filterStaffVacations && styles.filterChipTextActive]}>Férias Pessoal</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterChip, filterElderlyAbsences && styles.filterChipActive]}
+              onPress={() => setFilterElderlyAbsences(v => !v)}
+            >
+              <View style={[styles.filterDot, { backgroundColor: Color.Gray.v400 }]} />
+              <Text style={[styles.filterChipText, filterElderlyAbsences && styles.filterChipTextActive]}>Ausências Idosos</Text>
+            </TouchableOpacity>
+            {/* Separator */}
+            <View style={styles.filterSeparator} />
+            <TouchableOpacity
+              style={[styles.filterChip, filterCaregivers && styles.filterChipActive]}
+              onPress={() => setFilterCaregivers(v => !v)}
+            >
+              <View style={[styles.filterDot, { backgroundColor: '#3B82F6' }]} />
+              <Text style={[styles.filterChipText, filterCaregivers && styles.filterChipTextActive]}>Cuidadores</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterChip, filterClinicians && styles.filterChipActive]}
+              onPress={() => setFilterClinicians(v => !v)}
+            >
+              <View style={[styles.filterDot, { backgroundColor: '#8B5CF6' }]} />
+              <Text style={[styles.filterChipText, filterClinicians && styles.filterChipTextActive]}>Clínicos</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        )}
       </View>
 
       {viewMode === 'week' ? renderWeekView() : renderMonthView()}
 
       {selectedModal != null && renderModal()}
+
+      {/* FAB: Add Event */}
+      {userRole !== UserRole.ELDERLY && (
+        <TouchableOpacity style={styles.fab} onPress={handleAddEvent} activeOpacity={0.85}>
+          <MaterialIcons name="add" size={28} color="#FFFFFF" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -1233,5 +1424,66 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semi_bold,
     fontSize: FontSize.bodysmall_14,
     color: '#FFFFFF',
+  },
+
+  // ── FAB ──
+  fab: {
+    position: 'absolute',
+    bottom: 28,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Color.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Color.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+
+  // ── Admin filter chips ──
+  filterChipsRow: {
+    flexDirection: 'row',
+    gap: Spacing.xs_6,
+    paddingBottom: Spacing.sm_8,
+    paddingHorizontal: 2,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: Spacing.sm_10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Color.Gray.v200,
+    backgroundColor: '#FFFFFF',
+  },
+  filterChipActive: {
+    borderColor: Color.primary,
+    backgroundColor: Color.primary + '12',
+  },
+  filterDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  filterChipText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.caption_12,
+    color: Color.Gray.v400,
+  },
+  filterChipTextActive: {
+    color: Color.primary,
+  },
+  filterSeparator: {
+    width: 1,
+    height: 20,
+    backgroundColor: Color.Gray.v200,
+    alignSelf: 'center',
+    marginHorizontal: 4,
   },
 });
