@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, RefreshControl, ScrollView, SafeAreaView, Modal, TouchableOpacity } from 'react-native';
 import { FallOccurrence, SosOccurrence, UserRole } from 'moveplus-shared';
 import { ActivityIndicatorOverlay } from '@components/ActivityIndicatorOverlay';
@@ -21,6 +21,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
 import { PendingDataAccessRequestsWidget } from '@components/PendingDataAccessRequestsWidget';
 import { calculateFallRiskScore } from '@src/utils/fallRiskCalculator';
+import { UpcomingBirthdaysWidget } from '@components/UpcomingBirthdaysWidget';
 
 // MARK: Types
 type Props = NativeStackScreenProps<InstitutionDashboardNavigationStackParamList, 'InstitutionDashboardScreen'>;
@@ -92,6 +93,14 @@ const UnhandledFallsSection: React.FC<{
            (fall.handler === null || fall.handler === undefined);
   });
 
+  // Count falls per elderly from available data (used as risk proxy)
+  const fallCountByElderly = useMemo(() =>
+    fallOccurrences.reduce<Record<number, number>>((acc, f) => {
+      acc[f.elderlyId] = (acc[f.elderlyId] || 0) + 1;
+      return acc;
+    }, {})
+  , [fallOccurrences]);
+
   // Ordenar a lista consoante o botão escolhido
   const sortedFalls = [...unhandledFalls].sort((a, b) => {
     if (sortMethod === 'date_desc' || sortMethod === 'date_asc') {
@@ -101,18 +110,19 @@ const UnhandledFallsSection: React.FC<{
     }
     
     if (sortMethod === 'age') {
-
-      const birthA = new Date(a.elderly?.birthDate || 0 ).getTime();
-      const birthB = new Date(b.elderly?.birthDate || 0 ).getTime();
-      
-      return birthA - birthB; 
+      // Oldest patient (earliest birthdate) first
+      const birthA = new Date(a.elderly?.birthDate || 0).getTime();
+      const birthB = new Date(b.elderly?.birthDate || 0).getTime();
+      return birthA - birthB;
     }
 
     if (sortMethod === 'risk') {
-      // Ordenar por risco: Maior risco primeiro
-      const riskA = a.elderly ? calculateFallRiskScore(a.elderly) : 0;
-      const riskB = b.elderly ? calculateFallRiskScore(b.elderly) : 0;
-      return riskB - riskA;
+      // Age-based risk + fall count bonus (5pts per unhandled fall, max 20)
+      const baseA = a.elderly ? calculateFallRiskScore(a.elderly) : 0;
+      const baseB = b.elderly ? calculateFallRiskScore(b.elderly) : 0;
+      const bonusA = Math.min((fallCountByElderly[a.elderlyId] || 0) * 5, 20);
+      const bonusB = Math.min((fallCountByElderly[b.elderlyId] || 0) * 5, 20);
+      return (baseB + bonusB) - (baseA + bonusA);
     }
 
     return 0;
@@ -141,7 +151,7 @@ const UnhandledFallsSection: React.FC<{
       </HStack>
 
       {/* Mostra apenas 1 queda diretamente no ecrã (Dashboard) */}
-      {unhandledFalls.slice(0, maxItemsToShow).map((fall) => (
+      {sortedFalls.slice(0, maxItemsToShow).map((fall) => (
         <FallOccurrenceCard
           key={fall.id}
           item={fall}
@@ -274,6 +284,14 @@ const UnhandledSosSection: React.FC<{
            (sos.handler === null || sos.handler === undefined);
   });
 
+  // Count SOS per elderly from available data (used as risk proxy)
+  const sosCountByElderly = useMemo(() =>
+    sosOccurrences.reduce<Record<number, number>>((acc, s) => {
+      acc[s.elderlyId] = (acc[s.elderlyId] || 0) + 1;
+      return acc;
+    }, {})
+  , [sosOccurrences]);
+
   // Ordenar a lista consoante o botão escolhido
   const sortedSOS = [...unhandledSOS].sort((a, b) => {
     if (sortMethod === 'date_desc' || sortMethod === 'date_asc') {
@@ -283,18 +301,19 @@ const UnhandledSosSection: React.FC<{
     }
     
     if (sortMethod === 'age') {
-
-      const birthA = new Date(a.elderly?.birthDate || 0 ).getTime();
-      const birthB = new Date(b.elderly?.birthDate || 0 ).getTime();
-      
-      return birthA - birthB; 
+      // Oldest patient (earliest birthdate) first
+      const birthA = new Date(a.elderly?.birthDate || 0).getTime();
+      const birthB = new Date(b.elderly?.birthDate || 0).getTime();
+      return birthA - birthB;
     }
 
     if (sortMethod === 'risk') {
-      // Ordenar por risco: Maior risco primeiro
-      const riskA = a.elderly ? calculateFallRiskScore(a.elderly) : 0;
-      const riskB = b.elderly ? calculateFallRiskScore(b.elderly) : 0;
-      return riskB - riskA;
+      // Age-based risk + SOS count bonus (5pts per SOS, max 20)
+      const baseA = a.elderly ? calculateFallRiskScore(a.elderly) : 0;
+      const baseB = b.elderly ? calculateFallRiskScore(b.elderly) : 0;
+      const bonusA = Math.min((sosCountByElderly[a.elderlyId] || 0) * 5, 20);
+      const bonusB = Math.min((sosCountByElderly[b.elderlyId] || 0) * 5, 20);
+      return (baseB + bonusB) - (baseA + bonusA);
     }
 
     return 0;
@@ -315,7 +334,7 @@ const UnhandledSosSection: React.FC<{
       </HStack>
 
       {/* Mostra apenas 1 SOS diretamente no ecrã (Dashboard) */}
-      {unhandledSOS.slice(0, maxItemsToShow).map((sos) => (
+      {sortedSOS.slice(0, maxItemsToShow).map((sos) => (
         <SosOccurrenceCard
           key={sos.id}
           item={sos}
@@ -539,6 +558,11 @@ const InstitutionDashboardScreen: React.FC<Props> = ({ navigation }) => {
             userRole={user?.user?.role}
           />
         )}
+
+        {/* Upcoming Birthdays */}
+        <UpcomingBirthdaysWidget
+          onElderlyPress={(elderly) => navigation.push('ElderlyDetails', { elderlyId: elderly.id, name: elderly.name })}
+        />
 
         {/* Quick Actions Section */}
         <VStack spacing={Spacing.sm_8} style={styles.section}>
