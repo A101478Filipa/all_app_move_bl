@@ -3,9 +3,11 @@ import { UserRole } from 'moveplus-shared';
 import {
   addFallWoundTracking,
   addSosWoundTracking,
+  addElderlyWoundTracking,
   deleteWoundTracking,
   getFallWoundTrackings,
   getSosWoundTrackings,
+  getElderlyWoundTrackings,
 } from './woundTrackingController';
 import { authenticate, authorizeRoles } from '../../middleware/authMiddleware';
 import { uploadIncidentPhoto } from '../../middleware/uploadMiddleware';
@@ -24,6 +26,7 @@ const writeRoles = [
   UserRole.PROGRAMMER,
   UserRole.INSTITUTION_ADMIN,
   UserRole.CAREGIVER,
+  UserRole.CLINICIAN,
 ];
 
 const handleMulterError = (error, req, res, next) => {
@@ -59,6 +62,20 @@ woundTrackingRoutes.post(
   uploadIncidentPhoto.single('photo'),
   handleMulterError,
   addSosWoundTracking
+);
+
+woundTrackingRoutes.get(
+  '/elderly/:elderlyId',
+  authenticate,
+  getElderlyWoundTrackings
+);
+
+woundTrackingRoutes.post(
+  '/elderly/:elderlyId',
+  authenticate, authorizeRoles(writeRoles),
+  uploadIncidentPhoto.single('photo'),
+  handleMulterError,
+  addElderlyWoundTracking
 );
 
 woundTrackingRoutes.delete(
