@@ -570,14 +570,15 @@ const InstitutionDashboardScreen: React.FC<Props> = ({ navigation }) => {
           />
         )}
 
-        {/* Upcoming Birthdays */}
-        <UpcomingBirthdaysWidget
-          onElderlyPress={(elderly) => navigation.push('ElderlyDetails', { elderlyId: elderly.id, name: elderly.name })}
-        />
-
+        {/* Wound Tracking Overview */}
         <WoundOverviewWidget
           overview={woundOverview}
           onCasePress={handleWoundCasePress}
+        />
+
+        {/* Upcoming Birthdays */}
+        <UpcomingBirthdaysWidget
+          onElderlyPress={(elderly) => navigation.push('ElderlyDetails', { elderlyId: elderly.id, name: elderly.name })}
         />
 
         {/* Quick Actions Section */}

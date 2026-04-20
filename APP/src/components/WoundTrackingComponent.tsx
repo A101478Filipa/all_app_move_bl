@@ -74,11 +74,11 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
       if (fromCamera) {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') return;
-        result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+        result = await ImagePicker.launchCameraAsync({ mediaTypes: 'Images' as any, quality: 0.7 });
       } else {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') return;
-        result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+        result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'Images' as any, quality: 0.7 });
       }
       if (!result.canceled && result.assets.length > 0) {
         const asset = result.assets[0];
@@ -304,6 +304,7 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
 
 const styles = StyleSheet.create({
   container: {
+    alignSelf: 'stretch',
     backgroundColor: Color.white,
     borderRadius: Border.lg_16,
     padding: Spacing.lg_24,
