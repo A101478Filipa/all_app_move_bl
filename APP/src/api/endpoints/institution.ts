@@ -9,6 +9,34 @@ type InstitutionUsers = {
   clinicians: Clinician[];
 };
 
+export type WoundOverviewCase = {
+  occurrenceType: 'fall' | 'sos';
+  occurrenceId: number;
+  occurrenceDate: string;
+  referenceDate: string;
+  isResolved: boolean;
+  injuryDescription?: string | null;
+  measuresTaken?: string | null;
+  latestTracking?: {
+    id: number;
+    notes?: string | null;
+    photoUrl?: string | null;
+    isResolved: boolean;
+    createdAt: string;
+  } | null;
+  elderly: {
+    id: number;
+    name: string;
+    avatarUrl?: string | null;
+  };
+};
+
+export type InstitutionWoundOverview = {
+  openCount: number;
+  resolvedCount: number;
+  cases: WoundOverviewCase[];
+};
+
 export const institutionApi = {
   getInstitutions: (): Promise<ApiResponse<Institution[]>> =>
     api.get('/institutions').then(response => response.data),
@@ -18,6 +46,9 @@ export const institutionApi = {
 
   getTimeline: (): Promise<ApiResponse<TimelineActivity[]>> =>
     api.get('institutions/timeline').then(response => response.data),
+
+  getWoundOverview: (): Promise<ApiResponse<InstitutionWoundOverview>> =>
+    api.get('institutions/wound-overview').then(response => response.data),
 
   getInstitutionUsers: (institutionId?: number): Promise<ApiResponse<InstitutionUsers>> => {
     const endpoint = institutionId ? `/institutions/${institutionId}/users` : '/institutions/users';

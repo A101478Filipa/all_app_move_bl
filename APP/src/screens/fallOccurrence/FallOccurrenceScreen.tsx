@@ -106,6 +106,9 @@ const FallOccurrenceScreen: React.FC<Props> = ({ route, navigation }) => {
   const showDetailsOnly = shouldShowDetailsOnly || handled;
 
   const canAddPhoto = !shouldShowDetailsOnly;
+  const isClinician = user?.user?.role === UserRole.CLINICIAN;
+  const canAdd = !shouldShowDetailsOnly;
+  const canDelete = !shouldShowDetailsOnly || isClinician;
 
   const refreshData = async () => {
     try {
@@ -121,6 +124,8 @@ const FallOccurrenceScreen: React.FC<Props> = ({ route, navigation }) => {
           data={data}
           occurrenceId={occurrenceId}
           canAddPhoto={canAddPhoto}
+          canAdd={canAdd}
+          canDelete={canDelete}
           onDataRefresh={refreshData}
         />
       ) : (

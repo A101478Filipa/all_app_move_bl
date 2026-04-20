@@ -3,6 +3,7 @@ import { UserRole } from 'moveplus-shared';
 import * as controller from './institutionsController';
 import * as fallOccurrencesController from '../fallOccurrence/fallOccurrenceController';
 import * as timelineController from '../timeline/timelineController';
+import * as woundTrackingController from '../woundTracking/woundTrackingController';
 import { authenticate, authorizeRoles, authorizeSameInstitution } from '../../middleware/authMiddleware';
 
 const institutionsRoutes = express.Router();
@@ -61,6 +62,12 @@ institutionsRoutes.get(
   '/timeline',
   authenticate, authorizeRoles(institutionManagementRoles), authorizeSameInstitution,
   timelineController.indexInstitutionTimeline
+);
+
+institutionsRoutes.get(
+  '/wound-overview',
+  authenticate, authorizeRoles(institutionManagementRoles), authorizeSameInstitution,
+  woundTrackingController.getInstitutionWoundOverview
 );
 
 institutionsRoutes.get(

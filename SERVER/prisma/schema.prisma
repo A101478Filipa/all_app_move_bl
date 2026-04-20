@@ -161,6 +161,7 @@ model User {
   sessionsInitiated       Session[]
   fallOccurrencesHandled  FallOccurrence[]
   sosOccurrencesHandled   SosOccurrence[] @relation("SosOccurrencesHandled")
+  woundTrackingsCreated   WoundTracking[] @relation("WoundTrackingCreatedBy")
   refreshTokens           RefreshToken[]
   timelineActivities      TimelineActivity[]
   measurementsMeasured    Measurement[] @relation("MeasurementsMeasuredBy")
@@ -405,6 +406,7 @@ model FallOccurrence {
   elderly            Elderly  @relation(fields: [elderlyId], references: [id])
   detection          FallDetection? @relation(fields: [detectionId], references: [id])
   handler            User? @relation(fields: [handlerUserId], references: [id])
+  woundTrackings     WoundTracking[]
 }
 
 // MARK: SosOccurrence
@@ -428,6 +430,22 @@ model SosOccurrence {
   createdAt          DateTime @default(now())
   elderly            Elderly  @relation(fields: [elderlyId], references: [id])
   handler            User?    @relation("SosOccurrencesHandled", fields: [handlerUserId], references: [id])
+  woundTrackings     WoundTracking[]
+}
+
+// MARK: WoundTracking
+model WoundTracking {
+  id                 Int      @id @default(autoincrement())
+  fallOccurrenceId   Int?
+  sosOccurrenceId    Int?
+  createdByUserId    Int
+  photoUrl           String?
+  notes              String?
+  isResolved         Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  fallOccurrence     FallOccurrence? @relation(fields: [fallOccurrenceId], references: [id])
+  sosOccurrence      SosOccurrence?  @relation(fields: [sosOccurrenceId], references: [id])
+  createdByUser      User            @relation("WoundTrackingCreatedBy", fields: [createdByUserId], references: [id])
 }
 
 // MARK: FallRisk

@@ -12,14 +12,18 @@ import { useTranslation } from 'react-i18next';
 import { buildAvatarUrl } from '@src/services/ApiService';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { fallOccurrenceApi } from '@src/api/endpoints/fallOccurrences';
+import { woundTrackingApi, WoundTracking } from '@src/api/endpoints/woundTracking';
+import WoundTrackingComponent from '@src/components/WoundTrackingComponent';
 
 type Props = {
   data: any;
   occurrenceId?: number;
   canAddPhoto?: boolean;
+  canAdd?: boolean;
+  canDelete?: boolean;
   onDataRefresh?: () => void;
 };
 
@@ -43,7 +47,7 @@ const Card = ({ title, children }: { title: string, children: React.ReactNode })
   </View>
 );
 
-const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, canAddPhoto = false, onDataRefresh }) => {
+const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, canAddPhoto = false, canAdd = false, canDelete = false, onDataRefresh }) => {
   const { t } = useTranslation();
   const handled = Boolean(data?.handlerUserId);
   const [generatingPdf, setGeneratingPdf] = useState(false);
@@ -57,7 +61,36 @@ const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, c
     return `${name}_Queda_${day}${month}`;
   };
 
-  const generatePdfHtml = () => {
+  const buildTrackingSectionHtml = (trackings: WoundTracking[], borderColor: string, lightBg: string) => {
+    if (!trackings.length) {
+      return '';
+    }
+
+    const formatTrackingDate = (value: string) => new Date(value).toLocaleDateString('pt-PT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    return `
+      <div class="section">
+        <div class="section-title">${t('woundTracking.title')}</div>
+        ${trackings.map((tracking) => `
+          <div class="tracking-item">
+            <div class="tracking-head">
+              <strong>${formatTrackingDate(tracking.createdAt)}</strong>
+              <span class="${tracking.isResolved ? 'badge-ok' : 'badge-injured'}">${tracking.isResolved ? t('woundTracking.resolved') : t('woundTracking.ongoing')}</span>
+            </div>
+            ${tracking.notes ? `<div class="tracking-note">${tracking.notes}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `;
+  };
+
+  const generatePdfHtml = (photoBase64?: string | null, woundTrackings: WoundTracking[] = []) => {
     const elderlyName = data?.elderly?.name ?? '-';
     const date = data?.date ? formatDateLong(data.date) : '-';
     const status = handled ? t('fallOccurrence.handled') : t('fallOccurrence.unhandled');
@@ -72,6 +105,13 @@ const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, c
 
     const row = (label: string, value: string) =>
       `<tr><td class="td-label">${label}</td><td class="td-value">${value || '-'}</td></tr>`;
+
+    const photoHtml = photoBase64
+      ? `<div class="section">
+          <div class="section-title">${t('fallOccurrence.injuryPhoto')}</div>
+          <img src="data:image/jpeg;base64,${photoBase64}" style="max-width:100%;max-height:320px;border-radius:8px;border:1px solid ${borderColor};" />
+        </div>`
+      : '';
 
     return `
       <!DOCTYPE html>
@@ -97,6 +137,9 @@ const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, c
           .badge-unhandled { display: inline-block; background: #fee2e2; color: #991b1b; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; border: 1px solid #fca5a5; }
           .badge-injured { display: inline-block; background: #fee2e2; color: #991b1b; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; }
           .badge-ok { display: inline-block; background: #d1fae5; color: #065f46; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+          .tracking-item { border: 1px solid ${borderColor}; border-radius: 10px; padding: 12px; background: ${lightBg}; margin-bottom: 10px; }
+          .tracking-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+          .tracking-note { color: ${darkColor}; line-height: 1.5; }
           .footer { margin-top: 36px; padding: 16px 36px; background: ${lightBg}; border-top: 1px solid ${borderColor}; font-size: 11px; color: ${mutedColor}; display: flex; justify-content: space-between; }
         </style>
       </head>
@@ -144,6 +187,10 @@ const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, c
               ${row(t('fallOccurrence.measuresTaken'), data?.measuresTaken ?? '-')}
             </table>
           </div>
+
+          ${photoHtml}
+
+          ${buildTrackingSectionHtml(woundTrackings, borderColor, lightBg)}
           ` : ''}
         </div>
 
@@ -159,7 +206,27 @@ const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, c
   const downloadPdf = async () => {
     setGeneratingPdf(true);
     try {
-      const html = generatePdfHtml();
+      let photoBase64: string | null = null;
+      let woundTrackings: WoundTracking[] = [];
+      if (data?.injuryPhotoUrl) {
+        try {
+          const remoteUrl = buildAvatarUrl(data.injuryPhotoUrl);
+          const tmpPath = `${FileSystem.cacheDirectory}pdf_photo_tmp.jpg`;
+          const dl = await FileSystem.downloadAsync(remoteUrl, tmpPath);
+          photoBase64 = await FileSystem.readAsStringAsync(dl.uri, { encoding: FileSystem.EncodingType.Base64 });
+        } catch {
+          // photo fetch failed — continue without it
+        }
+      }
+      if (occurrenceId && handled && !data?.isFalseAlarm && data?.injured) {
+        try {
+          const trackingResponse = await woundTrackingApi.getFallWoundTrackings(occurrenceId);
+          woundTrackings = Array.isArray(trackingResponse.data) ? trackingResponse.data : [];
+        } catch {
+          woundTrackings = [];
+        }
+      }
+      const html = generatePdfHtml(photoBase64, woundTrackings);
       const { uri } = await Print.printToFileAsync({ html, base64: false });
       const filename = buildPdfFilename();
       const destUri = `${FileSystem.documentDirectory}${filename}.pdf`;
@@ -297,6 +364,16 @@ const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, c
               </VStack>
             </Card>
           </>
+        )}
+
+        {/* Wound Tracking */}
+        {handled && !data?.isFalseAlarm && data?.injured && occurrenceId && (
+          <WoundTrackingComponent
+            occurrenceId={occurrenceId}
+            occurrenceType="fall"
+            canAdd={canAdd}
+            canDelete={canDelete}
+          />
         )}
 
         {/* PDF Download Button */}

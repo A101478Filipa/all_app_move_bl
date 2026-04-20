@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { VStack } from '@components/CoreComponents';
-import { StyleSheet, Text, ScrollView, View, Image } from 'react-native';
+import { StyleSheet, Text, ScrollView, View, Image, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { Color } from '@src/styles/colors';
 import { Spacing, spacingStyles } from '@src/styles/spacings';
 import { Border } from '@src/styles/borders';
@@ -9,9 +10,17 @@ import { shadowStyles } from '@src/styles/shadow';
 import { formatDateLong } from '@src/utils/Date';
 import { useTranslation } from 'react-i18next';
 import { buildAvatarUrl } from '@src/services/ApiService';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
+import { woundTrackingApi, WoundTracking } from '@src/api/endpoints/woundTracking';
+import WoundTrackingComponent from '@src/components/WoundTrackingComponent';
 
 type Props = {
   data: any;
+  occurrenceId?: number;
+  canAdd?: boolean;
+  canDelete?: boolean;
 };
 
 const DetailRow = ({ label, value, important = false }: {
@@ -34,9 +43,200 @@ const Card = ({ title, children }: { title: string, children: React.ReactNode })
   </View>
 );
 
-const SosOccurrenceDetailsComponent: React.FC<Props> = ({ data }) => {
+const SosOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, canAdd = false, canDelete = false }) => {
   const { t } = useTranslation();
   const handled = Boolean(data?.handlerUserId);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+
+  const buildPdfFilename = () => {
+    const name = (data?.elderly?.name ?? 'Utente').replace(/\s+/g, '_');
+    const d = data?.date ? new Date(data.date) : new Date();
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const type = data?.wasActualFall ? 'QuedaSOS' : 'SOS';
+    return `${name}_${type}_${day}${month}`;
+  };
+
+  const buildTrackingSectionHtml = (trackings: WoundTracking[], borderColor: string, lightBg: string) => {
+    if (!trackings.length) {
+      return '';
+    }
+
+    const formatTrackingDate = (value: string) => new Date(value).toLocaleDateString('pt-PT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    return `
+      <div class="section">
+        <div class="section-title">${t('woundTracking.title')}</div>
+        ${trackings.map((tracking) => `
+          <div class="tracking-item">
+            <div class="tracking-head">
+              <strong>${formatTrackingDate(tracking.createdAt)}</strong>
+              <span class="${tracking.isResolved ? 'badge-no' : 'badge-yes'}">${tracking.isResolved ? t('woundTracking.resolved') : t('woundTracking.ongoing')}</span>
+            </div>
+            ${tracking.notes ? `<div class="tracking-note">${tracking.notes}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `;
+  };
+
+  const generatePdfHtml = (photoBase64?: string | null, woundTrackings: WoundTracking[] = []) => {
+    const elderlyName = data?.elderly?.name ?? '-';
+    const date = data?.date ? formatDateLong(data.date) : '-';
+    const handled = Boolean(data?.handlerUserId);
+    const handlerName = data?.handler?.name ?? '-';
+    const isFalseAlarm = data?.isFalseAlarm;
+    const isActualFall = data?.wasActualFall;
+    const primaryColor = '#35C2C1';
+    const darkColor = '#1a2b3c';
+    const mutedColor = '#6b7280';
+    const borderColor = '#e5e7eb';
+    const lightBg = '#f8fffe';
+
+    const row = (label: string, value: string) =>
+      `<tr><td class="td-label">${label}</td><td class="td-value">${value || '-'}</td></tr>`;
+
+    const photoHtml = photoBase64
+      ? `<div class="section">
+          <div class="section-title">${t('fallOccurrence.injuryPhoto')}</div>
+          <img src="data:image/jpeg;base64,${photoBase64}" style="max-width:100%;max-height:320px;border-radius:8px;border:1px solid ${borderColor};" />
+        </div>`
+      : '';
+
+    return `
+      <!DOCTYPE html>
+      <html lang="pt">
+      <head>
+        <meta charset="utf-8"/>
+        <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: ${darkColor}; font-size: 13px; }
+          .header { background: ${primaryColor}; color: #fff; padding: 28px 36px 22px; }
+          .header-title { font-size: 26px; font-weight: bold; letter-spacing: 1px; }
+          .header-subtitle { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+          .header-meta { margin-top: 14px; font-size: 12px; opacity: 0.9; background: rgba(0,0,0,0.12); display: inline-block; padding: 4px 12px; border-radius: 20px; }
+          .content { padding: 28px 36px; }
+          .section { margin-bottom: 24px; }
+          .section-title { font-size: 14px; font-weight: bold; color: ${primaryColor}; text-transform: uppercase; letter-spacing: 0.8px; padding-bottom: 8px; border-bottom: 2px solid ${primaryColor}; margin-bottom: 12px; }
+          table { width: 100%; border-collapse: collapse; }
+          .td-label { font-weight: bold; color: ${mutedColor}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 12px; width: 40%; background: ${lightBg}; border-bottom: 1px solid ${borderColor}; vertical-align: top; }
+          .td-value { color: ${darkColor}; font-size: 13px; padding: 8px 12px; border-bottom: 1px solid ${borderColor}; vertical-align: top; }
+          .badge-false-alarm { display: inline-block; background: #fef3c7; color: #b45309; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; border: 1px solid #fbbf24; }
+          .badge-handled { display: inline-block; background: #d1fae5; color: #065f46; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; border: 1px solid #6ee7b7; }
+          .badge-unhandled { display: inline-block; background: #fee2e2; color: #991b1b; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; border: 1px solid #fca5a5; }
+          .badge-yes { display: inline-block; background: #fee2e2; color: #991b1b; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+          .badge-no { display: inline-block; background: #d1fae5; color: #065f46; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+          .badge-sos { display: inline-block; background: #fde8d8; color: #c2410c; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; border: 1px solid #fb923c; }
+          .tracking-item { border: 1px solid ${borderColor}; border-radius: 10px; padding: 12px; background: ${lightBg}; margin-bottom: 10px; }
+          .tracking-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+          .tracking-note { color: ${darkColor}; line-height: 1.5; }
+          .footer { margin-top: 36px; padding: 16px 36px; background: ${lightBg}; border-top: 1px solid ${borderColor}; font-size: 11px; color: ${mutedColor}; display: flex; justify-content: space-between; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="header-title">Move+</div>
+          <div class="header-subtitle">${t('sosOccurrence.title')}${isActualFall ? ' — ' + t('fallOccurrence.title') : ''}</div>
+          <div class="header-meta">${t('sosOccurrence.elderly')}: ${elderlyName}</div>
+        </div>
+
+        <div class="content">
+          <div class="section">
+            <div class="section-title">${t('sosOccurrence.basicInformation')}</div>
+            <table>
+              ${row(t('sosOccurrence.elderly'), `<strong>${elderlyName}</strong>`)}
+              ${row(t('sosOccurrence.date'), `<strong>${date}</strong>`)}
+              ${row(t('sosOccurrence.status'), handled
+                ? `<span class="badge-handled">${t('sosOccurrence.handled')}</span>`
+                : `<span class="badge-unhandled">${t('sosOccurrence.unhandled')}</span>`)}
+              ${isFalseAlarm ? row('', `<span class="badge-false-alarm">${t('sosOccurrence.falseAlarm')}</span>`) : ''}
+              ${row(t('sosOccurrence.wasActualFall'), isActualFall
+                ? `<span class="badge-yes">${t('sosOccurrence.yes')}</span>`
+                : `<span class="badge-no">${t('sosOccurrence.no')}</span>`)}
+              ${data?.handler ? row(t('sosOccurrence.handledBy'), handlerName) : ''}
+              ${data?.notes ? row(t('sosOccurrence.notes'), data.notes) : ''}
+            </table>
+          </div>
+
+          ${handled && !isFalseAlarm ? `
+          <div class="section">
+            <div class="section-title">${isActualFall ? t('fallOccurrence.fallDetails') : t('sosOccurrence.occurrenceDetails')}</div>
+            <table>
+              ${row(t('fallOccurrence.recoveryProcess'), data?.recovery ?? '-')}
+              ${row(t('fallOccurrence.preActivity'), data?.preActivity ?? '-')}
+              ${row(t('fallOccurrence.postActivity'), data?.postActivity ?? '-')}
+              ${isActualFall ? row(t('fallOccurrence.fallDirection'), data?.direction ?? '-') : ''}
+              ${row(t('fallOccurrence.environment'), data?.environment ?? '-')}
+            </table>
+          </div>
+
+          <div class="section">
+            <div class="section-title">${t('fallOccurrence.injuryInformation')}</div>
+            <table>
+              ${row(t('fallOccurrence.injured'), data?.injured
+                ? `<span class="badge-yes">${t('fallOccurrence.yes')}</span>`
+                : `<span class="badge-no">${t('fallOccurrence.no')}</span>`)}
+              ${data?.injured ? row(t('fallOccurrence.injuryDescription'), data?.injuryDescription ?? '-') : ''}
+              ${row(t('fallOccurrence.measuresTaken'), data?.measuresTaken ?? '-')}
+            </table>
+          </div>
+
+          ${photoHtml}
+
+          ${buildTrackingSectionHtml(woundTrackings, borderColor, lightBg)}
+          ` : ''}
+        </div>
+
+        <div class="footer">
+          <span>Move+ &copy; ${new Date().getFullYear()}</span>
+          <span>${new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
+  const downloadPdf = async () => {
+    setGeneratingPdf(true);
+    try {
+      let photoBase64: string | null = null;
+      let woundTrackings: WoundTracking[] = [];
+      if (data?.injuryPhotoUrl) {
+        try {
+          const remoteUrl = buildAvatarUrl(data.injuryPhotoUrl);
+          const tmpPath = `${FileSystem.cacheDirectory}pdf_photo_tmp.jpg`;
+          const dl = await FileSystem.downloadAsync(remoteUrl, tmpPath);
+          photoBase64 = await FileSystem.readAsStringAsync(dl.uri, { encoding: FileSystem.EncodingType.Base64 });
+        } catch {
+          // photo fetch failed — continue without it
+        }
+      }
+      if (occurrenceId && handled && !data?.isFalseAlarm && data?.injured) {
+        try {
+          const trackingResponse = await woundTrackingApi.getSosWoundTrackings(occurrenceId);
+          woundTrackings = Array.isArray(trackingResponse.data) ? trackingResponse.data : [];
+        } catch {
+          woundTrackings = [];
+        }
+      }
+      const html = generatePdfHtml(photoBase64, woundTrackings);
+      const { uri } = await Print.printToFileAsync({ html, base64: false });
+      const filename = buildPdfFilename();
+      const destUri = `${FileSystem.documentDirectory}${filename}.pdf`;
+      await FileSystem.moveAsync({ from: uri, to: destUri });
+      await Sharing.shareAsync(destUri, { mimeType: 'application/pdf', dialogTitle: filename, UTI: 'com.adobe.pdf' });
+    } catch (e) {
+      console.error('Error generating PDF:', e);
+      Alert.alert(t('sosOccurrence.pdfError'));
+    }
+    setGeneratingPdf(false);
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
@@ -95,6 +295,27 @@ const SosOccurrenceDetailsComponent: React.FC<Props> = ({ data }) => {
             </Card>
           </>
         )}
+
+        {/* Wound Tracking */}
+        {handled && !data?.isFalseAlarm && data?.injured && occurrenceId && (
+          <WoundTrackingComponent
+            occurrenceId={occurrenceId}
+            occurrenceType="sos"
+            canAdd={canAdd}
+            canDelete={canDelete}
+          />
+        )}
+
+        {/* PDF Download Button */}
+        <TouchableOpacity style={styles.pdfButton} onPress={downloadPdf} disabled={generatingPdf}>
+          {generatingPdf
+            ? <ActivityIndicator size="small" color={Color.white} />
+            : <View style={styles.pdfButtonInner}>
+                <MaterialIcons name="picture-as-pdf" size={22} color={Color.white} />
+                <Text style={styles.pdfButtonText}>{t('sosOccurrence.downloadPdf')}</Text>
+              </View>
+          }
+        </TouchableOpacity>
       </VStack>
     </ScrollView>
   );
@@ -185,6 +406,24 @@ const styles = StyleSheet.create({
     height: 220,
     borderRadius: Border.md_12,
     backgroundColor: Color.Gray.v100,
+  },
+  pdfButton: {
+    backgroundColor: Color.primary,
+    paddingVertical: Spacing.md_16,
+    borderRadius: Border.md_12,
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    ...shadowStyles.cardShadow,
+  },
+  pdfButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm_8,
+  },
+  pdfButtonText: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.bodymedium_16,
+    color: Color.white,
   },
 });
 

@@ -1,0 +1,35 @@
+import { api } from '@src/services/ApiService';
+import { ApiResponse } from '@src/types/api';
+
+export interface WoundTracking {
+  id: number;
+  fallOccurrenceId?: number | null;
+  sosOccurrenceId?: number | null;
+  createdByUserId: number;
+  photoUrl?: string | null;
+  notes?: string | null;
+  isResolved: boolean;
+  createdAt: string;
+  createdByUser: { id: number };
+}
+
+export const woundTrackingApi = {
+  getFallWoundTrackings: (occurrenceId: number): Promise<ApiResponse<WoundTracking[]>> =>
+    api.get(`/wound-tracking/fall-occurrences/${occurrenceId}`, { _silentError: true } as any).then(r => r.data),
+
+  addFallWoundTracking: (occurrenceId: number, formData: FormData): Promise<ApiResponse<WoundTracking>> =>
+    api.post(`/wound-tracking/fall-occurrences/${occurrenceId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data),
+
+  getSosWoundTrackings: (occurrenceId: number): Promise<ApiResponse<WoundTracking[]>> =>
+    api.get(`/wound-tracking/sos-occurrences/${occurrenceId}`, { _silentError: true } as any).then(r => r.data),
+
+  addSosWoundTracking: (occurrenceId: number, formData: FormData): Promise<ApiResponse<WoundTracking>> =>
+    api.post(`/wound-tracking/sos-occurrences/${occurrenceId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data),
+
+  deleteWoundTracking: (trackingId: number): Promise<ApiResponse> =>
+    api.delete(`/wound-tracking/${trackingId}`).then(r => r.data),
+};

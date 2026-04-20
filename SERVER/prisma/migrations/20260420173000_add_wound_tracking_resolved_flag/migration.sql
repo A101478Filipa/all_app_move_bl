@@ -1,0 +1,2 @@
+ALTER TABLE "WoundTracking"
+ADD COLUMN "isResolved" BOOLEAN NOT NULL DEFAULT false;

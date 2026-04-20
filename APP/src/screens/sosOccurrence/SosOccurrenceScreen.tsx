@@ -114,7 +114,12 @@ const SosOccurrenceScreen: React.FC<Props> = ({ route }) => {
   return (
     <View style={styles.safeArea}>
       {showDetailsOnly ? (
-        <SosOccurrenceDetailsComponent data={data} />
+        <SosOccurrenceDetailsComponent
+          data={data}
+          occurrenceId={occurrenceId}
+          canAdd={!shouldShowDetailsOnly}
+          canDelete={!shouldShowDetailsOnly || user?.user?.role === UserRole.CLINICIAN}
+        />
       ) : (
         <HandleSosOccurrenceComponent
           onSubmit={handleSubmit}

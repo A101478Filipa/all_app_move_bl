@@ -1,6 +1,7 @@
 import express from 'express';
 import { UserRole } from 'moveplus-shared';
 import * as controller from './sosOccurrenceController';
+import * as woundController from '../woundTracking/woundTrackingController';
 import { authenticate, authorizeRoles } from '../../middleware/authMiddleware';
 import { uploadIncidentPhoto } from '../../middleware/uploadMiddleware';
 import { sendError } from '../../utils/apiResponse';
@@ -55,6 +56,20 @@ sosOccurrenceRoutes.post(
   uploadIncidentPhoto.single('photo'),
   handleMulterError,
   controller.uploadSosOccurrencePhoto
+);
+
+sosOccurrenceRoutes.get(
+  '/:occurrenceId/wound-tracking',
+  authenticate,
+  woundController.getSosWoundTrackings
+);
+
+sosOccurrenceRoutes.post(
+  '/:occurrenceId/wound-tracking',
+  authenticate, authorizeRoles(writeOccurrenceRoles),
+  uploadIncidentPhoto.single('photo'),
+  handleMulterError,
+  woundController.addSosWoundTracking
 );
 
 export default sosOccurrenceRoutes;

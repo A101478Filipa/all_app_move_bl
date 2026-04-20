@@ -22,6 +22,8 @@ import { useTranslation } from '@src/localization/hooks/useTranslation';
 import { PendingDataAccessRequestsWidget } from '@components/PendingDataAccessRequestsWidget';
 import { calculateFallRiskScore } from '@src/utils/fallRiskCalculator';
 import { UpcomingBirthdaysWidget } from '@components/UpcomingBirthdaysWidget';
+import { WoundOverviewCase } from '@src/api/endpoints/institution';
+import { WoundOverviewWidget } from '@components/WoundOverviewWidget';
 
 // MARK: Types
 type Props = NativeStackScreenProps<InstitutionDashboardNavigationStackParamList, 'InstitutionDashboardScreen'>;
@@ -447,7 +449,7 @@ const UnhandledSosSection: React.FC<{
 
 // MARK: Screen
 const InstitutionDashboardScreen: React.FC<Props> = ({ navigation }) => {
-  const { sections, sosOccurrences, fetch, refresh, state } = useInstitutionDashboardStore();
+  const { sections, sosOccurrences, woundOverview, fetch, refresh, state } = useInstitutionDashboardStore();
   const {
     pendingAccessRequests,
     state: caregiverDashboardState,
@@ -503,6 +505,15 @@ const InstitutionDashboardScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleViewBathSchedule = useCallback(() => {
     navigation.push('BathSchedule');
+  }, [navigation]);
+
+  const handleWoundCasePress = useCallback((item: WoundOverviewCase) => {
+    if (item.occurrenceType === 'fall') {
+      navigation.push('FallOccurrenceScreen', { occurrenceId: item.occurrenceId });
+      return;
+    }
+
+    navigation.push('SosOccurrenceScreen', { occurrenceId: item.occurrenceId });
   }, [navigation]);
 
 
@@ -562,6 +573,11 @@ const InstitutionDashboardScreen: React.FC<Props> = ({ navigation }) => {
         {/* Upcoming Birthdays */}
         <UpcomingBirthdaysWidget
           onElderlyPress={(elderly) => navigation.push('ElderlyDetails', { elderlyId: elderly.id, name: elderly.name })}
+        />
+
+        <WoundOverviewWidget
+          overview={woundOverview}
+          onCasePress={handleWoundCasePress}
         />
 
         {/* Quick Actions Section */}
