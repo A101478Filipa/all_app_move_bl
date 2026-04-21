@@ -19,6 +19,7 @@ import AddCalendarEventScreen from '@src/screens/elderly/AddCalendarEventScreen'
 import ElderlyMedicationsListScreen from '@src/screens/elderly/ElderlyMedicationsListScreen';
 import ElderlyPathologiesListScreen from '@src/screens/elderly/ElderlyPathologiesListScreen';
 import ElderlyFallsListScreen from '@src/screens/elderly/ElderlyFallsListScreen';
+import ElderlyWoundTrackingScreen from '@src/screens/elderly/ElderlyWoundTrackingScreen';
 import ElderlyMeasurementsListScreen from '@src/screens/elderly/ElderlyMeasurementsListScreen';
 import ElderlySOSListScreen from '@src/screens/elderly/ElderlySOSListScreen';
 import SosOccurrenceScreen from '@src/screens/sosOccurrence/SosOccurrenceScreen';
@@ -55,6 +56,9 @@ export type SearchElderlyStackParamList = {
     elderlyId: number;
   };
   ElderlyFallsList: {
+    elderlyId: number;
+  };
+  ElderlyWoundTrackingScreen: {
     elderlyId: number;
   };
   ElderlyMeasurementsList: {
@@ -159,6 +163,11 @@ export const SearchElderlyStack = () => {
         name='ElderlyFallsList'
         component={ElderlyFallsListScreen}
         options={{ title: t('navigation.fallOccurrence') }}
+      />
+      <Stack.Screen
+        name='ElderlyWoundTrackingScreen'
+        component={ElderlyWoundTrackingScreen}
+        options={{ title: t('woundTracking.title') }}
       />
       <Stack.Screen
         name='ElderlyMeasurementsList'

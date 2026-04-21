@@ -5,6 +5,7 @@ export interface WoundTracking {
   id: number;
   fallOccurrenceId?: number | null;
   sosOccurrenceId?: number | null;
+  elderlyId?: number | null;
   createdByUserId: number;
   photoUrl?: string | null;
   notes?: string | null;
@@ -27,6 +28,14 @@ export const woundTrackingApi = {
 
   addSosWoundTracking: (occurrenceId: number, formData: FormData): Promise<ApiResponse<WoundTracking>> =>
     api.post(`/wound-tracking/sos-occurrences/${occurrenceId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data),
+
+  getElderlyWoundTrackings: (elderlyId: number): Promise<ApiResponse<WoundTracking[]>> =>
+    api.get(`/wound-tracking/elderly/${elderlyId}`, { _silentError: true } as any).then(r => r.data),
+
+  addElderlyWoundTracking: (elderlyId: number, formData: FormData): Promise<ApiResponse<WoundTracking>> =>
+    api.post(`/wound-tracking/elderly/${elderlyId}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then(r => r.data),
 

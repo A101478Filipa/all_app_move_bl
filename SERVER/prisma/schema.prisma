@@ -316,6 +316,7 @@ model Elderly {
   dataAccessRequests DataAccessRequest[]
   calendarEvents   CalendarEvent[]
   elderlyAbsences  ElderlyAbsence[]
+  woundTrackings   WoundTracking[]
 }
 
 // MARK: Assessment
@@ -438,6 +439,7 @@ model WoundTracking {
   id                 Int      @id @default(autoincrement())
   fallOccurrenceId   Int?
   sosOccurrenceId    Int?
+  elderlyId          Int?
   createdByUserId    Int
   photoUrl           String?
   notes              String?
@@ -445,6 +447,7 @@ model WoundTracking {
   createdAt          DateTime @default(now())
   fallOccurrence     FallOccurrence? @relation(fields: [fallOccurrenceId], references: [id])
   sosOccurrence      SosOccurrence?  @relation(fields: [sosOccurrenceId], references: [id])
+  elderly            Elderly?        @relation(fields: [elderlyId], references: [id])
   createdByUser      User            @relation("WoundTrackingCreatedBy", fields: [createdByUserId], references: [id])
 }
 

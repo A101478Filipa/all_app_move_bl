@@ -54,6 +54,7 @@ const userRole = user?.user?.role;
   const canAddMedication = [UserRole.INSTITUTION_ADMIN, UserRole.CLINICIAN, UserRole.PROGRAMMER].includes(userRole as UserRole);
   const canAddPathology = [UserRole.INSTITUTION_ADMIN, UserRole.CLINICIAN, UserRole.PROGRAMMER].includes(userRole as UserRole);
   const canEditProfile = [UserRole.INSTITUTION_ADMIN, UserRole.CAREGIVER].includes(userRole as UserRole);
+  const canAddFall = [UserRole.INSTITUTION_ADMIN, UserRole.CAREGIVER, UserRole.CLINICIAN].includes(userRole as UserRole);
 
   useEffect(() => {
     if (canAddData || canEditProfile) {
@@ -99,6 +100,15 @@ const userRole = user?.user?.role;
     navigation.navigate('AddCalendarEvent', { elderlyId });
   }, [elderlyId, navigation]);
 
+  const handleAddFall = useCallback(() => {
+    close();
+    navigation.navigate('ElderlyFallsList', { elderlyId });
+  }, [elderlyId, navigation]);
+
+  const handleAddWound = useCallback(() => {
+    close();
+    navigation.navigate('ElderlyWoundTrackingScreen', { elderlyId });
+  }, [elderlyId, navigation]);
   const renderBackdrop = useCallback(
     (props) => (
       <BottomSheetBackdrop
@@ -139,6 +149,8 @@ const userRole = user?.user?.role;
         onAddMedication={canAddMedication ? () => navigation.navigate('AddMedication', { elderlyId }) : undefined}
         onAddPathology={canAddPathology ? () => navigation.navigate('AddPathology', { elderlyId }) : undefined}
         onAddCalendarEvent={canAddData ? () => navigation.navigate('AddCalendarEvent', { elderlyId }) : undefined}
+        onAddFall={canAddFall ? handleAddFall : undefined}
+        onAddWound={canAddFall ? handleAddWound : undefined}
       />
 
       <BottomSheet
@@ -188,6 +200,26 @@ const userRole = user?.user?.role;
               subtitle={t('calendar.scheduleActivity')}
               onPress={handleAddCalendarEvent}
             />
+
+            {canAddFall && (
+              <MenuItem
+                iconName="warning"
+                iconColor="#7B1FA2"
+                title={t('elderly.addFall')}
+                subtitle={t('elderly.addFallSubtitle')}
+                onPress={handleAddFall}
+              />
+            )}
+
+            {canAddFall && (
+              <MenuItem
+                iconName="healing"
+                iconColor={Color.Error.default}
+                title={t('woundTracking.addWound')}
+                subtitle={t('woundTracking.addWoundSubtitle')}
+                onPress={handleAddWound}
+              />
+            )}
           </VStack>
         </BottomSheetView>
       </BottomSheet>
