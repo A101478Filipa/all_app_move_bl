@@ -552,7 +552,8 @@
     "filter_ongoing": "Em acompanhamento",
     "filter_resolved": "Resolvidas",
     "injuryCasesTitle": "Feridas por Queda / SOS",
-    "noInjuryCases": "Sem quedas ou SOS com ferimentos registados"
+    "noInjuryCases": "Sem quedas ou SOS com ferimentos registados",
+    "manualEntry": "Registo direto"
   },
   "pathology": {
     "title": "Patologia",

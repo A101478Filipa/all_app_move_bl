@@ -554,7 +554,8 @@
     "filter_ongoing": "Ongoing",
     "filter_resolved": "Resolved",
     "injuryCasesTitle": "Wounds from Falls / SOS",
-    "noInjuryCases": "No falls or SOS with reported injuries"
+    "noInjuryCases": "No falls or SOS with reported injuries",
+    "manualEntry": "Direct entry"
   },
   "pathology": {
     "title": "Pathology",
