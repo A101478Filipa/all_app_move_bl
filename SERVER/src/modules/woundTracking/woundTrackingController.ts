@@ -172,13 +172,7 @@ export const getElderlyWoundTrackings = async (req, res) => {
     if (!hasAccess) return sendError(res, 'Forbidden', 403);
 
     const trackings = await prisma.woundTracking.findMany({
-      where: {
-        OR: [
-          { elderlyId },
-          { fallOccurrence: { elderlyId } },
-          { sosOccurrence: { elderlyId } },
-        ],
-      },
+      where: { elderlyId },
       include: woundTrackingInclude,
       orderBy: { createdAt: 'desc' },
     });
