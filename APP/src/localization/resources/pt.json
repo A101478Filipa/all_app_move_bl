@@ -550,7 +550,9 @@
     "addWoundSubtitle": "Adicionar acompanhamento de ferida sem associar a queda ou SOS",
     "filter_all": "Todas",
     "filter_ongoing": "Em acompanhamento",
-    "filter_resolved": "Resolvidas"
+    "filter_resolved": "Resolvidas",
+    "injuryCasesTitle": "Feridas por Queda / SOS",
+    "noInjuryCases": "Sem quedas ou SOS com ferimentos registados"
   },
   "pathology": {
     "title": "Patologia",

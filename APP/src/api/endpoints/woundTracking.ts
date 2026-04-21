@@ -14,6 +14,17 @@ export interface WoundTracking {
   createdByUser: { id: number };
 }
 
+export interface WoundCase {
+  occurrenceType: 'fall' | 'sos';
+  occurrenceId: number;
+  occurrenceDate: string;
+  referenceDate: string;
+  isResolved: boolean;
+  injuryDescription: string | null;
+  measuresTaken: string | null;
+  latestTracking: WoundTracking | null;
+}
+
 export const woundTrackingApi = {
   getFallWoundTrackings: (occurrenceId: number): Promise<ApiResponse<WoundTracking[]>> =>
     api.get(`/wound-tracking/fall-occurrences/${occurrenceId}`, { _silentError: true } as any).then(r => r.data),
@@ -33,6 +44,9 @@ export const woundTrackingApi = {
 
   getElderlyWoundTrackings: (elderlyId: number): Promise<ApiResponse<WoundTracking[]>> =>
     api.get(`/wound-tracking/elderly/${elderlyId}`, { _silentError: true } as any).then(r => r.data),
+
+  getElderlyWoundCases: (elderlyId: number): Promise<ApiResponse<WoundCase[]>> =>
+    api.get(`/wound-tracking/elderly/${elderlyId}/cases`, { _silentError: true } as any).then(r => r.data),
 
   addElderlyWoundTracking: (elderlyId: number, formData: FormData): Promise<ApiResponse<WoundTracking>> =>
     api.post(`/wound-tracking/elderly/${elderlyId}`, formData, {

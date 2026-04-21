@@ -262,6 +262,52 @@ export const deleteWoundTracking = async (req, res) => {
   }
 };
 
+// GET /wound-tracking/elderly/:elderlyId/cases
+export const getElderlyWoundCases = async (req, res) => {
+  const elderlyId = Number(req.params.elderlyId);
+  const { role, institutionId, userId } = req.user;
+
+  try {
+    const elderly = await prisma.elderly.findUnique({ where: { id: elderlyId } });
+    if (!elderly) return sendError(res, 'Elderly not found', 404);
+
+    const hasAccess =
+      role === UserRole.PROGRAMMER ||
+      elderly.institutionId === institutionId ||
+      (role === UserRole.CLINICIAN && await checkClinicianAccess(userId, elderlyId));
+
+    if (!hasAccess) return sendError(res, 'Forbidden', 403);
+
+    const [fallOccurrences, sosOccurrences] = await Promise.all([
+      prisma.fallOccurrence.findMany({
+        where: { elderlyId, injured: true, isFalseAlarm: false },
+        include: { woundTrackings: latestTrackingInclude },
+        orderBy: { date: 'desc' },
+      }),
+      prisma.sosOccurrence.findMany({
+        where: { elderlyId, injured: true, isFalseAlarm: false },
+        include: { woundTrackings: latestTrackingInclude },
+        orderBy: { date: 'desc' },
+      }),
+    ]);
+
+    // Build a flat elderly object so buildWoundCase works (it expects occurrence.elderly)
+    const elderlyStub = { id: elderlyId };
+    const fallCases = fallOccurrences.map(occ => buildWoundCase('fall', { ...occ, elderly: elderlyStub }));
+    const sosCases = sosOccurrences.map(occ => buildWoundCase('sos', { ...occ, elderly: elderlyStub }));
+
+    const cases = [...fallCases, ...sosCases].sort((a, b) => {
+      if (a.isResolved !== b.isResolved) return Number(a.isResolved) - Number(b.isResolved);
+      return new Date(b.referenceDate).getTime() - new Date(a.referenceDate).getTime();
+    });
+
+    return sendSuccess(res, cases, 'Elderly wound cases fetched');
+  } catch (e) {
+    console.error('Error fetching elderly wound cases:', e);
+    return sendError(res, 'Internal server error', 500);
+  }
+};
+
 export const getInstitutionWoundOverview = async (req, res) => {
   const { role, institutionId, userId } = req.user;
 

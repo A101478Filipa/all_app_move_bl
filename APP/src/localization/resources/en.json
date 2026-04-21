@@ -552,7 +552,9 @@
     "addWoundSubtitle": "Add wound tracking without linking to a fall or SOS",
     "filter_all": "All",
     "filter_ongoing": "Ongoing",
-    "filter_resolved": "Resolved"
+    "filter_resolved": "Resolved",
+    "injuryCasesTitle": "Wounds from Falls / SOS",
+    "noInjuryCases": "No falls or SOS with reported injuries"
   },
   "pathology": {
     "title": "Pathology",

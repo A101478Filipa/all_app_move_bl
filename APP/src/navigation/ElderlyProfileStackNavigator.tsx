@@ -4,6 +4,7 @@ import MedicationDetailsScreen from "@src/screens/medication/MedicationDetailsSc
 import MeasurementDetailsScreen from "@src/screens/measurements/MeasurementDetailsScreen";
 import PathologyDetailsScreen from "@src/screens/pathology/PathologyDetailsScreen";
 import { FallOccurrenceScreen } from "@src/screens/fallOccurrence/FallOccurrenceScreen";
+import { SosOccurrenceScreen } from "@src/screens/sosOccurrence/SosOccurrenceScreen";
 import { ElderlyMeasurementsComponent, ElderlyMeasurementsArgs } from "@components/screens/ElderlyMeasurementsComponent";
 import ElderlyCalendarScreen from "@src/screens/elderly/ElderlyCalendarScreen";
 import ElderlyMedicationsListScreen from "@src/screens/elderly/ElderlyMedicationsListScreen";
@@ -28,6 +29,9 @@ export type ElderlyProfileStackParamList = {
     pathologyId: number;
   };
   FallOccurrenceScreen: {
+    occurrenceId: number;
+  };
+  SosOccurrenceScreen: {
     occurrenceId: number;
   };
   ElderlyMeasurements: ElderlyMeasurementsArgs;
@@ -93,6 +97,11 @@ export const ElderlyProfileStackNavigator = () => {
         name='FallOccurrenceScreen'
         component={FallOccurrenceScreen}
         options={{ title: t('fallOccurrence.title') }}
+      />
+      <Stack.Screen
+        name='SosOccurrenceScreen'
+        component={SosOccurrenceScreen}
+        options={{ title: t('sosOccurrence.title') }}
       />
       <Stack.Screen
         name='ElderlyMeasurements'

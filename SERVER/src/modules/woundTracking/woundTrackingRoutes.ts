@@ -8,6 +8,7 @@ import {
   getFallWoundTrackings,
   getSosWoundTrackings,
   getElderlyWoundTrackings,
+  getElderlyWoundCases,
 } from './woundTrackingController';
 import { authenticate, authorizeRoles } from '../../middleware/authMiddleware';
 import { uploadIncidentPhoto } from '../../middleware/uploadMiddleware';
@@ -62,6 +63,12 @@ woundTrackingRoutes.post(
   uploadIncidentPhoto.single('photo'),
   handleMulterError,
   addSosWoundTracking
+);
+
+woundTrackingRoutes.get(
+  '/elderly/:elderlyId/cases',
+  authenticate,
+  getElderlyWoundCases
 );
 
 woundTrackingRoutes.get(
