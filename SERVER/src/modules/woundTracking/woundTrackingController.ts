@@ -171,32 +171,17 @@ export const getElderlyWoundTrackings = async (req, res) => {
 
     if (!hasAccess) return sendError(res, 'Forbidden', 403);
 
-    let trackings;
-    try {
-      trackings = await prisma.woundTracking.findMany({
-        where: {
-          OR: [
-            { elderlyId },
-            { fallOccurrence: { elderlyId } },
-            { sosOccurrence: { elderlyId } },
-          ],
-        },
-        include: woundTrackingInclude,
-        orderBy: { createdAt: 'desc' },
-      });
-    } catch {
-      // Fallback: elderlyId column may not exist yet, query without it
-      trackings = await prisma.woundTracking.findMany({
-        where: {
-          OR: [
-            { fallOccurrence: { elderlyId } },
-            { sosOccurrence: { elderlyId } },
-          ],
-        },
-        include: woundTrackingInclude,
-        orderBy: { createdAt: 'desc' },
-      });
-    }
+    const trackings = await prisma.woundTracking.findMany({
+      where: {
+        OR: [
+          { elderlyId },
+          { fallOccurrence: { elderlyId } },
+          { sosOccurrence: { elderlyId } },
+        ],
+      },
+      include: woundTrackingInclude,
+      orderBy: { createdAt: 'desc' },
+    });
 
     return sendSuccess(res, trackings, 'Wound trackings fetched');
   } catch (e) {
@@ -234,7 +219,7 @@ export const addElderlyWoundTracking = async (req, res) => {
         notes: notes?.trim() || null,
         photoUrl: req.file ? req.file.filename : null,
         isResolved,
-      } as any,
+      },
       include: woundTrackingInclude,
     });
 
@@ -266,7 +251,8 @@ export const deleteWoundTracking = async (req, res) => {
       tracking.sosOccurrence?.elderly.institutionId ??
       tracking.elderly?.institutionId;
 
-    if (institutionId !== req.user.institutionId) return sendError(res, 'Forbidden', 403);
+    const { role } = req.user;
+    if (role !== UserRole.PROGRAMMER && institutionId !== req.user.institutionId) return sendError(res, 'Forbidden', 403);
 
     await prisma.woundTracking.delete({ where: { id: trackingId } });
     return sendSuccess(res, null, 'Wound tracking deleted');

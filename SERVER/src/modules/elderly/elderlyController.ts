@@ -119,17 +119,7 @@ export const showElderly = async (req, res) => {
             { sosOccurrence: { elderlyId: id } },
           ]
         }
-      }).catch(() => {
-        // Fallback in case elderlyId column doesn't exist yet in DB
-        return prisma.woundTracking.count({
-          where: {
-            OR: [
-              { fallOccurrence: { elderlyId: id } },
-              { sosOccurrence: { elderlyId: id } },
-            ]
-          }
-        }).catch(() => 0);
-      }),
+      }).catch(() => 0),
     ]);
 
     if (!elderly) {
