@@ -73,7 +73,7 @@ export const addFallWoundTracking = async (req, res) => {
         notes: notes?.trim() || null,
         photoUrl: req.file ? req.file.filename : null,
         isResolved,
-      } as any,
+      },
       include: woundTrackingInclude,
     });
 
@@ -144,7 +144,7 @@ export const addSosWoundTracking = async (req, res) => {
         notes: notes?.trim() || null,
         photoUrl: req.file ? req.file.filename : null,
         isResolved,
-      } as any,
+      },
       include: woundTrackingInclude,
     });
 
