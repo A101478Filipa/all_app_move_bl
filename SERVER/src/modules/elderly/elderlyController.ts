@@ -98,7 +98,7 @@ export const showElderly = async (req, res) => {
   const id = Number(req.params.elderlyId || userId);
 
   try {
-    const [elderly, woundTrackingCount] = await Promise.all([
+    const [elderly, fallOccurrences, sosOccurrences, directOngoingCount] = await Promise.all([
       prisma.elderly.findUnique({
         where: { id },
         include: {
@@ -111,16 +111,23 @@ export const showElderly = async (req, res) => {
           sosOccurrences: true,
         }
       }),
+      prisma.fallOccurrence.findMany({
+        where: { elderlyId: id, injured: true, isFalseAlarm: false },
+        include: { woundTrackings: { orderBy: { createdAt: 'desc' }, take: 1 } },
+      }).catch(() => []),
+      prisma.sosOccurrence.findMany({
+        where: { elderlyId: id, injured: true, isFalseAlarm: false },
+        include: { woundTrackings: { orderBy: { createdAt: 'desc' }, take: 1 } },
+      }).catch(() => []),
       prisma.woundTracking.count({
-        where: {
-          OR: [
-            { elderlyId: id },
-            { fallOccurrence: { elderlyId: id } },
-            { sosOccurrence: { elderlyId: id } },
-          ]
-        }
+        where: { elderlyId: id, isResolved: false },
       }).catch(() => 0),
     ]);
+
+    const woundTrackingCount =
+      fallOccurrences.filter((f: any) => !(f.woundTrackings[0]?.isResolved ?? false)).length +
+      sosOccurrences.filter((s: any) => !(s.woundTrackings[0]?.isResolved ?? false)).length +
+      directOngoingCount;
 
     if (!elderly) {
       return sendError(res, 'Elderly not found', 404);

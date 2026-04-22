@@ -180,6 +180,17 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
       {woundCase.injuryDescription ? (
         <Text style={styles.descriptionText} numberOfLines={2}>{woundCase.injuryDescription}</Text>
       ) : null}
+      {isPrivileged && (
+        <TouchableOpacity
+          style={styles.addUpdateBtn}
+          onPress={() => woundCase.occurrenceType === 'fall'
+            ? navigation.push('FallOccurrenceScreen', { occurrenceId: woundCase.occurrenceId })
+            : navigation.push('SosOccurrenceScreen', { occurrenceId: woundCase.occurrenceId })}
+        >
+          <MaterialIcons name="add" size={15} color={Color.primary} />
+          <Text style={styles.addUpdateBtnText}>{t('woundTracking.addUpdate')}</Text>
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 
@@ -214,6 +225,12 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.tapToExpand}>{t('woundTracking.tapToExpand')}</Text>
         </TouchableOpacity>
       ) : null}
+      {isPrivileged && (
+        <TouchableOpacity style={styles.addUpdateBtn} onPress={openModal}>
+          <MaterialIcons name="add" size={15} color={Color.primary} />
+          <Text style={styles.addUpdateBtnText}>{t('woundTracking.addUpdate')}</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -223,18 +240,10 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
-        {/* Header row: title + add button */}
-        <View style={styles.headerRow}>
-          <View style={styles.headerLeft}>
-            <MaterialIcons name="healing" size={20} color={Color.primary} />
-            <Text style={styles.screenTitle}>{t('woundTracking.title')}</Text>
-          </View>
-          {isPrivileged && (
-            <TouchableOpacity style={styles.addButton} onPress={openModal}>
-              <MaterialIcons name="add" size={18} color={Color.white} />
-              <Text style={styles.addButtonText}>{t('woundTracking.addUpdate')}</Text>
-            </TouchableOpacity>
-          )}
+        {/* Header row: title only */}
+        <View style={styles.headerLeft}>
+          <MaterialIcons name="healing" size={20} color={Color.primary} />
+          <Text style={styles.screenTitle}>{t('woundTracking.title')}</Text>
         </View>
 
         {/* Unified filter tabs */}
@@ -353,13 +362,12 @@ const styles = StyleSheet.create({
   content: { ...spacingStyles.screenScrollContainer, gap: Spacing.sm_8 },
 
   // Header
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.xs_4 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs_4 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs_4, marginBottom: Spacing.xs_4 },
   screenTitle: { fontFamily: FontFamily.bold, fontSize: FontSize.bodylarge_18, color: Color.primary },
 
-  // Add button
-  addButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs_4, backgroundColor: Color.primary, paddingHorizontal: Spacing.sm_8, paddingVertical: Spacing.xs_4 + 2, borderRadius: Border.sm_8 },
-  addButtonText: { fontFamily: FontFamily.medium, fontSize: FontSize.bodysmall_14, color: Color.white },
+  // Per-card add update button
+  addUpdateBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', borderWidth: 1, borderColor: Color.primary, borderRadius: Border.sm_8, paddingHorizontal: Spacing.sm_8, paddingVertical: Spacing.xs_4 },
+  addUpdateBtnText: { fontFamily: FontFamily.medium, fontSize: FontSize.caption_12, color: Color.primary },
 
   // Filters
   filterRow: { flexDirection: 'row', gap: Spacing.xs_4, marginBottom: Spacing.sm_8 },
