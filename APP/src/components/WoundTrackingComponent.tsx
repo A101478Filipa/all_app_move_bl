@@ -24,7 +24,6 @@ import { FontFamily, FontSize } from '@src/styles/fonts';
 import { shadowStyles } from '@src/styles/shadow';
 import { buildAvatarUrl } from '@src/services/ApiService';
 import { woundTrackingApi, WoundTracking } from '@src/api/endpoints/woundTracking';
-import BodyLocationPicker from '@components/BodyLocationPicker';
 
 type OccurrenceType = 'fall' | 'sos' | 'elderly';
 
@@ -45,7 +44,6 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
   const [modalVisible, setModalVisible] = useState(false);
   const [notes, setNotes] = useState('');
   const [isResolved, setIsResolved] = useState(false);
-  const [selectedBodyLocations, setSelectedBodyLocations] = useState<string[]>([]);
   const [pickedPhoto, setPickedPhoto] = useState<{ uri: string; name: string; type: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);

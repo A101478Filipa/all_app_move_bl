@@ -257,7 +257,7 @@ const HandleFallOccurrenceComponent: React.FC<Props> = ({ onSubmit, loading = fa
                   placeholder={t('fallOccurrence.describeInjuries')}
                   required
                 />
-                <Text style={styles.label}>{t('woundTracking.bodyLocation')}</Text>
+                <Text style={styles.label}>{t('woundTracking.bodyLocation')}<Text style={{ color: 'red' }}> *</Text></Text>
                 <BodyLocationPicker
                   selected={injuryBodyLocations}
                   onChange={setInjuryBodyLocations}

@@ -259,7 +259,7 @@ const HandleSosOccurrenceComponent: React.FC<Props> = ({ onSubmit, loading = fal
                   required
                 />
 
-                <Text style={styles.label}>{t('woundTracking.bodyLocation')}</Text>
+                <Text style={styles.label}>{t('woundTracking.bodyLocation')}<Text style={{ color: 'red' }}> *</Text></Text>
                 <BodyLocationPicker
                   selected={injuryBodyLocations}
                   onChange={setInjuryBodyLocations}
