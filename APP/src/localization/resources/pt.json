@@ -529,6 +529,8 @@
   "woundTracking": {
     "title": "Seguimento da Ferida",
     "addUpdate": "Adicionar Atualização",
+    "newWound": "Registar Nova Ferida",
+    "bodyLocationRequired": "A localização da ferida no corpo é obrigatória",
     "noUpdates": "Sem atualizações registadas",
     "notes": "Notas",
     "notesPlaceholder": "Descreva o estado atual da ferida...",

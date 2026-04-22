@@ -110,7 +110,8 @@ const HandleFallOccurrenceComponent: React.FC<Props> = ({ onSubmit, loading = fa
     const missingFields =
       !description.trim() ||
       (!isFalseAlarm && !measuresTaken.trim()) ||
-      (!isFalseAlarm && injured && !injuryDescription.trim());
+      (!isFalseAlarm && injured && !injuryDescription.trim()) ||
+      (!isFalseAlarm && injured && injuryBodyLocations.length === 0);
     if (missingFields) {
       setValidationError(t('fallOccurrence.fillRequiredFields'));
       return;

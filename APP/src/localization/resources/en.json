@@ -531,6 +531,8 @@
   "woundTracking": {
     "title": "Wound Tracking",
     "addUpdate": "Add Update",
+    "newWound": "Register New Wound",
+    "bodyLocationRequired": "The wound body location is required",
     "noUpdates": "No updates recorded yet",
     "notes": "Notes",
     "notesPlaceholder": "Describe the current wound status...",

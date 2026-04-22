@@ -109,7 +109,8 @@ const HandleSosOccurrenceComponent: React.FC<Props> = ({ onSubmit, loading = fal
     if (!isFalseAlarm) {
       const missingFields =
         !measuresTaken.trim() ||
-        (injured && !injuryDescription.trim());
+        (injured && !injuryDescription.trim()) ||
+        (injured && injuryBodyLocations.length === 0);
       if (missingFields) {
         setValidationError(t('sosOccurrence.fillRequiredFields'));
         return;
