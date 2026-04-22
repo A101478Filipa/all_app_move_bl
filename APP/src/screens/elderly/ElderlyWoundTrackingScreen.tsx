@@ -45,6 +45,9 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
   // Add-tracking modal state
   const [modalVisible, setModalVisible] = useState(false);
   const [isNewWound, setIsNewWound] = useState(false);
+  // new-wound fields (same as fall/SOS injury section)
+  const [injuryDescription, setInjuryDescription] = useState('');
+  // update fields
   const [notes, setNotes] = useState('');
   const [isResolved, setIsResolved] = useState(false);
   const [selectedBodyLocations, setSelectedBodyLocations] = useState<string[]>([]);
@@ -88,7 +91,7 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // ─── Add tracking modal ──────────────────────────────────────────────────────
 
-  const openModal = (isNew: boolean) => { setIsNewWound(isNew); setNotes(''); setIsResolved(false); setPickedPhoto(null); setSelectedBodyLocations([]); setModalVisible(true); };
+  const openModal = (isNew: boolean) => { setIsNewWound(isNew); setInjuryDescription(''); setNotes(''); setIsResolved(false); setPickedPhoto(null); setSelectedBodyLocations([]); setModalVisible(true); };
 
   // Auto-open from navigation param (new wound)
   useEffect(() => {
@@ -130,15 +133,20 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleSubmit = async () => {
     if (isNewWound) {
       if (selectedBodyLocations.length === 0) { Alert.alert(t('woundTracking.bodyLocationRequired')); return; }
+      if (!injuryDescription.trim()) { Alert.alert(t('fallOccurrence.fillRequiredFields')); return; }
     } else {
       if (!notes.trim() && !pickedPhoto && !isResolved) { Alert.alert(t('woundTracking.errorEmpty')); return; }
     }
     setSubmitting(true);
     try {
       const formData = new FormData();
-      if (notes.trim()) formData.append('notes', notes.trim());
-      formData.append('isResolved', String(isResolved));
-      if (isNewWound && selectedBodyLocations.length > 0) formData.append('bodyLocations', JSON.stringify(selectedBodyLocations));
+      if (isNewWound) {
+        formData.append('notes', injuryDescription.trim());
+        formData.append('bodyLocations', JSON.stringify(selectedBodyLocations));
+      } else {
+        if (notes.trim()) formData.append('notes', notes.trim());
+        formData.append('isResolved', String(isResolved));
+      }
       if (pickedPhoto) formData.append('photo', { uri: pickedPhoto.uri, name: pickedPhoto.name, type: pickedPhoto.type } as any);
       const res = await woundTrackingApi.addElderlyWoundTracking(elderlyId, formData);
       if (res.data) { setTrackings(prev => [res.data, ...prev]); setModalVisible(false); }
@@ -307,15 +315,39 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
               </TouchableOpacity>
             </View>
             <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
-              {isNewWound && (
+              {isNewWound ? (
                 <>
-                  <Text style={styles.fieldLabel}>{t('woundTracking.bodyLocation')}</Text>
+                  <Text style={styles.fieldLabel}>{t('fallOccurrence.injuryDescription')}<Text style={{ color: Color.Error.default }}> *</Text></Text>
+                  <TextInput
+                    style={styles.textInput}
+                    multiline numberOfLines={4}
+                    placeholder={t('fallOccurrence.describeInjuries')}
+                    placeholderTextColor={Color.Gray.v300}
+                    value={injuryDescription} onChangeText={setInjuryDescription}
+                    textAlignVertical="top"
+                  />
+                  <Text style={styles.fieldLabel}>{t('woundTracking.bodyLocation')}<Text style={{ color: Color.Error.default }}> *</Text></Text>
                   <BodyLocationPicker
                     selected={selectedBodyLocations}
                     onChange={setSelectedBodyLocations}
                   />
+                  <Text style={styles.fieldLabel}>{t('fallOccurrence.injuryPhoto')}</Text>
+                  {pickedPhoto ? (
+                    <View style={styles.pickedPhotoContainer}>
+                      <Image source={{ uri: pickedPhoto.uri }} style={styles.pickedPhoto} resizeMode="cover" />
+                      <TouchableOpacity style={styles.changePhotoBtn} onPress={showPhotoPicker}>
+                        <Text style={styles.changePhotoBtnText}>{t('woundTracking.changePhoto')}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity style={styles.photoPickerBtn} onPress={showPhotoPicker}>
+                      <MaterialIcons name="add-a-photo" size={24} color={Color.primary} />
+                      <Text style={styles.photoPickerText}>{t('fallOccurrence.addInjuryPhoto')}</Text>
+                    </TouchableOpacity>
+                  )}
                 </>
-              )}
+              ) : (
+                <>
               <Text style={styles.fieldLabel}>{t('woundTracking.notes')}</Text>
               <TextInput
                 style={styles.textInput}
@@ -349,6 +381,8 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
                   <MaterialIcons name="add-a-photo" size={24} color={Color.primary} />
                   <Text style={styles.photoPickerText}>{t('woundTracking.addPhoto')}</Text>
                 </TouchableOpacity>
+              )}
+                </>
               )}
             </ScrollView>
             <View style={styles.modalFooter}>
