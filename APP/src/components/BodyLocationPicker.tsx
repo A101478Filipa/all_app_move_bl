@@ -9,12 +9,10 @@ import { Spacing } from '@src/styles/spacings';
 import { FontFamily, FontSize } from '@src/styles/fonts';
 
 // ─── constants ───────────────────────────────────────────────────────────────
-const PRIMARY       = '#35C2C1';
-const OVERLAY_SEL   = 'rgba(53,194,193,0.42)';
-const OUTLINE_IDLE  = 'rgba(53,194,193,0.45)';
+const PRIMARY = '#35C2C1';
 
-// Display size. Images are 499x820 (front) and 488x822 (back).
-// Container uses exact aspect ratio 499/820 ≈ 0.608 so contain fills fully.
+// Both images are 499x820 after normalisation.
+// Display size: scale = 200/499 ≈ 0.4008 → height = 820 * 0.4008 ≈ 329
 const BODY_W = 200;
 const BODY_H = 329;
 
@@ -22,9 +20,9 @@ const FRONT_IMG = require('../../assets/body_front.png');
 const BACK_IMG  = require('../../assets/body_back.png');
 
 // ─── zone type ───────────────────────────────────────────────────────────────
-// Coordinates calibrated to 200x329 container for 499x820 image (scale ≈ 0.401).
-// Anatomical convention: patient RIGHT = screen LEFT (x<100), LEFT = screen RIGHT (x>100).
-// All zones show a subtle teal outline so the user can see where to tap.
+// Zones are invisible Pressable overlays on top of the PNG.
+// Selected zones show a small centered teal dot (pin-style) only.
+// Anatomical: patient RIGHT = screen LEFT (x<100), LEFT = screen RIGHT (x>100).
 interface Zone {
   id: string;
   top: number; left: number; width: number; height: number;
@@ -33,29 +31,24 @@ interface Zone {
 
 // ─── FRONT zones ─────────────────────────────────────────────────────────────
 const FRONT_ZONES: Zone[] = [
-  // Head & neck
   { id: 'HEAD',            top:  13, left: 75, width: 50, height: 38, borderRadius: 25 },
   { id: 'FACE',            top:  17, left: 79, width: 42, height: 30, borderRadius: 22 },
   { id: 'NECK',            top:  50, left: 87, width: 26, height: 15, borderRadius:  8 },
-  // Torso front
   { id: 'SHOULDER_RIGHT',  top:  63, left: 22, width: 58, height: 34, borderRadius: 14 },
   { id: 'SHOULDER_LEFT',   top:  63, left:120, width: 58, height: 34, borderRadius: 14 },
   { id: 'CHEST',           top:  63, left: 62, width: 76, height: 64, borderRadius:  8 },
   { id: 'ABDOMEN',         top: 124, left: 66, width: 68, height: 52, borderRadius:  8 },
   { id: 'PELVIS',          top: 174, left: 68, width: 64, height: 22, borderRadius: 11 },
-  // Right arm (patient right = screen left)
   { id: 'ARM_UPPER_RIGHT', top:  63, left: 14, width: 52, height: 72, borderRadius: 14 },
   { id: 'ELBOW_RIGHT',     top: 132, left: 12, width: 44, height: 20, borderRadius: 10 },
   { id: 'FOREARM_RIGHT',   top: 150, left:  8, width: 44, height: 46, borderRadius: 12 },
   { id: 'WRIST_RIGHT',     top: 194, left:  6, width: 42, height: 16, borderRadius:  8 },
   { id: 'HAND_RIGHT',      top: 208, left:  4, width: 44, height: 40, borderRadius: 10 },
-  // Left arm (patient left = screen right)
   { id: 'ARM_UPPER_LEFT',  top:  63, left:134, width: 52, height: 72, borderRadius: 14 },
   { id: 'ELBOW_LEFT',      top: 132, left:144, width: 44, height: 20, borderRadius: 10 },
   { id: 'FOREARM_LEFT',    top: 150, left:148, width: 44, height: 46, borderRadius: 12 },
   { id: 'WRIST_LEFT',      top: 194, left:152, width: 42, height: 16, borderRadius:  8 },
   { id: 'HAND_LEFT',       top: 208, left:152, width: 44, height: 40, borderRadius: 10 },
-  // Hips & legs (right = screen left)
   { id: 'HIP_RIGHT',       top: 194, left: 64, width: 38, height: 22, borderRadius: 11 },
   { id: 'HIP_LEFT',        top: 194, left: 98, width: 38, height: 22, borderRadius: 11 },
   { id: 'THIGH_RIGHT',     top: 207, left: 62, width: 38, height: 54, borderRadius: 10 },
@@ -71,7 +64,6 @@ const FRONT_ZONES: Zone[] = [
 ];
 
 // ─── BACK zones ───────────────────────────────────────────────────────────────
-// Back image 488x822; scale ≈ 0.409/0.400 – very close to front, same coords work.
 const BACK_ZONES: Zone[] = [
   { id: 'HEAD',            top:  13, left: 75, width: 50, height: 38, borderRadius: 25 },
   { id: 'NECK',            top:  50, left: 87, width: 26, height: 15, borderRadius:  8 },
@@ -115,11 +107,37 @@ const BodyLocationPicker: React.FC<BodyLocationPickerProps> = ({ selected, onCha
   const { t } = useTranslation();
   const [view, setView] = useState<'front' | 'back'>('front');
 
-  const toggle = (id: string) =>
-    onChange(selected.includes(id) ? selected.filter(l => l !== id) : [...selected, id]);
+  // Per-view selections so switching view doesn't bleed highlights across sides.
+  // Initialise from parent's `selected` using zone membership.
+  const [viewSel, setViewSel] = useState<{ front: string[]; back: string[] }>(() => {
+    const frontIds = new Set(FRONT_ZONES.map(z => z.id));
+    const backIds  = new Set(BACK_ZONES.map(z => z.id));
+    const front: string[] = [];
+    const back: string[]  = [];
+    for (const id of selected) {
+      const inF = frontIds.has(id);
+      const inB = backIds.has(id);
+      if (inF && !inB)      front.push(id);
+      else if (inB && !inF) back.push(id);
+      else { front.push(id); back.push(id); }   // exists on both views
+    }
+    return { front, back };
+  });
 
-  const zones      = view === 'front' ? FRONT_ZONES : BACK_ZONES;
-  const bodyImage  = view === 'front' ? FRONT_IMG : BACK_IMG;
+  const toggle = (id: string) => {
+    setViewSel(prev => {
+      const arr  = prev[view];
+      const next = arr.includes(id) ? arr.filter(l => l !== id) : [...arr, id];
+      const updated = { ...prev, [view]: next };
+      // Emit union (deduped) to parent
+      onChange([...new Set([...updated.front, ...updated.back])]);
+      return updated;
+    });
+  };
+
+  const zones       = view === 'front' ? FRONT_ZONES : BACK_ZONES;
+  const bodyImage   = view === 'front' ? FRONT_IMG   : BACK_IMG;
+  const currentSel  = viewSel[view];
 
   return (
     <View style={styles.wrapper}>
@@ -145,7 +163,7 @@ const BodyLocationPicker: React.FC<BodyLocationPickerProps> = ({ selected, onCha
         <Image source={bodyImage} style={styles.bodyImage} resizeMode="contain" />
 
         {zones.map(zone => {
-          const isSel = selected.includes(zone.id);
+          const isSel = currentSel.includes(zone.id);
           return (
             <Pressable
               key={zone.id}
@@ -158,16 +176,18 @@ const BodyLocationPicker: React.FC<BodyLocationPickerProps> = ({ selected, onCha
                   height: zone.height,
                   borderRadius: zone.borderRadius ?? 6,
                 },
-                isSel ? styles.zoneSelected : styles.zoneIdle,
               ]}
               onPress={() => toggle(zone.id)}
               hitSlop={4}
-            />
+            >
+              {/* Selected → show a small teal dot centered on the zone */}
+              {isSel && <View style={styles.dot} />}
+            </Pressable>
           );
         })}
       </View>
 
-      {/* Selected chips */}
+      {/* Selected location chips (union of both views) */}
       {selected.length > 0 ? (
         <ScrollView
           horizontal
@@ -178,7 +198,17 @@ const BodyLocationPicker: React.FC<BodyLocationPickerProps> = ({ selected, onCha
             <TouchableOpacity
               key={loc}
               style={styles.chip}
-              onPress={() => toggle(loc)}
+              onPress={() => {
+                // Remove from whichever view has it
+                setViewSel(prev => {
+                  const updated = {
+                    front: prev.front.filter(l => l !== loc),
+                    back:  prev.back.filter(l => l !== loc),
+                  };
+                  onChange([...new Set([...updated.front, ...updated.back])]);
+                  return updated;
+                });
+              }}
               activeOpacity={0.7}
             >
               <Text style={styles.chipText}>{t(`woundTracking.bodyLocation_${loc}`)}</Text>
@@ -213,21 +243,25 @@ const styles = StyleSheet.create({
   bodyContainer: { width: BODY_W, height: BODY_H, position: 'relative' },
   bodyImage:     { width: BODY_W, height: BODY_H },
 
+  // Fully invisible Pressable overlay – only the dot inside shows selection
   zone: {
     position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  // Subtle visible outline so user can see where to tap
-  zoneIdle: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: OUTLINE_IDLE,
-    borderStyle: 'dashed',
-  },
-  // Teal solid fill when selected
-  zoneSelected: {
-    backgroundColor: OVERLAY_SEL,
-    borderWidth: 2,
-    borderColor: PRIMARY,
+
+  // Small teal dot centered on the selected zone
+  dot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: PRIMARY,
+    // White halo so the dot stands out on the drawing
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 3,
+    elevation: 3,
   },
 
   chips: { flexDirection: 'row', gap: Spacing.xs_4, paddingHorizontal: 2 },
