@@ -78,7 +78,6 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
     setNotes('');
     setIsResolved(false);
     setPickedPhoto(null);
-    setSelectedBodyLocations([]);
     setModalVisible(true);
   };
 
@@ -127,7 +126,6 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
       const formData = new FormData();
       if (notes.trim()) formData.append('notes', notes.trim());
       formData.append('isResolved', String(isResolved));
-      if (selectedBodyLocations.length > 0) formData.append('bodyLocations', JSON.stringify(selectedBodyLocations));
       if (pickedPhoto) {
         formData.append('photo', { uri: pickedPhoto.uri, name: pickedPhoto.name, type: pickedPhoto.type } as any);
       }
@@ -280,12 +278,6 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
             </View>
 
             <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
-              <BodyLocationPicker
-                selected={selectedBodyLocations}
-                onChange={setSelectedBodyLocations}
-                label={t('woundTracking.bodyLocation')}
-              />
-
               <Text style={styles.fieldLabel}>{t('woundTracking.notes')}</Text>
               <TextInput
                 style={styles.textInput}

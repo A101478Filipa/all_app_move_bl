@@ -101,6 +101,10 @@ const ElderlyFallsListScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleAddFall = async () => {
+    if (injured && woundBodyLocations.length === 0) {
+      Alert.alert(t('woundTracking.bodyLocationRequired'));
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fallOccurrenceApi.createFallOccurrence(elderlyId, {
@@ -229,7 +233,7 @@ const ElderlyFallsListScreen: React.FC<Props> = ({ route, navigation }) => {
 
               {injured && (
                 <View style={styles.woundSection}>
-                  <Text style={styles.fieldLabel}>{t('woundTracking.bodyLocation')}</Text>
+                  <Text style={styles.fieldLabel}>{t('woundTracking.bodyLocation')}<Text style={{ color: 'red' }}> *</Text></Text>
                   <BodyLocationPicker
                     selected={woundBodyLocations}
                     onChange={setWoundBodyLocations}
