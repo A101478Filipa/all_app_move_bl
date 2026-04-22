@@ -9,103 +9,99 @@ import { Spacing } from '@src/styles/spacings';
 import { FontFamily, FontSize } from '@src/styles/fonts';
 
 // ─── constants ───────────────────────────────────────────────────────────────
-const PRIMARY  = '#35C2C1';
-const OVERLAY  = 'rgba(53,194,193,0.40)';
-const BODY_W   = 200;
-const BODY_H   = 325;
+const PRIMARY       = '#35C2C1';
+const OVERLAY_SEL   = 'rgba(53,194,193,0.42)';
+const OUTLINE_IDLE  = 'rgba(53,194,193,0.45)';
 
-// ─── PNG assets ──────────────────────────────────────────────────────────────
-// Place body_front.png and body_back.png in APP/assets/
+// Display size. Images are 499x820 (front) and 488x822 (back).
+// Container uses exact aspect ratio 499/820 ≈ 0.608 so contain fills fully.
+const BODY_W = 200;
+const BODY_H = 329;
+
 const FRONT_IMG = require('../../assets/body_front.png');
 const BACK_IMG  = require('../../assets/body_back.png');
 
 // ─── zone type ───────────────────────────────────────────────────────────────
-// All coordinates are in pixels for a BODY_W×BODY_H (200×325) display container.
-// Zones are invisible Pressable overlays placed on top of the PNG image.
-// Anatomical convention: patient RIGHT = screen LEFT (x < 100), LEFT = screen RIGHT (x > 100).
+// Coordinates calibrated to 200x329 container for 499x820 image (scale ≈ 0.401).
+// Anatomical convention: patient RIGHT = screen LEFT (x<100), LEFT = screen RIGHT (x>100).
+// All zones show a subtle teal outline so the user can see where to tap.
 interface Zone {
   id: string;
-  top: number;
-  left: number;
-  width: number;
-  height: number;
+  top: number; left: number; width: number; height: number;
   borderRadius?: number;
 }
 
 // ─── FRONT zones ─────────────────────────────────────────────────────────────
 const FRONT_ZONES: Zone[] = [
-  { id: 'HEAD',            top:  8, left: 80, width: 40, height: 44, borderRadius: 22 },
-  { id: 'NECK',            top: 51, left: 88, width: 24, height: 15, borderRadius: 8  },
-  // torso
-  { id: 'SHOULDER_RIGHT',  top: 62, left: 38, width: 46, height: 28, borderRadius: 14 },
-  { id: 'SHOULDER_LEFT',   top: 62, left:116, width: 46, height: 28, borderRadius: 14 },
-  { id: 'CHEST',           top: 62, left: 78, width: 44, height: 56, borderRadius: 8  },
-  { id: 'ABDOMEN',         top:118, left: 80, width: 40, height: 44, borderRadius: 6  },
-  { id: 'PELVIS',          top:162, left: 80, width: 40, height: 22, borderRadius: 11 },
-  // right arm (patient right = screen left)
-  { id: 'ARM_UPPER_RIGHT', top: 64, left: 36, width: 24, height: 64, borderRadius: 12 },
-  { id: 'ELBOW_RIGHT',     top:128, left: 30, width: 24, height: 22, borderRadius: 11 },
-  { id: 'FOREARM_RIGHT',   top:150, left: 24, width: 22, height: 54, borderRadius: 8  },
-  { id: 'WRIST_RIGHT',     top:204, left: 20, width: 22, height: 16, borderRadius: 8  },
-  { id: 'HAND_RIGHT',      top:220, left: 12, width: 32, height: 48, borderRadius: 8  },
-  // left arm (patient left = screen right)
-  { id: 'ARM_UPPER_LEFT',  top: 64, left:140, width: 24, height: 64, borderRadius: 12 },
-  { id: 'ELBOW_LEFT',      top:128, left:146, width: 24, height: 22, borderRadius: 11 },
-  { id: 'FOREARM_LEFT',    top:150, left:154, width: 22, height: 54, borderRadius: 8  },
-  { id: 'WRIST_LEFT',      top:204, left:158, width: 22, height: 16, borderRadius: 8  },
-  { id: 'HAND_LEFT',       top:220, left:156, width: 32, height: 48, borderRadius: 8  },
-  // right leg
-  { id: 'HIP_RIGHT',       top:184, left: 68, width: 32, height: 24, borderRadius: 10 },
-  { id: 'THIGH_RIGHT',     top:184, left: 66, width: 34, height: 72, borderRadius: 10 },
-  { id: 'KNEE_RIGHT',      top:256, left: 68, width: 32, height: 22, borderRadius: 11 },
-  { id: 'LEG_LOWER_RIGHT', top:278, left: 70, width: 28, height: 42, borderRadius: 8  },
-  { id: 'ANKLE_RIGHT',     top:298, left: 71, width: 26, height: 16, borderRadius: 6  },
-  { id: 'FOOT_RIGHT',      top:306, left: 60, width: 36, height: 16, borderRadius: 6  },
-  // left leg
-  { id: 'HIP_LEFT',        top:184, left:100, width: 32, height: 24, borderRadius: 10 },
-  { id: 'THIGH_LEFT',      top:184, left:100, width: 34, height: 72, borderRadius: 10 },
-  { id: 'KNEE_LEFT',       top:256, left:100, width: 32, height: 22, borderRadius: 11 },
-  { id: 'LEG_LOWER_LEFT',  top:278, left:102, width: 28, height: 42, borderRadius: 8  },
-  { id: 'ANKLE_LEFT',      top:298, left:103, width: 26, height: 16, borderRadius: 6  },
-  { id: 'FOOT_LEFT',       top:306, left:104, width: 36, height: 16, borderRadius: 6  },
+  // Head & neck
+  { id: 'HEAD',            top:  13, left: 75, width: 50, height: 38, borderRadius: 25 },
+  { id: 'FACE',            top:  17, left: 79, width: 42, height: 30, borderRadius: 22 },
+  { id: 'NECK',            top:  50, left: 87, width: 26, height: 15, borderRadius:  8 },
+  // Torso front
+  { id: 'SHOULDER_RIGHT',  top:  63, left: 22, width: 58, height: 34, borderRadius: 14 },
+  { id: 'SHOULDER_LEFT',   top:  63, left:120, width: 58, height: 34, borderRadius: 14 },
+  { id: 'CHEST',           top:  63, left: 62, width: 76, height: 64, borderRadius:  8 },
+  { id: 'ABDOMEN',         top: 124, left: 66, width: 68, height: 52, borderRadius:  8 },
+  { id: 'PELVIS',          top: 174, left: 68, width: 64, height: 22, borderRadius: 11 },
+  // Right arm (patient right = screen left)
+  { id: 'ARM_UPPER_RIGHT', top:  63, left: 14, width: 52, height: 72, borderRadius: 14 },
+  { id: 'ELBOW_RIGHT',     top: 132, left: 12, width: 44, height: 20, borderRadius: 10 },
+  { id: 'FOREARM_RIGHT',   top: 150, left:  8, width: 44, height: 46, borderRadius: 12 },
+  { id: 'WRIST_RIGHT',     top: 194, left:  6, width: 42, height: 16, borderRadius:  8 },
+  { id: 'HAND_RIGHT',      top: 208, left:  4, width: 44, height: 40, borderRadius: 10 },
+  // Left arm (patient left = screen right)
+  { id: 'ARM_UPPER_LEFT',  top:  63, left:134, width: 52, height: 72, borderRadius: 14 },
+  { id: 'ELBOW_LEFT',      top: 132, left:144, width: 44, height: 20, borderRadius: 10 },
+  { id: 'FOREARM_LEFT',    top: 150, left:148, width: 44, height: 46, borderRadius: 12 },
+  { id: 'WRIST_LEFT',      top: 194, left:152, width: 42, height: 16, borderRadius:  8 },
+  { id: 'HAND_LEFT',       top: 208, left:152, width: 44, height: 40, borderRadius: 10 },
+  // Hips & legs (right = screen left)
+  { id: 'HIP_RIGHT',       top: 194, left: 64, width: 38, height: 22, borderRadius: 11 },
+  { id: 'HIP_LEFT',        top: 194, left: 98, width: 38, height: 22, borderRadius: 11 },
+  { id: 'THIGH_RIGHT',     top: 207, left: 62, width: 38, height: 54, borderRadius: 10 },
+  { id: 'THIGH_LEFT',      top: 207, left: 98, width: 38, height: 54, borderRadius: 10 },
+  { id: 'KNEE_RIGHT',      top: 259, left: 62, width: 38, height: 20, borderRadius: 10 },
+  { id: 'KNEE_LEFT',       top: 259, left: 98, width: 38, height: 20, borderRadius: 10 },
+  { id: 'LEG_LOWER_RIGHT', top: 277, left: 63, width: 36, height: 38, borderRadius: 10 },
+  { id: 'LEG_LOWER_LEFT',  top: 277, left: 99, width: 36, height: 38, borderRadius: 10 },
+  { id: 'ANKLE_RIGHT',     top: 313, left: 63, width: 34, height: 12, borderRadius:  6 },
+  { id: 'ANKLE_LEFT',      top: 313, left: 99, width: 34, height: 12, borderRadius:  6 },
+  { id: 'FOOT_RIGHT',      top: 320, left: 52, width: 44, height: 10, borderRadius:  5 },
+  { id: 'FOOT_LEFT',       top: 320, left: 98, width: 44, height: 10, borderRadius:  5 },
 ];
 
 // ─── BACK zones ───────────────────────────────────────────────────────────────
+// Back image 488x822; scale ≈ 0.409/0.400 – very close to front, same coords work.
 const BACK_ZONES: Zone[] = [
-  { id: 'HEAD',            top:  8, left: 80, width: 40, height: 44, borderRadius: 22 },
-  { id: 'NECK',            top: 51, left: 88, width: 24, height: 15, borderRadius: 8  },
-  // torso back
-  { id: 'SHOULDER_RIGHT',  top: 62, left: 38, width: 46, height: 28, borderRadius: 14 },
-  { id: 'SHOULDER_LEFT',   top: 62, left:116, width: 46, height: 28, borderRadius: 14 },
-  { id: 'BACK_UPPER',      top: 62, left: 78, width: 44, height: 56, borderRadius: 8  },
-  { id: 'BACK_LOWER',      top:118, left: 80, width: 40, height: 44, borderRadius: 6  },
-  { id: 'PELVIS',          top:162, left: 80, width: 40, height: 22, borderRadius: 11 },
-  // right arm
-  { id: 'ARM_UPPER_RIGHT', top: 64, left: 36, width: 24, height: 64, borderRadius: 12 },
-  { id: 'ELBOW_RIGHT',     top:128, left: 30, width: 24, height: 22, borderRadius: 11 },
-  { id: 'FOREARM_RIGHT',   top:150, left: 24, width: 22, height: 54, borderRadius: 8  },
-  { id: 'WRIST_RIGHT',     top:204, left: 20, width: 22, height: 16, borderRadius: 8  },
-  { id: 'HAND_RIGHT',      top:220, left: 12, width: 32, height: 48, borderRadius: 8  },
-  // left arm
-  { id: 'ARM_UPPER_LEFT',  top: 64, left:140, width: 24, height: 64, borderRadius: 12 },
-  { id: 'ELBOW_LEFT',      top:128, left:146, width: 24, height: 22, borderRadius: 11 },
-  { id: 'FOREARM_LEFT',    top:150, left:154, width: 22, height: 54, borderRadius: 8  },
-  { id: 'WRIST_LEFT',      top:204, left:158, width: 22, height: 16, borderRadius: 8  },
-  { id: 'HAND_LEFT',       top:220, left:156, width: 32, height: 48, borderRadius: 8  },
-  // right leg
-  { id: 'HIP_RIGHT',       top:184, left: 68, width: 32, height: 24, borderRadius: 10 },
-  { id: 'THIGH_RIGHT',     top:184, left: 66, width: 34, height: 72, borderRadius: 10 },
-  { id: 'KNEE_RIGHT',      top:256, left: 68, width: 32, height: 22, borderRadius: 11 },
-  { id: 'LEG_LOWER_RIGHT', top:278, left: 70, width: 28, height: 42, borderRadius: 8  },
-  { id: 'ANKLE_RIGHT',     top:298, left: 71, width: 26, height: 16, borderRadius: 6  },
-  { id: 'FOOT_RIGHT',      top:306, left: 60, width: 36, height: 16, borderRadius: 6  },
-  // left leg
-  { id: 'HIP_LEFT',        top:184, left:100, width: 32, height: 24, borderRadius: 10 },
-  { id: 'THIGH_LEFT',      top:184, left:100, width: 34, height: 72, borderRadius: 10 },
-  { id: 'KNEE_LEFT',       top:256, left:100, width: 32, height: 22, borderRadius: 11 },
-  { id: 'LEG_LOWER_LEFT',  top:278, left:102, width: 28, height: 42, borderRadius: 8  },
-  { id: 'ANKLE_LEFT',      top:298, left:103, width: 26, height: 16, borderRadius: 6  },
-  { id: 'FOOT_LEFT',       top:306, left:104, width: 36, height: 16, borderRadius: 6  },
+  { id: 'HEAD',            top:  13, left: 75, width: 50, height: 38, borderRadius: 25 },
+  { id: 'NECK',            top:  50, left: 87, width: 26, height: 15, borderRadius:  8 },
+  { id: 'SHOULDER_RIGHT',  top:  63, left: 22, width: 58, height: 34, borderRadius: 14 },
+  { id: 'SHOULDER_LEFT',   top:  63, left:120, width: 58, height: 34, borderRadius: 14 },
+  { id: 'BACK_UPPER',      top:  63, left: 62, width: 76, height: 64, borderRadius:  8 },
+  { id: 'BACK_LOWER',      top: 124, left: 66, width: 68, height: 52, borderRadius:  8 },
+  { id: 'PELVIS',          top: 174, left: 68, width: 64, height: 22, borderRadius: 11 },
+  { id: 'ARM_UPPER_RIGHT', top:  63, left: 14, width: 52, height: 72, borderRadius: 14 },
+  { id: 'ELBOW_RIGHT',     top: 132, left: 12, width: 44, height: 20, borderRadius: 10 },
+  { id: 'FOREARM_RIGHT',   top: 150, left:  8, width: 44, height: 46, borderRadius: 12 },
+  { id: 'WRIST_RIGHT',     top: 194, left:  6, width: 42, height: 16, borderRadius:  8 },
+  { id: 'HAND_RIGHT',      top: 208, left:  4, width: 44, height: 40, borderRadius: 10 },
+  { id: 'ARM_UPPER_LEFT',  top:  63, left:134, width: 52, height: 72, borderRadius: 14 },
+  { id: 'ELBOW_LEFT',      top: 132, left:144, width: 44, height: 20, borderRadius: 10 },
+  { id: 'FOREARM_LEFT',    top: 150, left:148, width: 44, height: 46, borderRadius: 12 },
+  { id: 'WRIST_LEFT',      top: 194, left:152, width: 42, height: 16, borderRadius:  8 },
+  { id: 'HAND_LEFT',       top: 208, left:152, width: 44, height: 40, borderRadius: 10 },
+  { id: 'HIP_RIGHT',       top: 194, left: 64, width: 38, height: 22, borderRadius: 11 },
+  { id: 'HIP_LEFT',        top: 194, left: 98, width: 38, height: 22, borderRadius: 11 },
+  { id: 'THIGH_RIGHT',     top: 207, left: 62, width: 38, height: 54, borderRadius: 10 },
+  { id: 'THIGH_LEFT',      top: 207, left: 98, width: 38, height: 54, borderRadius: 10 },
+  { id: 'KNEE_RIGHT',      top: 259, left: 62, width: 38, height: 20, borderRadius: 10 },
+  { id: 'KNEE_LEFT',       top: 259, left: 98, width: 38, height: 20, borderRadius: 10 },
+  { id: 'LEG_LOWER_RIGHT', top: 277, left: 63, width: 36, height: 38, borderRadius: 10 },
+  { id: 'LEG_LOWER_LEFT',  top: 277, left: 99, width: 36, height: 38, borderRadius: 10 },
+  { id: 'ANKLE_RIGHT',     top: 313, left: 63, width: 34, height: 12, borderRadius:  6 },
+  { id: 'ANKLE_LEFT',      top: 313, left: 99, width: 34, height: 12, borderRadius:  6 },
+  { id: 'FOOT_RIGHT',      top: 320, left: 52, width: 44, height: 10, borderRadius:  5 },
+  { id: 'FOOT_LEFT',       top: 320, left: 98, width: 44, height: 10, borderRadius:  5 },
 ];
 
 // ─── component ───────────────────────────────────────────────────────────────
@@ -119,12 +115,11 @@ const BodyLocationPicker: React.FC<BodyLocationPickerProps> = ({ selected, onCha
   const { t } = useTranslation();
   const [view, setView] = useState<'front' | 'back'>('front');
 
-  const toggle = (id: string) => {
+  const toggle = (id: string) =>
     onChange(selected.includes(id) ? selected.filter(l => l !== id) : [...selected, id]);
-  };
 
-  const zones = view === 'front' ? FRONT_ZONES : BACK_ZONES;
-  const bodyImage = view === 'front' ? FRONT_IMG : BACK_IMG;
+  const zones      = view === 'front' ? FRONT_ZONES : BACK_ZONES;
+  const bodyImage  = view === 'front' ? FRONT_IMG : BACK_IMG;
 
   return (
     <View style={styles.wrapper}>
@@ -145,7 +140,7 @@ const BodyLocationPicker: React.FC<BodyLocationPickerProps> = ({ selected, onCha
         ))}
       </View>
 
-      {/* Body image + invisible zone overlays */}
+      {/* Body PNG + invisible hit areas */}
       <View style={styles.bodyContainer}>
         <Image source={bodyImage} style={styles.bodyImage} resizeMode="contain" />
 
@@ -163,15 +158,16 @@ const BodyLocationPicker: React.FC<BodyLocationPickerProps> = ({ selected, onCha
                   height: zone.height,
                   borderRadius: zone.borderRadius ?? 6,
                 },
-                isSel && styles.zoneSelected,
+                isSel ? styles.zoneSelected : styles.zoneIdle,
               ]}
               onPress={() => toggle(zone.id)}
+              hitSlop={4}
             />
           );
         })}
       </View>
 
-      {/* Selected location chips */}
+      {/* Selected chips */}
       {selected.length > 0 ? (
         <ScrollView
           horizontal
@@ -209,30 +205,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: PRIMARY,
   },
-  toggleBtn:       { paddingHorizontal: 32, paddingVertical: 8, backgroundColor: Color.white },
-  toggleBtnActive: { backgroundColor: PRIMARY },
-  toggleText:      { fontFamily: FontFamily.medium, fontSize: FontSize.bodysmall_14, color: PRIMARY },
-  toggleTextActive:{ color: Color.white },
+  toggleBtn:        { paddingHorizontal: 32, paddingVertical: 8, backgroundColor: Color.white },
+  toggleBtnActive:  { backgroundColor: PRIMARY },
+  toggleText:       { fontFamily: FontFamily.medium, fontSize: FontSize.bodysmall_14, color: PRIMARY },
+  toggleTextActive: { color: Color.white },
 
-  bodyContainer: {
-    width: BODY_W,
-    height: BODY_H,
-    position: 'relative',
-  },
-  bodyImage: {
-    width: BODY_W,
-    height: BODY_H,
-  },
+  bodyContainer: { width: BODY_W, height: BODY_H, position: 'relative' },
+  bodyImage:     { width: BODY_W, height: BODY_H },
 
-  // Transparent hotspot overlay (invisible by default)
   zone: {
     position: 'absolute',
-    backgroundColor: 'transparent',
   },
-  // Selected: teal fill + border
+  // Subtle visible outline so user can see where to tap
+  zoneIdle: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: OUTLINE_IDLE,
+    borderStyle: 'dashed',
+  },
+  // Teal solid fill when selected
   zoneSelected: {
-    backgroundColor: OVERLAY,
-    borderWidth: 1.5,
+    backgroundColor: OVERLAY_SEL,
+    borderWidth: 2,
     borderColor: PRIMARY,
   },
 
