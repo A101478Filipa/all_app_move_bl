@@ -443,6 +443,7 @@ model WoundTracking {
   createdByUserId    Int
   photoUrl           String?
   notes              String?
+  bodyLocations      String[] @default([])
   isResolved         Boolean  @default(false)
   createdAt          DateTime @default(now())
   fallOccurrence     FallOccurrence? @relation(fields: [fallOccurrenceId], references: [id])

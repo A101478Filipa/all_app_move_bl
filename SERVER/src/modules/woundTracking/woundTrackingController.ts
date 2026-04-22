@@ -51,6 +51,8 @@ export const addFallWoundTracking = async (req, res) => {
   const occurrenceId = Number(req.params.occurrenceId);
   const { notes } = req.body;
   const isResolved = req.body.isResolved === 'true' || req.body.isResolved === true;
+  let bodyLocations: string[] = [];
+  try { bodyLocations = req.body.bodyLocations ? JSON.parse(req.body.bodyLocations) : []; } catch { /* ignore */ }
 
   try {
     const occurrence = await prisma.fallOccurrence.findUnique({
@@ -72,6 +74,7 @@ export const addFallWoundTracking = async (req, res) => {
         createdByUserId: req.user.userId,
         notes: notes?.trim() || null,
         photoUrl: req.file ? req.file.filename : null,
+        bodyLocations,
         isResolved,
       },
       include: woundTrackingInclude,
@@ -122,6 +125,8 @@ export const addSosWoundTracking = async (req, res) => {
   const occurrenceId = Number(req.params.occurrenceId);
   const { notes } = req.body;
   const isResolved = req.body.isResolved === 'true' || req.body.isResolved === true;
+  let bodyLocations: string[] = [];
+  try { bodyLocations = req.body.bodyLocations ? JSON.parse(req.body.bodyLocations) : []; } catch { /* ignore */ }
 
   try {
     const occurrence = await prisma.sosOccurrence.findUnique({
@@ -143,6 +148,7 @@ export const addSosWoundTracking = async (req, res) => {
         createdByUserId: req.user.userId,
         notes: notes?.trim() || null,
         photoUrl: req.file ? req.file.filename : null,
+        bodyLocations,
         isResolved,
       },
       include: woundTrackingInclude,
@@ -189,6 +195,8 @@ export const addElderlyWoundTracking = async (req, res) => {
   const elderlyId = Number(req.params.elderlyId);
   const { notes } = req.body;
   const isResolved = req.body.isResolved === 'true' || req.body.isResolved === true;
+  let bodyLocations: string[] = [];
+  try { bodyLocations = req.body.bodyLocations ? JSON.parse(req.body.bodyLocations) : []; } catch { /* ignore */ }
 
   try {
     const elderly = await prisma.elderly.findUnique({ where: { id: elderlyId } });
@@ -212,6 +220,7 @@ export const addElderlyWoundTracking = async (req, res) => {
         createdByUserId: req.user.userId,
         notes: notes?.trim() || null,
         photoUrl: req.file ? req.file.filename : null,
+        bodyLocations,
         isResolved,
       },
       include: woundTrackingInclude,

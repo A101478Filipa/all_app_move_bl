@@ -36,6 +36,13 @@ type Props = {
 
 type FilterTab = 'all' | 'ongoing' | 'resolved';
 
+const BODY_LOCATION_GROUPS = [
+  { key: 'head', locations: ['HEAD', 'FACE', 'NECK'] },
+  { key: 'trunk', locations: ['SHOULDER_LEFT', 'SHOULDER_RIGHT', 'CHEST', 'ABDOMEN', 'BACK_UPPER', 'BACK_LOWER', 'PELVIS'] },
+  { key: 'upperLimbs', locations: ['ARM_UPPER_LEFT', 'ARM_UPPER_RIGHT', 'ELBOW_LEFT', 'ELBOW_RIGHT', 'FOREARM_LEFT', 'FOREARM_RIGHT', 'WRIST_LEFT', 'WRIST_RIGHT', 'HAND_LEFT', 'HAND_RIGHT'] },
+  { key: 'lowerLimbs', locations: ['HIP_LEFT', 'HIP_RIGHT', 'THIGH_LEFT', 'THIGH_RIGHT', 'KNEE_LEFT', 'KNEE_RIGHT', 'LEG_LOWER_LEFT', 'LEG_LOWER_RIGHT', 'ANKLE_LEFT', 'ANKLE_RIGHT', 'FOOT_LEFT', 'FOOT_RIGHT'] },
+];
+
 const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType, canAdd = false, canDelete = false }) => {
   const { t } = useTranslation();
   const [trackings, setTrackings] = useState<WoundTracking[]>([]);
@@ -44,6 +51,7 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
   const [modalVisible, setModalVisible] = useState(false);
   const [notes, setNotes] = useState('');
   const [isResolved, setIsResolved] = useState(false);
+  const [selectedBodyLocations, setSelectedBodyLocations] = useState<string[]>([]);
   const [pickedPhoto, setPickedPhoto] = useState<{ uri: string; name: string; type: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
@@ -76,6 +84,7 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
     setNotes('');
     setIsResolved(false);
     setPickedPhoto(null);
+    setSelectedBodyLocations([]);
     setModalVisible(true);
   };
 
@@ -124,6 +133,7 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
       const formData = new FormData();
       if (notes.trim()) formData.append('notes', notes.trim());
       formData.append('isResolved', String(isResolved));
+      if (selectedBodyLocations.length > 0) formData.append('bodyLocations', JSON.stringify(selectedBodyLocations));
       if (pickedPhoto) {
         formData.append('photo', { uri: pickedPhoto.uri, name: pickedPhoto.name, type: pickedPhoto.type } as any);
       }
@@ -196,6 +206,19 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
         </View>
       ) : null}
 
+      {item.bodyLocations && item.bodyLocations.length > 0 ? (
+        <View style={styles.locationChipsRow}>
+          <MaterialIcons name="place" size={13} color={Color.primary} style={{ marginTop: 1 }} />
+          <View style={styles.locationChipsWrap}>
+            {item.bodyLocations.map(loc => (
+              <View key={loc} style={styles.locationChip}>
+                <Text style={styles.locationChipText}>{t(`woundTracking.bodyLocation_${loc}`)}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
       {item.photoUrl ? (
         <TouchableOpacity style={styles.photoBlock} onPress={() => setFullscreenPhoto(buildAvatarUrl(item.photoUrl!))}>
           <Image
@@ -263,6 +286,32 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
             </View>
 
             <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
+              {/* Body Location Picker */}
+              <Text style={styles.fieldLabel}>{t('woundTracking.bodyLocation')}</Text>
+              {BODY_LOCATION_GROUPS.map(group => (
+                <View key={group.key} style={styles.locationGroup}>
+                  <Text style={styles.locationGroupTitle}>{t(`woundTracking.bodyLocationGroup_${group.key}`)}</Text>
+                  <View style={styles.locationGroupChips}>
+                    {group.locations.map(loc => {
+                      const selected = selectedBodyLocations.includes(loc);
+                      return (
+                        <TouchableOpacity
+                          key={loc}
+                          style={[styles.locationChipBtn, selected && styles.locationChipBtnSelected]}
+                          onPress={() => setSelectedBodyLocations(prev =>
+                            prev.includes(loc) ? prev.filter(l => l !== loc) : [...prev, loc]
+                          )}
+                        >
+                          <Text style={[styles.locationChipBtnText, selected && styles.locationChipBtnTextSelected]}>
+                            {t(`woundTracking.bodyLocation_${loc}`)}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
+
               <Text style={styles.fieldLabel}>{t('woundTracking.notes')}</Text>
               <TextInput
                 style={styles.textInput}
@@ -644,6 +693,64 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 48,
     right: 20,
+  },
+  // Body location picker (in modal)
+  locationGroup: {
+    marginBottom: Spacing.sm_8,
+  },
+  locationGroupTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.bodysmall_14 - 1,
+    color: Color.Gray.v400,
+    marginBottom: Spacing.xs_4,
+  },
+  locationGroupChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs_4,
+  },
+  locationChipBtn: {
+    paddingHorizontal: Spacing.sm_8,
+    paddingVertical: Spacing.xs_4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Color.Gray.v200,
+    backgroundColor: Color.Background.white,
+  },
+  locationChipBtnSelected: {
+    backgroundColor: Color.primary,
+    borderColor: Color.primary,
+  },
+  locationChipBtnText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.bodysmall_14 - 1,
+    color: Color.Gray.v400,
+  },
+  locationChipBtnTextSelected: {
+    color: Color.white,
+  },
+  // Body location chips displayed in tracking card
+  locationChipsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 4,
+  },
+  locationChipsWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs_4,
+  },
+  locationChip: {
+    paddingHorizontal: Spacing.xs_4 + 2,
+    paddingVertical: 2,
+    borderRadius: 12,
+    backgroundColor: Color.primary + '15',
+  },
+  locationChipText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.bodysmall_14 - 2,
+    color: Color.primary,
   },
 });
 

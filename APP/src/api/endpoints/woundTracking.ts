@@ -9,6 +9,7 @@ export interface WoundTracking {
   createdByUserId: number;
   photoUrl?: string | null;
   notes?: string | null;
+  bodyLocations: string[];
   isResolved: boolean;
   createdAt: string;
   createdByUser: { id: number };
