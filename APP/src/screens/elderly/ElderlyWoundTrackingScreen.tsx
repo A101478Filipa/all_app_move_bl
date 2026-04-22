@@ -16,6 +16,7 @@ import { woundTrackingApi, WoundCase, WoundTracking } from '@src/api/endpoints/w
 import { buildAvatarUrl } from '@src/services/ApiService';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
+import BodyLocationPicker from '@src/components/BodyLocationPicker';
 
 type Props = NativeStackScreenProps<any, 'ElderlyWoundTrackingScreen'>;
 type FilterTab = 'all' | 'ongoing' | 'resolved';
@@ -45,6 +46,7 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [notes, setNotes] = useState('');
   const [isResolved, setIsResolved] = useState(false);
+  const [selectedBodyLocations, setSelectedBodyLocations] = useState<string[]>([]);
   const [pickedPhoto, setPickedPhoto] = useState<{ uri: string; name: string; type: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
@@ -85,7 +87,15 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // ─── Add tracking modal ──────────────────────────────────────────────────────
 
-  const openModal = () => { setNotes(''); setIsResolved(false); setPickedPhoto(null); setModalVisible(true); };
+  const openModal = () => { setNotes(''); setIsResolved(false); setPickedPhoto(null); setSelectedBodyLocations([]); setModalVisible(true); };
+
+  // Auto-open from navigation param
+  useEffect(() => {
+    if ((route.params as any)?.openModal) {
+      openModal();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const pickPhoto = (fromCamera: boolean) => {
     const run = async () => {
@@ -117,12 +127,13 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
   ]);
 
   const handleSubmit = async () => {
-    if (!notes.trim() && !pickedPhoto && !isResolved) { Alert.alert(t('woundTracking.errorEmpty')); return; }
+    if (!notes.trim() && !pickedPhoto && !isResolved && selectedBodyLocations.length === 0) { Alert.alert(t('woundTracking.errorEmpty')); return; }
     setSubmitting(true);
     try {
       const formData = new FormData();
       if (notes.trim()) formData.append('notes', notes.trim());
       formData.append('isResolved', String(isResolved));
+      if (selectedBodyLocations.length > 0) formData.append('bodyLocations', JSON.stringify(selectedBodyLocations));
       if (pickedPhoto) formData.append('photo', { uri: pickedPhoto.uri, name: pickedPhoto.name, type: pickedPhoto.type } as any);
       const res = await woundTrackingApi.addElderlyWoundTracking(elderlyId, formData);
       if (res.data) { setTrackings(prev => [res.data, ...prev]); setModalVisible(false); }
@@ -248,7 +259,7 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
 
         {/* Unified filter tabs */}
         {!loading && allItems.length > 0 && (
-          <View style={styles.filterRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
             {(['all', 'ongoing', 'resolved'] as FilterTab[]).map(tab => (
               <TouchableOpacity
                 key={tab}
@@ -260,7 +271,7 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
                 </Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
         )}
 
         {/* Unified list */}
@@ -291,6 +302,11 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
               </TouchableOpacity>
             </View>
             <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
+              <Text style={styles.fieldLabel}>{t('woundTracking.bodyLocation')}</Text>
+              <BodyLocationPicker
+                selected={selectedBodyLocations}
+                onChange={setSelectedBodyLocations}
+              />
               <Text style={styles.fieldLabel}>{t('woundTracking.notes')}</Text>
               <TextInput
                 style={styles.textInput}
@@ -371,9 +387,9 @@ const styles = StyleSheet.create({
 
   // Filters
   filterRow: { flexDirection: 'row', gap: Spacing.xs_4, marginBottom: Spacing.sm_8 },
-  filterTab: { flex: 1, paddingVertical: Spacing.xs_4 + 2, paddingHorizontal: Spacing.xs_4, borderRadius: Border.sm_8, borderWidth: 1, borderColor: Color.Gray.v200, alignItems: 'center' },
+  filterTab: { paddingVertical: Spacing.xs_4 + 2, paddingHorizontal: Spacing.md_16, borderRadius: Border.sm_8, borderWidth: 1, borderColor: Color.Gray.v200, alignItems: 'center' },
   filterTabActive: { backgroundColor: Color.primary, borderColor: Color.primary },
-  filterTabText: { fontFamily: FontFamily.medium, fontSize: FontSize.bodysmall_14 - 1, color: Color.Gray.v400, textAlign: 'center' },
+  filterTabText: { fontFamily: FontFamily.medium, fontSize: FontSize.bodysmall_14, color: Color.Gray.v400, textAlign: 'center' },
   filterTabTextActive: { color: Color.white },
 
   // Empty / loader

@@ -102,13 +102,13 @@ const userRole = user?.user?.role;
 
   const handleAddFall = useCallback(() => {
     close();
-    navigation.navigate('ElderlyFallsList', { elderlyId });
-  }, [elderlyId, navigation]);
+    navigation.navigate('ElderlyFallsList', { elderlyId, openModal: true });
+  }, [elderlyId, navigation, close]);
 
   const handleAddWound = useCallback(() => {
     close();
-    navigation.navigate('ElderlyWoundTrackingScreen', { elderlyId });
-  }, [elderlyId, navigation]);
+    navigation.navigate('ElderlyWoundTrackingScreen', { elderlyId, openModal: true });
+  }, [elderlyId, navigation, close]);
   const renderBackdrop = useCallback(
     (props) => (
       <BottomSheetBackdrop

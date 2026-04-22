@@ -7,6 +7,7 @@ import { Color } from '@src/styles/colors';
 import { Spacing } from '@src/styles/spacings';
 import { FontFamily, FontSize } from '@src/styles/fonts';
 import { fallOccurrenceApi } from '@src/api/endpoints/fallOccurrences';
+import { woundTrackingApi } from '@src/api/endpoints/woundTracking';
 import FallOccurrenceDetailsComponent from '@components/screens/FallOccurrenceDetailsComponent';
 import HandleFallOccurrenceComponent from '@components/screens/HandleFallOccurrenceComponent';
 import { useTranslation } from 'react-i18next';
@@ -59,10 +60,20 @@ const FallOccurrenceScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleSubmit = async (payload: any) => {
     if (!occurrenceId) return;
-
+    const { woundBodyLocations, ...occurrencePayload } = payload;
     setSubmitting(true);
     try {
-      await fallOccurrenceApi.updateFallOccurrence(occurrenceId, payload);
+      await fallOccurrenceApi.updateFallOccurrence(occurrenceId, occurrencePayload);
+      if (occurrencePayload.injured && woundBodyLocations?.length > 0) {
+        try {
+          const formData = new FormData();
+          formData.append('bodyLocations', JSON.stringify(woundBodyLocations));
+          formData.append('isResolved', 'false');
+          await woundTrackingApi.addFallWoundTracking(occurrenceId, formData);
+        } catch (e) {
+          console.error('Error creating initial wound tracking:', e);
+        }
+      }
       const res = await fallOccurrenceApi.getFallOccurrence(occurrenceId);
       setData(res.data);
     } catch (error) {

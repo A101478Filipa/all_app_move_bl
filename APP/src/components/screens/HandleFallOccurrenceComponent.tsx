@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { FallOccurrence } from 'moveplus-shared';
 import * as ImagePicker from 'expo-image-picker';
 import { fallOccurrenceApi } from '@src/api/endpoints/fallOccurrences';
+import BodyLocationPicker from '@components/BodyLocationPicker';
 
 type Props = {
   onSubmit: (data: any) => void;
@@ -59,6 +60,7 @@ const HandleFallOccurrenceComponent: React.FC<Props> = ({ onSubmit, loading = fa
   const [environment, setEnvironment] = useState(fall?.environment || '');
   const [injured, setInjured] = useState(fall?.injured || false);
   const [injuryDescription, setInjuryDescription] = useState(fall?.injuryDescription || '');
+  const [injuryBodyLocations, setInjuryBodyLocations] = useState<string[]>([]);
   const [measuresTaken, setMeasuresTaken] = useState(fall?.measuresTaken || '');
   const [isFalseAlarm, setIsFalseAlarm] = useState(fall?.isFalseAlarm || false);
   const [injuryPhotoUri, setInjuryPhotoUri] = useState<string | null>((fall as any)?.injuryPhotoUrl || null);
@@ -140,6 +142,7 @@ const HandleFallOccurrenceComponent: React.FC<Props> = ({ onSubmit, loading = fa
       injured,
       measuresTaken: measuresTaken || null,
       injuryDescription: injured ? (injuryDescription || null) : null,
+      woundBodyLocations: injured ? injuryBodyLocations : [],
       isFalseAlarm,
     };
 
@@ -253,7 +256,11 @@ const HandleFallOccurrenceComponent: React.FC<Props> = ({ onSubmit, loading = fa
                   placeholder={t('fallOccurrence.describeInjuries')}
                   required
                 />
-
+                <Text style={styles.label}>{t('woundTracking.bodyLocation')}</Text>
+                <BodyLocationPicker
+                  selected={injuryBodyLocations}
+                  onChange={setInjuryBodyLocations}
+                />
                 {/* Photo picker */}
                 <View style={styles.photoSection}>
                   <Text style={styles.label}>{t('fallOccurrence.injuryPhoto')}</Text>

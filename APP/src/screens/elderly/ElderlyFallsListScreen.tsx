@@ -19,6 +19,7 @@ import { UserRole } from 'moveplus-shared';
 import { fallOccurrenceApi } from '@src/api/endpoints/fallOccurrences';
 import { woundTrackingApi } from '@src/api/endpoints/woundTracking';
 import { DatePickerInput } from '@components/DatePickerInput';
+import BodyLocationPicker from '@components/BodyLocationPicker';
 import { Border } from '@src/styles/borders';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'react-native';
@@ -46,6 +47,7 @@ const ElderlyFallsListScreen: React.FC<Props> = ({ route, navigation }) => {
   const [description, setDescription] = useState('');
   const [injured, setInjured] = useState(false);
   const [woundNotes, setWoundNotes] = useState('');
+  const [woundBodyLocations, setWoundBodyLocations] = useState<string[]>([]);
   const [woundPhoto, setWoundPhoto] = useState<{ uri: string; name: string; type: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -54,9 +56,18 @@ const ElderlyFallsListScreen: React.FC<Props> = ({ route, navigation }) => {
     setDescription('');
     setInjured(false);
     setWoundNotes('');
+    setWoundBodyLocations([]);
     setWoundPhoto(null);
     setModalVisible(true);
   };
+
+  // Auto-open from navigation param
+  React.useEffect(() => {
+    if ((route.params as any)?.openModal) {
+      openModal();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const showWoundPhotoPicker = () => {
     const pickFrom = async (fromCamera: boolean) => {
@@ -97,11 +108,12 @@ const ElderlyFallsListScreen: React.FC<Props> = ({ route, navigation }) => {
         description: description.trim() || undefined,
         injured,
       });
-      if (injured && (woundNotes.trim() || woundPhoto) && res.data?.id) {
+      if (injured && (woundNotes.trim() || woundPhoto || woundBodyLocations.length > 0) && res.data?.id) {
         try {
           const formData = new FormData();
           if (woundNotes.trim()) formData.append('notes', woundNotes.trim());
           formData.append('isResolved', 'false');
+          if (woundBodyLocations.length > 0) formData.append('bodyLocations', JSON.stringify(woundBodyLocations));
           if (woundPhoto) {
             formData.append('photo', { uri: woundPhoto.uri, name: woundPhoto.name, type: woundPhoto.type } as any);
           }
@@ -217,6 +229,11 @@ const ElderlyFallsListScreen: React.FC<Props> = ({ route, navigation }) => {
 
               {injured && (
                 <View style={styles.woundSection}>
+                  <Text style={styles.fieldLabel}>{t('woundTracking.bodyLocation')}</Text>
+                  <BodyLocationPicker
+                    selected={woundBodyLocations}
+                    onChange={setWoundBodyLocations}
+                  />
                   <Text style={styles.fieldLabel}>{t('woundTracking.notes')}</Text>
                   <TextInput
                     style={styles.textInput}

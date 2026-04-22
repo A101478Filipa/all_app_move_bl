@@ -24,6 +24,7 @@ import { FontFamily, FontSize } from '@src/styles/fonts';
 import { shadowStyles } from '@src/styles/shadow';
 import { buildAvatarUrl } from '@src/services/ApiService';
 import { woundTrackingApi, WoundTracking } from '@src/api/endpoints/woundTracking';
+import BodyLocationPicker from '@components/BodyLocationPicker';
 
 type OccurrenceType = 'fall' | 'sos' | 'elderly';
 
@@ -35,13 +36,6 @@ type Props = {
 };
 
 type FilterTab = 'all' | 'ongoing' | 'resolved';
-
-const BODY_LOCATION_GROUPS = [
-  { key: 'head', locations: ['HEAD', 'FACE', 'NECK'] },
-  { key: 'trunk', locations: ['SHOULDER_LEFT', 'SHOULDER_RIGHT', 'CHEST', 'ABDOMEN', 'BACK_UPPER', 'BACK_LOWER', 'PELVIS'] },
-  { key: 'upperLimbs', locations: ['ARM_UPPER_LEFT', 'ARM_UPPER_RIGHT', 'ELBOW_LEFT', 'ELBOW_RIGHT', 'FOREARM_LEFT', 'FOREARM_RIGHT', 'WRIST_LEFT', 'WRIST_RIGHT', 'HAND_LEFT', 'HAND_RIGHT'] },
-  { key: 'lowerLimbs', locations: ['HIP_LEFT', 'HIP_RIGHT', 'THIGH_LEFT', 'THIGH_RIGHT', 'KNEE_LEFT', 'KNEE_RIGHT', 'LEG_LOWER_LEFT', 'LEG_LOWER_RIGHT', 'ANKLE_LEFT', 'ANKLE_RIGHT', 'FOOT_LEFT', 'FOOT_RIGHT'] },
-];
 
 const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType, canAdd = false, canDelete = false }) => {
   const { t } = useTranslation();
@@ -286,31 +280,11 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
             </View>
 
             <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
-              {/* Body Location Picker */}
-              <Text style={styles.fieldLabel}>{t('woundTracking.bodyLocation')}</Text>
-              {BODY_LOCATION_GROUPS.map(group => (
-                <View key={group.key} style={styles.locationGroup}>
-                  <Text style={styles.locationGroupTitle}>{t(`woundTracking.bodyLocationGroup_${group.key}`)}</Text>
-                  <View style={styles.locationGroupChips}>
-                    {group.locations.map(loc => {
-                      const selected = selectedBodyLocations.includes(loc);
-                      return (
-                        <TouchableOpacity
-                          key={loc}
-                          style={[styles.locationChipBtn, selected && styles.locationChipBtnSelected]}
-                          onPress={() => setSelectedBodyLocations(prev =>
-                            prev.includes(loc) ? prev.filter(l => l !== loc) : [...prev, loc]
-                          )}
-                        >
-                          <Text style={[styles.locationChipBtnText, selected && styles.locationChipBtnTextSelected]}>
-                            {t(`woundTracking.bodyLocation_${loc}`)}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-              ))}
+              <BodyLocationPicker
+                selected={selectedBodyLocations}
+                onChange={setSelectedBodyLocations}
+                label={t('woundTracking.bodyLocation')}
+              />
 
               <Text style={styles.fieldLabel}>{t('woundTracking.notes')}</Text>
               <TextInput
@@ -693,41 +667,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 48,
     right: 20,
-  },
-  // Body location picker (in modal)
-  locationGroup: {
-    marginBottom: Spacing.sm_8,
-  },
-  locationGroupTitle: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSize.bodysmall_14 - 1,
-    color: Color.Gray.v400,
-    marginBottom: Spacing.xs_4,
-  },
-  locationGroupChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs_4,
-  },
-  locationChipBtn: {
-    paddingHorizontal: Spacing.sm_8,
-    paddingVertical: Spacing.xs_4,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Color.Gray.v200,
-    backgroundColor: Color.Background.white,
-  },
-  locationChipBtnSelected: {
-    backgroundColor: Color.primary,
-    borderColor: Color.primary,
-  },
-  locationChipBtnText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSize.bodysmall_14 - 1,
-    color: Color.Gray.v400,
-  },
-  locationChipBtnTextSelected: {
-    color: Color.white,
   },
   // Body location chips displayed in tracking card
   locationChipsRow: {

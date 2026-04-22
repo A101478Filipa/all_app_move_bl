@@ -10,6 +10,7 @@ import { shadowStyles } from '@src/styles/shadow';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { sosOccurrenceApi } from '@src/api/endpoints/sosOccurrences';
+import BodyLocationPicker from '@components/BodyLocationPicker';
 
 type Props = {
   onSubmit: (data: any) => void;
@@ -59,6 +60,7 @@ const HandleSosOccurrenceComponent: React.FC<Props> = ({ onSubmit, loading = fal
   const [environment, setEnvironment] = useState(sos?.environment || '');
   const [injured, setInjured] = useState(sos?.injured || false);
   const [injuryDescription, setInjuryDescription] = useState(sos?.injuryDescription || '');
+  const [injuryBodyLocations, setInjuryBodyLocations] = useState<string[]>([]);
   const [measuresTaken, setMeasuresTaken] = useState(sos?.measuresTaken || '');
   const [injuryPhotoUri, setInjuryPhotoUri] = useState<string | null>(sos?.injuryPhotoUrl || null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -141,6 +143,7 @@ const HandleSosOccurrenceComponent: React.FC<Props> = ({ onSubmit, loading = fal
       environment: environment || undefined,
       injured,
       injuryDescription: injured ? (injuryDescription || undefined) : undefined,
+      woundBodyLocations: injured ? injuryBodyLocations : [],
       measuresTaken: measuresTaken || undefined,
     };
     onSubmit(payload);
@@ -253,6 +256,12 @@ const HandleSosOccurrenceComponent: React.FC<Props> = ({ onSubmit, loading = fal
                   onChangeText={setInjuryDescription}
                   placeholder={t('fallOccurrence.describeInjuries')}
                   required
+                />
+
+                <Text style={styles.label}>{t('woundTracking.bodyLocation')}</Text>
+                <BodyLocationPicker
+                  selected={injuryBodyLocations}
+                  onChange={setInjuryBodyLocations}
                 />
 
                 {/* Photo picker */}
