@@ -1,9 +1,10 @@
 [phases.setup]
-nixPkgs = ['nodejs_20', 'npm-9_x']
+nixPkgs = ['nodejs_20']
 
 [phases.build]
 cmds = [
-  'cd shared && npm install && npm run build && cd ../SERVER && npm install && npx prisma generate && npm run build'
+  'cd shared && npm install && npm run build',
+  'cd SERVER && npm install && npx prisma generate && npm run build'
 ]
 
 [start]
