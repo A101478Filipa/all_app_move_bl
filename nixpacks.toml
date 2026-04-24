@@ -1,0 +1,10 @@
+[phases.setup]
+nixPkgs = ['nodejs_20', 'npm-9_x']
+
+[phases.build]
+cmds = [
+  'cd shared && npm install && npm run build && cd ../SERVER && npm install && npx prisma generate && npm run build'
+]
+
+[start]
+cmd = 'cd SERVER && (npx prisma migrate deploy || (sleep 10 && npx prisma migrate deploy)) && node dist/server.js'
