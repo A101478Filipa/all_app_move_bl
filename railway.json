@@ -5,7 +5,7 @@
     "buildCommand": "cd shared && npm install && npm run build && cd ../SERVER && npm install && npx prisma generate && npm run build"
   },
   "deploy": {
-    "startCommand": "cd SERVER && npx prisma migrate deploy && node dist/server.js",
+    "startCommand": "cd SERVER && (npx prisma migrate deploy || (sleep 10 && npx prisma migrate deploy)) && node dist/server.js",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
   }
