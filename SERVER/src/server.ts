@@ -9,7 +9,8 @@ import { TokenCleanupService } from './services/tokenCleanupService';
 
 // Initialize express app
 const app = express();
-const port = process.env.SERVER_PORT || 3000;
+// Railway injects PORT; fall back to SERVER_PORT for local dev, then 3000
+const port = process.env.PORT || process.env.SERVER_PORT || 3000;
 
 // Middleware
 app.use(express.json());
