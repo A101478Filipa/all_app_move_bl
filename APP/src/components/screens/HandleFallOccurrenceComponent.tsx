@@ -143,7 +143,7 @@ const HandleFallOccurrenceComponent: React.FC<Props> = ({ onSubmit, loading = fa
       injured,
       measuresTaken: measuresTaken || null,
       injuryDescription: injured ? (injuryDescription || null) : null,
-      woundBodyLocations: injured ? injuryBodyLocations : [],
+      injuryBodyLocations: injured ? injuryBodyLocations : [],
       isFalseAlarm,
     };
 

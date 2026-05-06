@@ -15,6 +15,7 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { fallOccurrenceApi } from '@src/api/endpoints/fallOccurrences';
+import { elderlyApi } from '@src/api/endpoints/elderly';
 import { woundTrackingApi, WoundTracking } from '@src/api/endpoints/woundTracking';
 import WoundTrackingComponent from '@src/components/WoundTrackingComponent';
 
@@ -84,13 +85,16 @@ const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, c
               <span class="${tracking.isResolved ? 'badge-ok' : 'badge-injured'}">${tracking.isResolved ? t('woundTracking.resolved') : t('woundTracking.ongoing')}</span>
             </div>
             ${tracking.notes ? `<div class="tracking-note">${tracking.notes}</div>` : ''}
+            ${tracking.bodyLocations && (tracking.bodyLocations as string[]).length > 0
+              ? `<div class="loc-tags">${(tracking.bodyLocations as string[]).map((loc: string) => `<span class="loc-tag">${t(`woundTracking.bodyLocation_${loc}`) || loc}</span>`).join('')}</div>`
+              : ''}
           </div>
         `).join('')}
       </div>
     `;
   };
 
-  const generatePdfHtml = (photoBase64?: string | null, woundTrackings: WoundTracking[] = []) => {
+  const generatePdfHtml = (photoBase64?: string | null, woundTrackings: WoundTracking[] = [], elderlyDetails: any = null) => {
     const elderlyName = data?.elderly?.name ?? '-';
     const date = data?.date ? formatDateLong(data.date) : '-';
     const status = handled ? t('fallOccurrence.handled') : t('fallOccurrence.unhandled');
@@ -105,6 +109,33 @@ const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, c
 
     const row = (label: string, value: string) =>
       `<tr><td class="td-label">${label}</td><td class="td-value">${value || '-'}</td></tr>`;
+
+    const elderlyDataHtml = elderlyDetails ? (() => {
+      const measurements: any[] = elderlyDetails.measurements ?? [];
+      const pathologies: any[] = elderlyDetails.pathologies ?? [];
+      const medications: any[] = elderlyDetails.medications ?? [];
+      const latestWeight = measurements.filter(m => m.type === 'WEIGHT').sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+      const latestHeight = measurements.filter(m => m.type === 'HEIGHT').sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+      const birthDate = elderlyDetails.birthDate ? new Date(elderlyDetails.birthDate).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : null;
+      const age = elderlyDetails.birthDate ? Math.floor((Date.now() - new Date(elderlyDetails.birthDate).getTime()) / (365.25 * 24 * 3600 * 1000)) : null;
+      return `
+        <div class="section">
+          <div class="section-title">${t('elderly.elderlyInfo')}</div>
+          <table>
+            ${elderlyDetails.medicalId ? row(t('elderly.medicalId'), String(elderlyDetails.medicalId)) : ''}
+            ${birthDate ? row(t('authentication.birthDate'), `${birthDate}${age !== null ? ` (${age} ${t('elderly.years')})` : ''}`) : ''}
+            ${latestWeight ? row(t('measurements.weight'), `${latestWeight.value} ${latestWeight.unit ?? 'kg'}`) : ''}
+            ${latestHeight ? row(t('measurements.height'), `${latestHeight.value} ${latestHeight.unit ?? 'cm'}`) : ''}
+          </table>
+          ${pathologies.length > 0 ? `
+          <div class="subsection-label">${t('elderly.pathologies')}</div>
+          <div class="tag-list">${pathologies.map((p: any) => `<span class="info-tag">${p.name}${p.status ? ` (${p.status})` : ''}</span>`).join('')}</div>` : ''}
+          ${medications.length > 0 ? `
+          <div class="subsection-label">${t('elderly.medications')}</div>
+          <div class="tag-list">${medications.map((m: any) => `<span class="info-tag">${m.name}${m.dosage ? ` — ${m.dosage}` : ''}${m.frequency ? `, ${m.frequency}` : ''}</span>`).join('')}</div>` : ''}
+        </div>
+      `;
+    })() : '';
 
     const photoHtml = photoBase64
       ? `<div class="section">
@@ -140,6 +171,11 @@ const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, c
           .tracking-item { border: 1px solid ${borderColor}; border-radius: 10px; padding: 12px; background: ${lightBg}; margin-bottom: 10px; }
           .tracking-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
           .tracking-note { color: ${darkColor}; line-height: 1.5; }
+          .loc-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+          .loc-tag { display: inline-block; background: #e0f7fa; color: #00696b; padding: 2px 9px; border-radius: 12px; font-size: 11px; font-weight: bold; border: 1px solid #b2ebf2; }
+          .subsection-label { font-size: 11px; font-weight: bold; color: ${mutedColor}; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 12px; margin-bottom: 6px; }
+          .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+          .info-tag { display: inline-block; background: ${accentBg}; color: ${darkColor}; padding: 3px 10px; border-radius: 12px; font-size: 12px; border: 1px solid ${borderColor}; }
           .footer { margin-top: 36px; padding: 16px 36px; background: ${lightBg}; border-top: 1px solid ${borderColor}; font-size: 11px; color: ${mutedColor}; display: flex; justify-content: space-between; }
         </style>
       </head>
@@ -165,6 +201,8 @@ const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, c
             </table>
           </div>
 
+          ${elderlyDataHtml}
+
           ${handled && !isFalseAlarm ? `
           <div class="section">
             <div class="section-title">${t('fallOccurrence.fallDetails')}</div>
@@ -186,6 +224,9 @@ const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, c
               ${data?.injured ? row(t('fallOccurrence.injuryDescription'), data?.injuryDescription ?? '-') : ''}
               ${row(t('fallOccurrence.measuresTaken'), data?.measuresTaken ?? '-')}
             </table>
+            ${Array.isArray(data?.injuryBodyLocations) && data.injuryBodyLocations.length > 0
+              ? `<div class="subsection-label">${t('woundTracking.bodyLocation')}</div><div class="loc-tags">${(data.injuryBodyLocations as string[]).map((loc: string) => `<span class="loc-tag">${t(`woundTracking.bodyLocation_${loc}`) || loc}</span>`).join('')}</div>`
+              : ''}
           </div>
 
           ${photoHtml}
@@ -226,7 +267,14 @@ const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, c
           woundTrackings = [];
         }
       }
-      const html = generatePdfHtml(photoBase64, woundTrackings);
+      let elderlyDetails: any = null;
+      if (data?.elderly?.id) {
+        try {
+          const elderlyRes = await elderlyApi.getElderly(data.elderly.id);
+          elderlyDetails = elderlyRes.data;
+        } catch { /* continue without it */ }
+      }
+      const html = generatePdfHtml(photoBase64, woundTrackings, elderlyDetails);
       const { uri } = await Print.printToFileAsync({ html, base64: false });
       const filename = buildPdfFilename();
       const destUri = `${FileSystem.documentDirectory}${filename}.pdf`;
@@ -327,6 +375,19 @@ const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, c
                 {data?.injured && (
                   <View style={styles.injuryDetails}>
                     <DetailRow label={t('fallOccurrence.injuryDescription')} value={data?.injuryDescription} />
+                  </View>
+                )}
+
+                {data?.injuryBodyLocations && data.injuryBodyLocations.length > 0 && (
+                  <View>
+                    <Text style={styles.detailLabel}>{t('woundTracking.bodyLocation')}</Text>
+                    <View style={styles.injuryLocationTags}>
+                      {(data.injuryBodyLocations as string[]).map((loc: string) => (
+                        <View key={loc} style={styles.injuryLocationTag}>
+                          <Text style={styles.injuryLocationTagText}>{t(`woundTracking.bodyLocation_${loc}`) || loc}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 )}
 
@@ -493,6 +554,25 @@ const styles = StyleSheet.create({
   changePhotoText: {
     fontFamily: FontFamily.medium,
     fontSize: FontSize.bodysmall_14,
+    color: Color.primary,
+  },
+  injuryLocationTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs_4,
+    marginTop: Spacing.xs_4,
+  },
+  injuryLocationTag: {
+    backgroundColor: Color.primary + '18',
+    borderRadius: Border.sm_8,
+    paddingHorizontal: Spacing.sm_8,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: Color.primary + '40',
+  },
+  injuryLocationTagText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.bodysmall_14 - 1,
     color: Color.primary,
   },
   pdfButton: {

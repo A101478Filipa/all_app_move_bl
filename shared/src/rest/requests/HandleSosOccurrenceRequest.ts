@@ -11,6 +11,7 @@ export const HandleSosOccurrenceRequest = z.object({
   environment: z.string().optional(),
   injured: z.boolean().optional(),
   injuryDescription: z.string().optional(),
+  injuryBodyLocations: z.array(z.string()).optional(),
   injuryPhotoUrl: z.string().optional(),
   measuresTaken: z.string().optional(),
 });

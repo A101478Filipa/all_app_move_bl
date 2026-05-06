@@ -400,6 +400,7 @@ model FallOccurrence {
   environment        String?
   injured            Boolean
   injuryDescription  String?
+  injuryBodyLocations String[] @default([])
   injuryPhotoUrl     String?
   measuresTaken      String?
   isFalseAlarm       Boolean @default(false)
@@ -426,6 +427,7 @@ model SosOccurrence {
   environment        String?
   injured            Boolean?
   injuryDescription  String?
+  injuryBodyLocations String[] @default([])
   injuryPhotoUrl     String?
   measuresTaken      String?
   createdAt          DateTime @default(now())

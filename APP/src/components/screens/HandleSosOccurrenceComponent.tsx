@@ -144,7 +144,7 @@ const HandleSosOccurrenceComponent: React.FC<Props> = ({ onSubmit, loading = fal
       environment: environment || undefined,
       injured,
       injuryDescription: injured ? (injuryDescription || undefined) : undefined,
-      woundBodyLocations: injured ? injuryBodyLocations : [],
+      injuryBodyLocations: injured ? injuryBodyLocations : [],
       measuresTaken: measuresTaken || undefined,
     };
     onSubmit(payload);

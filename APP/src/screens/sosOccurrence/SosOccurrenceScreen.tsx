@@ -7,7 +7,6 @@ import { Color } from '@src/styles/colors';
 import { Spacing } from '@src/styles/spacings';
 import { FontFamily, FontSize } from '@src/styles/fonts';
 import { sosOccurrenceApi } from '@src/api/endpoints/sosOccurrences';
-import { woundTrackingApi } from '@src/api/endpoints/woundTracking';
 import SosOccurrenceDetailsComponent from '@components/screens/SosOccurrenceDetailsComponent';
 import HandleSosOccurrenceComponent from '@components/screens/HandleSosOccurrenceComponent';
 import { useTranslation } from 'react-i18next';
@@ -64,20 +63,9 @@ const SosOccurrenceScreen: React.FC<Props> = ({ route }) => {
 
   const handleSubmit = async (payload: any) => {
     if (!occurrenceId) return;
-    const { woundBodyLocations, ...occurrencePayload } = payload;
     setSubmitting(true);
     try {
-      await sosOccurrenceApi.updateSosOccurrence(occurrenceId, occurrencePayload);
-      if (occurrencePayload.injured && woundBodyLocations?.length > 0) {
-        try {
-          const formData = new FormData();
-          formData.append('bodyLocations', JSON.stringify(woundBodyLocations));
-          formData.append('isResolved', 'false');
-          await woundTrackingApi.addSosWoundTracking(occurrenceId, formData);
-        } catch (e) {
-          console.error('Error creating initial wound tracking:', e);
-        }
-      }
+      await sosOccurrenceApi.updateSosOccurrence(occurrenceId, payload);
       const res = await sosOccurrenceApi.getSosOccurrence(occurrenceId);
       setData(res.data);
     } catch (e) {
