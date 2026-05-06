@@ -9,8 +9,10 @@ import { VStack } from '@components/CoreComponents';
 import InfoRowComponent from '@components/InfoRowComponent';
 import { formatDateLong } from '@src/utils/Date';
 import { useTranslation } from 'react-i18next';
-import { MeasurementType, MeasurementUnit } from 'moveplus-shared';
+import { MeasurementStatus, MeasurementType, MeasurementUnit } from 'moveplus-shared';
 import { getMeasurementTypeLabel, getMeasurementUnitLabel } from '@src/utils/measurementHelper';
+import { MeasurementStatusBadge } from '@components/MeasurementStatusBadge';
+import { getAutoStatus } from '@utils/healthColorSystem';
 
 // Icons
 import HeartIcon from '@icons/generic-ecg-heart.svg';
@@ -21,6 +23,7 @@ export interface MeasurementDetailsProps {
   measurementType: MeasurementType;
   value: number;
   unit: MeasurementUnit;
+  status?: MeasurementStatus | null;
   notes?: string;
   createdAt: Date;
   elderlyName?: string;
@@ -30,11 +33,16 @@ export const MeasurementDetailsComponent: React.FC<MeasurementDetailsProps> = ({
   measurementType,
   value,
   unit,
+  status,
   notes,
   createdAt,
   elderlyName
 }) => {
   const { t } = useTranslation();
+
+  // Resolve status: stored value first, then auto-computed
+  const resolvedStatus: MeasurementStatus | null =
+    status ?? (getAutoStatus(measurementType, value) as MeasurementStatus | null);
 
   const formatMeasurementValue = () => {
     const unitLabel = getMeasurementUnitLabel(unit, t);
@@ -52,6 +60,9 @@ export const MeasurementDetailsComponent: React.FC<MeasurementDetailsProps> = ({
           <VStack align="flex-start" spacing={Spacing.md_16} style={styles.header}>
             <Text style={styles.measurementType}>{getMeasurementTypeLabel(measurementType, t)}</Text>
             <Text style={styles.measurementValue}>{formatMeasurementValue()}</Text>
+            {resolvedStatus && (
+              <MeasurementStatusBadge status={resolvedStatus} />
+            )}
             {elderlyName && (
               <Text style={styles.elderlyName}>{t('common.patient')}: {elderlyName}</Text>
             )}

@@ -75,6 +75,7 @@ const MeasurementDetailsScreen: React.FC<Props> = ({ route }) => {
       measurementType={measurement.type}
       value={measurement.value}
       unit={measurement.unit}
+      status={measurement.status}
       notes={measurement.notes}
       createdAt={new Date(measurement.createdAt)}
       elderlyName={measurement.elderly?.name}

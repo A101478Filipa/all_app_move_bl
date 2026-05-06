@@ -362,7 +362,24 @@
     "totalMeasurements": "Total de Medições",
     "latestValue": "Último Valor",
     "latestDate": "Última Data",
-    "measurementDetails": "Detalhes da Medição"
+    "measurementDetails": "Detalhes da Medição",
+    "statusRequired": "Por favor selecione um estado de saúde para esta medição",
+    "statusLabel": "Estado de Saúde",
+    "autoStatus": "Estado Calculado Automaticamente",
+    "bmiCalculated": "IMC Calculado: {{bmi}} kg/m²",
+    "status": {
+      "GREEN": "Bom",
+      "YELLOW": "Atenção",
+      "RED": "Crítico"
+    },
+    "conflict": {
+      "title": "Divergência com Escala de Referência",
+      "body": "O valor inserido diverge das escalas padrão, que o classificam como \"{{referenceStatus}}\". Tem a certeza que deseja manter este registo como \"{{doctorStatus}}\"?",
+      "scale": "Escala",
+      "yours": "A sua escolha",
+      "confirm": "Confirmar",
+      "correct": "Corrigir"
+    }
   },
   "medication": {
     "title": "Medicação",
@@ -533,6 +550,9 @@
     "bodyLocationRequired": "A localização da ferida no corpo é obrigatória",
     "bodyFront": "Frente",
     "bodyBack": "Costas",
+    "bodyFrontDisplay": "Parte anterior",
+    "bodyBackDisplay": "Parte posterior",
+    "bodyPostSuffix": "Post.",
     "bodyTapHint": "Toque no corpo para selecionar a localização",
     "noUpdates": "Sem atualizações registadas",
     "notes": "Notas",

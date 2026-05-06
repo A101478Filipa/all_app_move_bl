@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Measurement, MeasurementType } from 'moveplus-shared';
+import { Text, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Measurement, MeasurementType, MeasurementStatus } from 'moveplus-shared';
 import { HStack, Spacer, VStack } from '@components/CoreComponents';
 import { Color } from '@src/styles/colors';
 import { FontFamily, FontSize } from '@src/styles/fonts';
@@ -12,6 +12,7 @@ import { shadowStyles } from '@styles/shadow';
 import { Border } from '@styles/borders';
 import { getMeasurementTypeLabel, getMeasurementUnitSymbol } from '@utils/measurementHelper';
 import { useTranslation } from 'react-i18next';
+import { getAutoStatus, getReferenceStatus, MEASUREMENT_STATUS_COLORS } from '@utils/healthColorSystem';
 
 export interface MeasurementOverviewComponentProps {
   elderlyId: number;
@@ -38,6 +39,14 @@ export const MeasurementOverviewComponent: React.FC<MeasurementOverviewComponent
     return `${value}${unitSymbol ? ` ${unitSymbol}` : ''}`;
   };
 
+  const resolvedStatus = useMemo(() => {
+    if (!latestMeasurement) return null;
+    // Stored status takes precedence (semi-auto doctor choice)
+    if (latestMeasurement.status) return latestMeasurement.status;
+    // Fall back to auto-computed status
+    return getAutoStatus(latestMeasurement.type, latestMeasurement.value) as MeasurementStatus | null;
+  }, [latestMeasurement]);
+
   const onPress = () => {
     navigation.push('ElderlyMeasurements', {
       elderlyId,
@@ -56,9 +65,19 @@ export const MeasurementOverviewComponent: React.FC<MeasurementOverviewComponent
 
           {latestMeasurement && (
             <VStack align="flex-start" spacing={Spacing.xxs_2}>
-              <Text style={styles.latestValue}>
-                {formatMeasurementValue(latestMeasurement.value, latestMeasurement)}
-              </Text>
+              <HStack align="center" spacing={Spacing.xs_4}>
+                <Text style={styles.latestValue}>
+                  {formatMeasurementValue(latestMeasurement.value, latestMeasurement)}
+                </Text>
+                {resolvedStatus && (
+                  <View
+                    style={[
+                      styles.statusDot,
+                      { backgroundColor: MEASUREMENT_STATUS_COLORS[resolvedStatus] },
+                    ]}
+                  />
+                )}
+              </HStack>
 
               <Text style={styles.dateText}>
                 {formatDate(latestMeasurement.createdAt)}
@@ -95,6 +114,12 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: FontSize.heading3_24,
     color: Color.primary,
+  },
+  statusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginBottom: 2,
   },
   dateText: {
     fontFamily: FontFamily.regular,

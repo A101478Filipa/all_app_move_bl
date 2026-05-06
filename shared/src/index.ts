@@ -34,6 +34,7 @@ export * from './enums/activityType';
 export * from './enums/calendarEventType';
 export * from './enums/measurementUnit';
 export * from './enums/measurementType';
+export * from './enums/measurementStatus';
 export * from './enums/userRole';
 export * from './enums/gender';
 export * from './enums/medicationStatus';

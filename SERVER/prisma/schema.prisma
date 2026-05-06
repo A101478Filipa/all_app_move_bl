@@ -50,6 +50,13 @@ enum MeasurementUnit {
   PERCENTAGE
 }
 
+// MARK: MeasurementStatus
+enum MeasurementStatus {
+  GREEN
+  YELLOW
+  RED
+}
+
 // MARK: MeasurementType
 enum MeasurementType {
   BLOOD_PRESSURE_SYSTOLIC
@@ -531,6 +538,7 @@ model Measurement {
   type            MeasurementType
   value           Float
   unit            MeasurementUnit
+  status          MeasurementStatus?
   notes           String?
   createdAt       DateTime @default(now())
   elderly         Elderly @relation(fields: [elderlyId], references: [id])

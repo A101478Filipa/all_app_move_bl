@@ -18,6 +18,7 @@ export const createMeasurement = async (req, res) => {
       type,
       value,
       unit,
+      status,
       notes
     } = validationResult.data;
 
@@ -48,6 +49,7 @@ export const createMeasurement = async (req, res) => {
         type,
         value,
         unit,
+        status: status ?? null,
         notes,
       }
     });

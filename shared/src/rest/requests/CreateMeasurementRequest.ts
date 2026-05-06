@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { MeasurementUnit } from '../../enums/measurementUnit';
 import { MeasurementType } from '../../enums/measurementType';
+import { MeasurementStatus } from '../../enums/measurementStatus';
 
 export const CreateMeasurementRequest = z.object({
   assessmentId: z.number().positive().optional(),
@@ -14,6 +15,7 @@ export const CreateMeasurementRequest = z.object({
   unit: z.nativeEnum(MeasurementUnit, {
     errorMap: () => ({ message: "Valid measurement unit is required" })
   }),
+  status: z.nativeEnum(MeasurementStatus).nullable().optional(),
   notes: z.string().nullable().optional(),
 });
 

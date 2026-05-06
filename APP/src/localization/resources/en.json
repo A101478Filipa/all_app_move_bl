@@ -364,7 +364,24 @@
     "totalMeasurements": "Total Measurements",
     "latestValue": "Latest Value",
     "latestDate": "Latest Date",
-    "measurementDetails": "Measurement Details"
+    "measurementDetails": "Measurement Details",
+    "statusRequired": "Please select a health status for this measurement",
+    "statusLabel": "Health Status",
+    "autoStatus": "Auto-Calculated Status",
+    "bmiCalculated": "Calculated BMI: {{bmi}} kg/m²",
+    "status": {
+      "GREEN": "Good",
+      "YELLOW": "Warning",
+      "RED": "Critical"
+    },
+    "conflict": {
+      "title": "Divergence from Reference Scale",
+      "body": "The entered value diverges from standard scales, which classify it as \"{{referenceStatus}}\". Are you sure you want to keep this record as \"{{doctorStatus}}\"?",
+      "scale": "Scale",
+      "yours": "Your choice",
+      "confirm": "Confirm",
+      "correct": "Correct"
+    }
   },
   "medication": {
     "title": "Medication",
@@ -535,6 +552,9 @@
     "bodyLocationRequired": "The wound body location is required",
     "bodyFront": "Front",
     "bodyBack": "Back",
+    "bodyFrontDisplay": "Anterior",
+    "bodyBackDisplay": "Posterior",
+    "bodyPostSuffix": "Post.",
     "bodyTapHint": "Tap the body to select a location",
     "noUpdates": "No updates recorded yet",
     "notes": "Notes",
