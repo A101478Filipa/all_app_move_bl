@@ -149,11 +149,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
     notificationListener.current = notificationService.addNotificationReceivedListener(
       (notification) => {
-        console.log('Notification received:', notification);
-        // Skip the original push when it carries translation keys — the service will
-        // re-schedule a translated copy that will fire a second event without these keys.
         const rawData = notification.request.content.data as any;
-        if (rawData?.titleKey || rawData?.bodyKey) return;
 
         setNotification(notification);
         setUnreadCount((prev) => prev + 1);

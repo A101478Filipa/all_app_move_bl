@@ -2,8 +2,6 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
-import i18n from 'i18next';
-import { translateNotification, getNotificationTranslationData } from '@src/utils/notificationTranslation';
 
 class NotificationService {
   /**
@@ -71,56 +69,7 @@ class NotificationService {
    */
   setNotificationHandler() {
     Notifications.setNotificationHandler({
-      handleNotification: async (notification) => {
-        console.log('[NotificationService] Received notification:', {
-          title: notification.request.content.title,
-          body: notification.request.content.body,
-          data: notification.request.content.data,
-        });
-
-        const { titleKey, bodyKey, params } = getNotificationTranslationData(notification);
-
-        console.log('[NotificationService] Extracted translation data:', {
-          titleKey,
-          bodyKey,
-          params,
-        });
-
-        if (titleKey || bodyKey) {
-          const { title, body } = translateNotification(
-            titleKey,
-            bodyKey,
-            params,
-            notification.request.content.title || undefined,
-            notification.request.content.body || undefined
-          );
-
-          console.log('[NotificationService] Translated notification:', { title, body });
-
-          const notificationData = { ...(notification.request.content.data as any) };
-          delete notificationData.titleKey;
-          delete notificationData.bodyKey;
-          notificationData.translated = true;
-
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title,
-              body,
-              data: notificationData,
-              sound: true,
-            },
-            trigger: null,
-          });
-
-          return {
-            shouldShowAlert: false,
-            shouldPlaySound: false,
-            shouldSetBadge: true,
-            shouldShowBanner: false,
-            shouldShowList: false,
-          };
-        }
-
+      handleNotification: async () => {
         return {
           shouldShowAlert: true,
           shouldPlaySound: true,
