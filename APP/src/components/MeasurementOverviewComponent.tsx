@@ -12,20 +12,22 @@ import { shadowStyles } from '@styles/shadow';
 import { Border } from '@styles/borders';
 import { getMeasurementTypeLabel, getMeasurementUnitSymbol } from '@utils/measurementHelper';
 import { useTranslation } from 'react-i18next';
-import { getAutoStatus, getReferenceStatus, MEASUREMENT_STATUS_COLORS } from '@utils/healthColorSystem';
+import { getMeasurementDisplayStatus, MEASUREMENT_STATUS_COLORS, calculateBMI, getBMIStatus } from '@utils/healthColorSystem';
 
 export interface MeasurementOverviewComponentProps {
   elderlyId: number;
   measurementType: MeasurementType;
   measurements: Measurement[];
   navigation: any;
+  latestHeightCm?: number;
 }
 
 export const MeasurementOverviewComponent: React.FC<MeasurementOverviewComponentProps> = ({
   elderlyId,
   measurementType,
   measurements,
-  navigation
+  navigation,
+  latestHeightCm,
 }) => {
   const { t } = useTranslation();
 
@@ -41,11 +43,15 @@ export const MeasurementOverviewComponent: React.FC<MeasurementOverviewComponent
 
   const resolvedStatus = useMemo(() => {
     if (!latestMeasurement) return null;
-    // Stored status takes precedence (semi-auto doctor choice)
-    if (latestMeasurement.status) return latestMeasurement.status;
-    // Fall back to auto-computed status
-    return getAutoStatus(latestMeasurement.type, latestMeasurement.value) as MeasurementStatus | null;
-  }, [latestMeasurement]);
+    // Unified helper: stored status → auto-computed → reference scale
+    const status = getMeasurementDisplayStatus(latestMeasurement.type, latestMeasurement.value, latestMeasurement.status);
+    if (status) return status;
+    // For WEIGHT without stored status, derive color from BMI if height is available
+    if (latestMeasurement.type === MeasurementType.WEIGHT && latestHeightCm) {
+      return getBMIStatus(calculateBMI(latestMeasurement.value, latestHeightCm));
+    }
+    return null;
+  }, [latestMeasurement, latestHeightCm]);
 
   const onPress = () => {
     navigation.push('ElderlyMeasurements', {

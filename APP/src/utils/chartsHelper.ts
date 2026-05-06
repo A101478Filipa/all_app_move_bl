@@ -1,7 +1,7 @@
 import { Measurement, MeasurementType } from "moveplus-shared";
 import { lineDataItem } from "react-native-gifted-charts";
 import { formatDate } from "./Date";
-import { getMeasurementDisplayStatus, MEASUREMENT_STATUS_COLORS } from "./healthColorSystem";
+import { getMeasurementDisplayStatus, MEASUREMENT_STATUS_COLORS, calculateBMI, getBMIStatus } from "./healthColorSystem";
 
 export interface MeasurementChartDataItem extends lineDataItem {
   measurementId?: number;
@@ -23,8 +23,16 @@ const getDisplayTextForChart = (measurement: Measurement) => {
   }
 };
 
-export const groupMeasurementsForChart = (measurements: Measurement[]) => {
+export const groupMeasurementsForChart = (
+  measurements: Measurement[],
+  heightMeasurements?: Measurement[],
+) => {
   const grouped: Partial<Record<MeasurementType, MeasurementChartDataItem[]>> = {};
+
+  // Find the most recent height for BMI computation
+  const latestHeight = heightMeasurements?.length
+    ? [...heightMeasurements].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+    : undefined;
 
   measurements.forEach(m => {
     const type = m.type;
@@ -32,7 +40,11 @@ export const groupMeasurementsForChart = (measurements: Measurement[]) => {
       grouped[type] = [];
     }
 
-    const displayStatus = getMeasurementDisplayStatus(type, m.value, m.status);
+    let displayStatus = getMeasurementDisplayStatus(type, m.value, m.status);
+    // For WEIGHT without a stored status, derive color from BMI if height is available
+    if (!displayStatus && type === MeasurementType.WEIGHT && latestHeight) {
+      displayStatus = getBMIStatus(calculateBMI(m.value, latestHeight.value));
+    }
     const dataPointColor = displayStatus ? MEASUREMENT_STATUS_COLORS[displayStatus] : undefined;
 
     grouped[type]!.push({

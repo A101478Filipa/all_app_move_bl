@@ -35,6 +35,7 @@ export const ElderlyMeasurementsComponent: React.FC<Props> = ({ route, navigatio
   const { elderlyId, measurementType } = route.params;
 
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
+  const [heightMeasurements, setHeightMeasurements] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
 
   const userRole = user?.user?.role;
@@ -46,6 +47,11 @@ export const ElderlyMeasurementsComponent: React.FC<Props> = ({ route, navigatio
       const response = await elderlyApi.getMeasurementsByType(elderlyId, measurementType);
       if (response.data) {
         setMeasurements(response.data);
+      }
+      // For WEIGHT charts, also load heights so we can color by BMI
+      if (measurementType === MeasurementType.WEIGHT) {
+        const heightResponse = await elderlyApi.getMeasurementsByType(elderlyId, MeasurementType.HEIGHT);
+        if (heightResponse.data) setHeightMeasurements(heightResponse.data);
       }
     } catch (error) {
       console.error('Error fetching measurements:', error);
@@ -204,7 +210,10 @@ export const ElderlyMeasurementsComponent: React.FC<Props> = ({ route, navigatio
         {/* Charts Section */}
         {measurements.length > 0 ? (
           <VStack spacing={Spacing.md_16} style={{alignSelf: 'stretch', ...shadowStyles.cardShadow}}>
-            {Object.entries(groupMeasurementsForChart(measurements)).map(
+            {Object.entries(groupMeasurementsForChart(
+              measurements,
+              measurementType === MeasurementType.WEIGHT ? heightMeasurements : undefined,
+            )).map(
               ([type, records]) => (
                 <View key={type} style={styles.chartCard}>
                   <MeasurementChart data={records} onDataPointPress={handleMeasurementPress} />

@@ -48,6 +48,13 @@ const ElderlyMeasurementsListScreen: React.FC<Props> = ({ route, navigation }) =
   const hasBmi =
     grouped[MeasurementType.WEIGHT] && grouped[MeasurementType.HEIGHT];
 
+  // Latest height measurement used to colorize the weight card dot by BMI
+  const latestHeightCm = grouped[MeasurementType.HEIGHT]?.length
+    ? [...grouped[MeasurementType.HEIGHT]!].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )[0].value
+    : undefined;
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -77,6 +84,7 @@ const ElderlyMeasurementsListScreen: React.FC<Props> = ({ route, navigation }) =
                 measurementType={type}
                 measurements={grouped[type]!}
                 navigation={navigation}
+                latestHeightCm={type === MeasurementType.WEIGHT ? latestHeightCm : undefined}
               />
             ))}
           </>
