@@ -100,6 +100,35 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
     const data = response.notification.request.content.data as unknown as NotificationData | undefined;
     handleNotificationNavigation(data);
+
+    // Mark the matching DB notification as read so the bell count updates
+    if (data?.type) {
+      (async () => {
+        try {
+          const resp = await notificationApi.getNotifications();
+          if (resp.data?.notifications) {
+            const match = resp.data.notifications.find((n: any) => {
+              if (n.read || n.type !== data.type) return false;
+              if (
+                data.type === NotificationType.FALL_OCCURRENCE ||
+                data.type === NotificationType.FALL_DETECTION_ALERT
+              ) {
+                return n.data?.fallOccurrenceId === (data as FallOccurrenceNotificationData).fallOccurrenceId;
+              }
+              if (data.type === NotificationType.SOS_OCCURRENCE) {
+                return n.data?.sosOccurrenceId === (data as SosOccurrenceNotificationData).sosOccurrenceId;
+              }
+              return false;
+            });
+            if (match) {
+              await notificationApi.markAsRead(match.id);
+              const countResp = await notificationApi.getUnreadCount();
+              if (countResp.data) setUnreadCount(countResp.data.count);
+            }
+          }
+        } catch { /* silent */ }
+      })();
+    }
   }, [handleNotificationNavigation]);
 
   const refreshUnreadCount = useCallback(async () => {

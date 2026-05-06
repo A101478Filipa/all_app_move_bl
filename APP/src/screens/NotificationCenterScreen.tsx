@@ -77,18 +77,17 @@ export const NotificationCenterScreen: React.FC = () => {
   };
 
   const navigateToNotificationDetails = useCallback((notification: Notification) => {
-    if (!notification.data?.screen) return;
-
     const params: any = {};
 
-    if (notification.type === 'fall_occurrence' && notification.data.fallOccurrenceId) {
+    if (notification.type === 'fall_occurrence' && notification.data?.fallOccurrenceId) {
       params.occurrenceId = notification.data.fallOccurrenceId;
       (navigation as any).navigate('FallOccurrenceScreen', params);
-    } else if (notification.type === 'fall_detection_alert' && notification.data.fallOccurrenceId) {
+    } else if (notification.type === 'fall_detection_alert' && notification.data?.fallOccurrenceId) {
       params.occurrenceId = notification.data.fallOccurrenceId;
       (navigation as any).navigate('FallOccurrenceScreen', params);
-    } else if (notification.type === 'data_access_request') {
-      // Navigate to data access requests screen if needed
+    } else if (notification.type === 'sos_occurrence' && notification.data?.sosOccurrenceId) {
+      params.occurrenceId = notification.data.sosOccurrenceId;
+      (navigation as any).navigate('SosOccurrenceScreen', params);
     }
   }, [navigation]);
 

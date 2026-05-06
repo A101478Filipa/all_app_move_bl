@@ -38,6 +38,13 @@ export async function sendFallOccurrenceNotifications(
                 },
               },
             },
+            clinicians: {
+              include: {
+                user: {
+                  select: { id: true, pushToken: true, username: true },
+                },
+              },
+            },
           },
         },
       },
@@ -48,22 +55,21 @@ export async function sendFallOccurrenceNotifications(
       return;
     }
 
-    const pushTokens: string[] = [];
+    const seenUserIds = new Set<number>();
     const userIdsToNotify: number[] = [];
+    const pushTokens: string[] = [];
 
-    elderly.institution.caregivers.forEach((caregiver) => {
-      userIdsToNotify.push(caregiver.user.id);
-      if (caregiver.user.pushToken) {
-        pushTokens.push(caregiver.user.pushToken);
+    const addRecipient = (userId: number, pushToken: string | null) => {
+      if (!seenUserIds.has(userId)) {
+        seenUserIds.add(userId);
+        userIdsToNotify.push(userId);
+        if (pushToken) pushTokens.push(pushToken);
       }
-    });
+    };
 
-    elderly.institution.admins.forEach((admin) => {
-      userIdsToNotify.push(admin.user.id);
-      if (admin.user.pushToken) {
-        pushTokens.push(admin.user.pushToken);
-      }
-    });
+    elderly.institution.caregivers.forEach((c) => addRecipient(c.user.id, c.user.pushToken));
+    elderly.institution.admins.forEach((a) => addRecipient(a.user.id, a.user.pushToken));
+    elderly.institution.clinicians.forEach((cl) => addRecipient(cl.user.id, cl.user.pushToken));
 
     // Idioma fixo para já
     const userLang = 'pt';
@@ -100,7 +106,10 @@ export async function sendFallOccurrenceNotifications(
       });
     }
 
-    // 2. Enviar a Push Notification (o que faltava no teu código original)
+    // 2. Enviar a Push Notification
+    // Omit titleKey/bodyKey from the push payload — the title/body are already
+    // translated by the server, so the client must NOT re-schedule a translated copy.
+    const { titleKey: _ftk, bodyKey: _fbk, ...pushData } = notificationData;
     let ticketCount = 0;
     
     if (pushTokens.length > 0) {
@@ -110,7 +119,7 @@ export async function sendFallOccurrenceNotifications(
             token,
             title, 
             body,  
-            notificationData
+            pushData as any
           );
           if (ticket) {
             ticketCount++;
@@ -223,6 +232,13 @@ export async function sendSosOccurrenceNotifications(
                 },
               },
             },
+            clinicians: {
+              include: {
+                user: {
+                  select: { id: true, pushToken: true, username: true },
+                },
+              },
+            },
           },
         },
       },
@@ -233,18 +249,21 @@ export async function sendSosOccurrenceNotifications(
       return;
     }
 
-    const pushTokens: string[] = [];
+    const seenUserIds = new Set<number>();
     const userIdsToNotify: number[] = [];
+    const pushTokens: string[] = [];
 
-    elderly.institution.caregivers.forEach((caregiver) => {
-      userIdsToNotify.push(caregiver.user.id);
-      if (caregiver.user.pushToken) pushTokens.push(caregiver.user.pushToken);
-    });
+    const addRecipient = (userId: number, pushToken: string | null) => {
+      if (!seenUserIds.has(userId)) {
+        seenUserIds.add(userId);
+        userIdsToNotify.push(userId);
+        if (pushToken) pushTokens.push(pushToken);
+      }
+    };
 
-    elderly.institution.admins.forEach((admin) => {
-      userIdsToNotify.push(admin.user.id);
-      if (admin.user.pushToken) pushTokens.push(admin.user.pushToken);
-    });
+    elderly.institution.caregivers.forEach((c) => addRecipient(c.user.id, c.user.pushToken));
+    elderly.institution.admins.forEach((a) => addRecipient(a.user.id, a.user.pushToken));
+    elderly.institution.clinicians.forEach((cl) => addRecipient(cl.user.id, cl.user.pushToken));
 
     const userLang = 'pt';
     const title = getTranslation(userLang, 'sosAlertTitle');
@@ -274,11 +293,14 @@ export async function sendSosOccurrenceNotifications(
       await prisma.notification.createMany({ data: dbNotifications });
     }
 
+    // Omit titleKey/bodyKey from the push payload — the title/body are already
+    // translated by the server, so the client must NOT re-schedule a translated copy.
+    const { titleKey: _stk, bodyKey: _sbk, ...sosPushData } = notificationData;
     let ticketCount = 0;
 
     for (const token of pushTokens) {
       if (notificationService.isValidPushToken(token)) {
-        const ticket = await notificationService.sendPushNotification(token, title, body, notificationData);
+        const ticket = await notificationService.sendPushNotification(token, title, body, sosPushData as any);
         if (ticket) ticketCount++;
       }
     }

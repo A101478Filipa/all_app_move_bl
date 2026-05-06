@@ -168,6 +168,8 @@ const ElderlyDashboardScreen = () => {
 
   const handleConfirmFall = useCallback(() => {
     if (fallTimerRef.current) clearTimeout(fallTimerRef.current);
+    setShowFallConfirmation(false);
+    setFallCountdown(5);
     submitFallReport();
   }, [submitFallReport]);
 
@@ -216,6 +218,8 @@ const ElderlyDashboardScreen = () => {
 
   const handleConfirmSos = useCallback(() => {
     if (sosTimerRef.current) clearTimeout(sosTimerRef.current);
+    setShowSosConfirmation(false);
+    setSosCountdown(5);
     submitSosReport();
   }, [submitSosReport]);
 
