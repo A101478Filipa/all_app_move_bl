@@ -32,6 +32,13 @@ export const registerPushToken = async (req: AuthenticatedRequest, res: Response
   }
 
   try {
+    // Remove this token from any other user who currently holds it (same physical
+    // device used with multiple accounts), preventing duplicate deliveries.
+    await prisma.user.updateMany({
+      where: { pushToken, id: { not: userId } },
+      data: { pushToken: null },
+    });
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: { pushToken },
