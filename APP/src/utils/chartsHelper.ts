@@ -58,15 +58,6 @@ export const groupMeasurements = (measurements: Measurement[]): Partial<Record<M
   }, {} as Partial<Record<MeasurementType, Measurement[]>>);
 };
 
-
-export interface MeasurementChartDataItem extends lineDataItem {
-  measurementId?: number;
-}
-
-const getDisplayValueForChart = (measurement: Measurement) => {
-  return measurement.value;
-};
-
 const getDisplayTextForChart = (measurement: Measurement) => {
   switch (measurement.unit) {
     case 'KILOGRAMS':
