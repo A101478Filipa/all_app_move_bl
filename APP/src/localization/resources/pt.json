@@ -370,7 +370,13 @@
     "status": {
       "GREEN": "Bom",
       "YELLOW": "Atenção",
+      "ORANGE": "Alerta",
       "RED": "Crítico"
+    },
+    "bmi": {
+      "title": "IMC — Índice de Massa Corporal",
+      "risk": "Risco",
+      "basedOn": "Calculado com peso {{weight}} kg e altura {{height}} cm"
     },
     "conflict": {
       "title": "Divergência com Escala de Referência",

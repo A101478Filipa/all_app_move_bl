@@ -1,6 +1,63 @@
 import { Measurement, MeasurementType } from "moveplus-shared";
 import { lineDataItem } from "react-native-gifted-charts";
 import { formatDate } from "./Date";
+import { getMeasurementDisplayStatus, MEASUREMENT_STATUS_COLORS } from "./healthColorSystem";
+
+export interface MeasurementChartDataItem extends lineDataItem {
+  measurementId?: number;
+}
+
+const getDisplayValueForChart = (measurement: Measurement) => {
+  return measurement.value;
+};
+
+const getDisplayTextForChart = (measurement: Measurement) => {
+  switch (measurement.unit) {
+    case 'KILOGRAMS':
+      return measurement.value.toFixed(1);
+    case 'CENTIMETERS':
+    case 'SECONDS':
+    case 'POINTS':
+    default:
+      return String(measurement.value);
+  }
+};
+
+export const groupMeasurementsForChart = (measurements: Measurement[]) => {
+  const grouped: Partial<Record<MeasurementType, MeasurementChartDataItem[]>> = {};
+
+  measurements.forEach(m => {
+    const type = m.type;
+    if (!grouped[type]) {
+      grouped[type] = [];
+    }
+
+    const displayStatus = getMeasurementDisplayStatus(type, m.value, m.status);
+    const dataPointColor = displayStatus ? MEASUREMENT_STATUS_COLORS[displayStatus] : undefined;
+
+    grouped[type]!.push({
+      value: getDisplayValueForChart(m),
+      label: formatDate(m.createdAt),
+      dataPointText: getDisplayTextForChart(m),
+      measurementId: m.id,
+      ...(dataPointColor ? { dataPointColor } : {}),
+    });
+  });
+
+  return grouped;
+};
+
+export const groupMeasurements = (measurements: Measurement[]): Partial<Record<MeasurementType, Measurement[]>> => {
+  return measurements.reduce((acc, curr) => {
+    const type = curr.type;
+    if (!acc[type]) {
+      acc[type] = [];
+    }
+    acc[type]!.push(curr);
+    return acc;
+  }, {} as Partial<Record<MeasurementType, Measurement[]>>);
+};
+
 
 export interface MeasurementChartDataItem extends lineDataItem {
   measurementId?: number;

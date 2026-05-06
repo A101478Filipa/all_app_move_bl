@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { MeasurementStatus } from 'moveplus-shared';
 import {
+  MeasurementStatus,
   MEASUREMENT_STATUS_COLORS,
   MEASUREMENT_STATUS_BG_COLORS,
   getStatusLabel,

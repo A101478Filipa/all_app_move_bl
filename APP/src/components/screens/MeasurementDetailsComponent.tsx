@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { MeasurementStatus, MeasurementType, MeasurementUnit } from 'moveplus-shared';
 import { getMeasurementTypeLabel, getMeasurementUnitLabel } from '@src/utils/measurementHelper';
 import { MeasurementStatusBadge } from '@components/MeasurementStatusBadge';
-import { getAutoStatus } from '@utils/healthColorSystem';
+import { getMeasurementDisplayStatus } from '@utils/healthColorSystem';
 
 // Icons
 import HeartIcon from '@icons/generic-ecg-heart.svg';
@@ -40,9 +40,9 @@ export const MeasurementDetailsComponent: React.FC<MeasurementDetailsProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  // Resolve status: stored value first, then auto-computed
+  // Resolve status: stored value first, then auto-computed via unified helper
   const resolvedStatus: MeasurementStatus | null =
-    status ?? (getAutoStatus(measurementType, value) as MeasurementStatus | null);
+    getMeasurementDisplayStatus(measurementType, value, status) as MeasurementStatus | null;
 
   const formatMeasurementValue = () => {
     const unitLabel = getMeasurementUnitLabel(unit, t);

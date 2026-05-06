@@ -221,7 +221,12 @@ const AddMeasurementScreen: React.FC<AddMeasurementScreenProps> = ({ route, navi
     // For auto types, compute status from value; for semi-auto, use doctor's choice
     let status: MeasurementStatus | null = null;
     if (isAutoStatusType(form.type!)) {
-      status = (autoStatus as MeasurementStatus | null);
+      if (autoStatus) {
+        status = autoStatus as MeasurementStatus;
+      } else if (bmiInfo) {
+        // WEIGHT or HEIGHT: persist the BMI-derived status so charts can colour it
+        status = bmiInfo.status as MeasurementStatus;
+      }
     } else if (isSemiAutoStatusType(form.type!)) {
       status = form.doctorStatus;
     }

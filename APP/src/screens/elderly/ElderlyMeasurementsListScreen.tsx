@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } 
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Measurement, MeasurementType, UserRole } from 'moveplus-shared';
 import { MeasurementOverviewComponent } from '@components/MeasurementOverviewComponent';
+import { BmiCardComponent } from '@components/BmiCardComponent';
 import { useElderlyDetailsStore } from '@src/stores/elderlyDetailsStore';
 import { useAuthStore } from '@src/stores/authStore';
 import { groupMeasurements } from '@src/utils/chartsHelper';
@@ -44,6 +45,9 @@ const ElderlyMeasurementsListScreen: React.FC<Props> = ({ route, navigation }) =
   const grouped = groupMeasurements(measurements);
   const types = Object.keys(grouped) as MeasurementType[];
 
+  const hasBmi =
+    grouped[MeasurementType.WEIGHT] && grouped[MeasurementType.HEIGHT];
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -62,15 +66,20 @@ const ElderlyMeasurementsListScreen: React.FC<Props> = ({ route, navigation }) =
             <Text style={styles.emptyText}>{t('measurements.noMeasurements')}</Text>
           </View>
         ) : (
-          types.map(type => (
-            <MeasurementOverviewComponent
-              key={type}
-              elderlyId={elderlyId}
-              measurementType={type}
-              measurements={grouped[type]!}
-              navigation={navigation}
-            />
-          ))
+          <>
+            {/* BMI card — shown when both Weight and Height are available */}
+            {hasBmi && <BmiCardComponent measurements={measurements} />}
+
+            {types.map(type => (
+              <MeasurementOverviewComponent
+                key={type}
+                elderlyId={elderlyId}
+                measurementType={type}
+                measurements={grouped[type]!}
+                navigation={navigation}
+              />
+            ))}
+          </>
         )}
       </ScrollView>
     </View>

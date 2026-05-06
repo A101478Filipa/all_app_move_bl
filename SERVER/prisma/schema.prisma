@@ -54,6 +54,7 @@ enum MeasurementUnit {
 enum MeasurementStatus {
   GREEN
   YELLOW
+  ORANGE
   RED
 }
 
