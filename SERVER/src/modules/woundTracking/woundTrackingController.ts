@@ -64,7 +64,7 @@ export const addFallWoundTracking = async (req, res) => {
     if (occurrence.elderly.institutionId !== req.user.institutionId) {
       return sendError(res, 'Forbidden', 403);
     }
-    if (!notes?.trim() && !req.file && !isResolved) {
+    if (!notes?.trim() && !req.file && !isResolved && bodyLocations.length === 0) {
       return sendError(res, 'Add notes, a photo, or mark the wound as resolved', 400);
     }
 
@@ -138,7 +138,7 @@ export const addSosWoundTracking = async (req, res) => {
     if (occurrence.elderly.institutionId !== req.user.institutionId) {
       return sendError(res, 'Forbidden', 403);
     }
-    if (!notes?.trim() && !req.file && !isResolved) {
+    if (!notes?.trim() && !req.file && !isResolved && bodyLocations.length === 0) {
       return sendError(res, 'Add notes, a photo, or mark the wound as resolved', 400);
     }
 
@@ -210,7 +210,7 @@ export const addElderlyWoundTracking = async (req, res) => {
 
     if (!hasAccess) return sendError(res, 'Forbidden', 403);
 
-    if (!notes?.trim() && !req.file && !isResolved) {
+    if (!notes?.trim() && !req.file && !isResolved && bodyLocations.length === 0) {
       return sendError(res, 'Add notes, a photo, or mark the wound as resolved', 400);
     }
 
