@@ -73,19 +73,21 @@ const SosOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, ca
 
     return `
       <div class="section">
-        <div class="section-title">${t('woundTracking.title')}</div>
+        <div class="section-title">🩹 ${t('woundTracking.title')}</div>
+        <div class="section-body">
         ${trackings.map((tracking) => `
           <div class="tracking-item">
             <div class="tracking-head">
-              <strong>${formatTrackingDate(tracking.createdAt)}</strong>
-              <span class="${tracking.isResolved ? 'badge-ok' : 'badge-injured'}">${tracking.isResolved ? t('woundTracking.resolved') : t('woundTracking.ongoing')}</span>
+              <strong>📅 ${formatTrackingDate(tracking.createdAt)}</strong>
+              <span class="badge ${tracking.isResolved ? 'badge-ok' : 'badge-injured'}">${tracking.isResolved ? t('woundTracking.resolved') : t('woundTracking.ongoing')}</span>
             </div>
             ${tracking.notes ? `<div class="tracking-note">${tracking.notes}</div>` : ''}
             ${tracking.bodyLocations && (tracking.bodyLocations as string[]).length > 0
-              ? `<div class="loc-tags">${(tracking.bodyLocations as string[]).map((loc: string) => `<span class="loc-tag">${t(`woundTracking.bodyLocation_${loc}`) || loc}</span>`).join('')}</div>`
+              ? `<div class="loc-tags">${(tracking.bodyLocations as string[]).map((loc: string) => `<span class="loc-tag">${t('woundTracking.bodyLocation_' + loc) || loc}</span>`).join('')}</div>`
               : ''}
           </div>
         `).join('')}
+        </div>
       </div>
     `;
   };
@@ -93,19 +95,22 @@ const SosOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, ca
   const generatePdfHtml = (photoBase64?: string | null, woundTrackings: WoundTracking[] = [], elderlyDetails: any = null) => {
     const elderlyName = data?.elderly?.name ?? '-';
     const date = data?.date ? formatDateLong(data.date) : '-';
-    const handled = Boolean(data?.handlerUserId);
+    const handledInner = Boolean(data?.handlerUserId);
     const handlerName = data?.handler?.name ?? '-';
     const isFalseAlarm = data?.isFalseAlarm;
     const isActualFall = data?.wasActualFall;
     const primaryColor = '#35C2C1';
-    const darkColor = '#1a2b3c';
-    const mutedColor = '#6b7280';
-    const borderColor = '#e5e7eb';
-    const lightBg = '#f8fffe';
-    const accentBg = '#f0fffe';
+    const darkColor = '#1e293b';
+    const mutedColor = '#64748b';
+    const borderColor = '#e2e8f0';
+    const lightBg = '#f8fafc';
+    const accentBg = '#f0fdfc';
+    const sectionBorder = '#cbd5e1';
 
     const row = (label: string, value: string) =>
       `<tr><td class="td-label">${label}</td><td class="td-value">${value || '-'}</td></tr>`;
+
+    const fmtDate = (v: string) => new Date(v).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
     const elderlyDataHtml = elderlyDetails ? (() => {
       const measurements: any[] = elderlyDetails.measurements ?? [];
@@ -115,17 +120,25 @@ const SosOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, ca
       const age = elderlyDetails.birthDate ? Math.floor((Date.now() - new Date(elderlyDetails.birthDate).getTime()) / (365.25 * 24 * 3600 * 1000)) : null;
 
       const measurementTypeLabels: Record<string, string> = {
-        BLOOD_PRESSURE_SYSTOLIC: t('measurements.types.BLOOD_PRESSURE_SYSTOLIC'),
-        BLOOD_PRESSURE_DIASTOLIC: t('measurements.types.BLOOD_PRESSURE_DIASTOLIC'),
-        HEART_RATE: t('measurements.types.HEART_RATE'),
-        WEIGHT: t('measurements.types.WEIGHT'),
-        HEIGHT: t('measurements.types.HEIGHT'),
-        BODY_TEMPERATURE: t('measurements.types.BODY_TEMPERATURE'),
-        BLOOD_GLUCOSE: t('measurements.types.BLOOD_GLUCOSE'),
-        OXYGEN_SATURATION: t('measurements.types.OXYGEN_SATURATION'),
-        BALANCE_SCORE: t('measurements.types.BALANCE_SCORE'),
-        MOBILITY_SCORE: t('measurements.types.MOBILITY_SCORE'),
-        COGNITIVE_SCORE: t('measurements.types.COGNITIVE_SCORE'),
+        BLOOD_PRESSURE_SYSTOLIC: t('measurements.measurementTypes.BLOOD_PRESSURE_SYSTOLIC'),
+        BLOOD_PRESSURE_DIASTOLIC: t('measurements.measurementTypes.BLOOD_PRESSURE_DIASTOLIC'),
+        HEART_RATE: t('measurements.measurementTypes.HEART_RATE'),
+        WEIGHT: t('measurements.measurementTypes.WEIGHT'),
+        HEIGHT: t('measurements.measurementTypes.HEIGHT'),
+        BODY_TEMPERATURE: t('measurements.measurementTypes.BODY_TEMPERATURE'),
+        BLOOD_GLUCOSE: t('measurements.measurementTypes.BLOOD_GLUCOSE'),
+        OXYGEN_SATURATION: t('measurements.measurementTypes.OXYGEN_SATURATION'),
+        BALANCE_SCORE: t('measurements.measurementTypes.BALANCE_SCORE'),
+        MOBILITY_SCORE: t('measurements.measurementTypes.MOBILITY_SCORE'),
+        COGNITIVE_SCORE: t('measurements.measurementTypes.COGNITIVE_SCORE'),
+      };
+
+      const measurementIcons: Record<string, string> = {
+        BLOOD_PRESSURE_SYSTOLIC: '🩸', BLOOD_PRESSURE_DIASTOLIC: '🩸',
+        HEART_RATE: '❤️', WEIGHT: '⚖️', HEIGHT: '📏',
+        BODY_TEMPERATURE: '🌡️', BLOOD_GLUCOSE: '🍬',
+        OXYGEN_SATURATION: '💨', BALANCE_SCORE: '🧍',
+        MOBILITY_SCORE: '🚶', COGNITIVE_SCORE: '🧠',
       };
 
       const latestByType: Record<string, any> = {};
@@ -135,95 +148,113 @@ const SosOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, ca
         }
       });
 
-      const measurementRows = Object.values(latestByType)
+      const measurementCards = Object.values(latestByType)
         .sort((a, b) => a.type.localeCompare(b.type))
-        .map((m) => row(measurementTypeLabels[m.type] ?? m.type, `${m.value}${m.unit ? ` ${m.unit}` : ''}`))
-        .join('');
+        .map((m) => `
+          <div class="mcard">
+            <div class="mcard-icon">${measurementIcons[m.type] ?? '📊'}</div>
+            <div class="mcard-label">${measurementTypeLabels[m.type] ?? m.type}</div>
+            <div class="mcard-value">${m.value}<span class="mcard-unit">${m.unit ? ` ${m.unit}` : ''}</span></div>
+          </div>
+        `).join('');
 
-      const genderMap: Record<string, string> = { MALE: t('gender.male') ?? 'Masculino', FEMALE: t('gender.female') ?? 'Feminino', OTHER: t('gender.other') ?? 'Outro' };
+      const genderMap: Record<string, string> = { MALE: 'Masculino', FEMALE: 'Feminino', OTHER: 'Outro' };
 
-      const pathologyStatusMap: Record<string, string> = {
-        ACTIVE: t('pathology.statusOptions.active') ?? 'Ativa',
-        INACTIVE: t('pathology.statusOptions.inactive') ?? 'Inativa',
-        RESOLVED: t('pathology.statusOptions.resolved') ?? 'Resolvida',
-        CHRONIC: t('pathology.statusOptions.chronic') ?? 'Crónica',
+      const pathologyStatusBadge = (status: string) => {
+        const map: Record<string, string> = {
+          ACTIVE: 'badge-status-danger', CHRONIC: 'badge-status-warn',
+          INACTIVE: 'badge-status-muted', RESOLVED: 'badge-status-ok',
+        };
+        const labels: Record<string, string> = {
+          ACTIVE: t('pathology.statusOptions.active') ?? 'Ativo',
+          INACTIVE: t('pathology.statusOptions.inactive') ?? 'Inativo',
+          RESOLVED: t('pathology.statusOptions.resolved') ?? 'Resolvido',
+          CHRONIC: t('pathology.statusOptions.chronic') ?? 'Crónico',
+        };
+        return `<span class="badge-status ${map[status] ?? 'badge-status-muted'}">${labels[status] ?? status}</span>`;
       };
 
-      const medicationStatusMap: Record<string, string> = {
-        ACTIVE: t('medication.statusOptions.active') ?? 'Ativo',
-        INACTIVE: t('medication.statusOptions.inactive') ?? 'Inativo',
-        PAUSED: t('medication.statusOptions.paused') ?? 'Pausado',
-        DISCONTINUED: t('medication.statusOptions.discontinued') ?? 'Descontinuado',
-        COMPLETED: t('medication.statusOptions.completed') ?? 'Concluído',
+      const medicationStatusBadge = (status: string) => {
+        const map: Record<string, string> = {
+          ACTIVE: 'badge-status-ok', PAUSED: 'badge-status-warn',
+          INACTIVE: 'badge-status-muted', DISCONTINUED: 'badge-status-danger', COMPLETED: 'badge-status-muted',
+        };
+        const labels: Record<string, string> = {
+          ACTIVE: t('medication.statusOptions.active') ?? 'Ativo',
+          INACTIVE: t('medication.statusOptions.inactive') ?? 'Inativo',
+          PAUSED: t('medication.statusOptions.paused') ?? 'Pausado',
+          DISCONTINUED: t('medication.statusOptions.discontinued') ?? 'Descontinuado',
+          COMPLETED: t('medication.statusOptions.completed') ?? 'Concluído',
+        };
+        return `<span class="badge-status ${map[status] ?? 'badge-status-muted'}">${labels[status] ?? status}</span>`;
       };
-
-      const fmtDate = (v: string) => new Date(v).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
       const pathologiesHtml = pathologies.length > 0 ? `
-        <div class="subsection-label">${t('elderly.pathologies')}</div>
+        <div class="subsection-title">🦠 ${t('elderly.pathologies')}</div>
         <table class="inner-table">
-          <tr class="inner-header">
-            <th>${t('pathology.conditionName') ?? 'Nome'}</th>
-            <th>${t('pathology.diagnosisDate') ?? 'Data Diagnóstico'}</th>
-            <th>${t('pathology.diagnosisSite') ?? 'Local Diagnóstico'}</th>
-            <th>${t('pathology.status') ?? 'Estado'}</th>
-          </tr>
+          <thead><tr>
+            <th>Nome</th><th>Data de Diagnóstico</th><th>Local</th><th>Estado</th>
+          </tr></thead>
+          <tbody>
           ${pathologies.map((p: any) => `
           <tr>
-            <td><strong>${p.name}</strong>${p.description ? `<br/><span style="color:${mutedColor};font-size:11px;">${p.description}</span>` : ''}</td>
+            <td><strong>${p.name}</strong>${p.description ? `<br/><span class="cell-note">${p.description}</span>` : ''}</td>
             <td>${p.diagnosisDate ? fmtDate(p.diagnosisDate) : '-'}</td>
             <td>${p.diagnosisSite ?? '-'}</td>
-            <td>${pathologyStatusMap[p.status] ?? p.status ?? '-'}</td>
-          </tr>
-          `).join('')}
+            <td>${pathologyStatusBadge(p.status)}</td>
+          </tr>`).join('')}
+          </tbody>
         </table>
-      ` : '';
+      ` : `<div class="empty-note">Sem patologias registadas</div>`;
 
       const medicationsHtml = medications.length > 0 ? `
-        <div class="subsection-label">${t('elderly.medications')}</div>
+        <div class="subsection-title">💊 ${t('elderly.medications')}</div>
         <table class="inner-table">
-          <tr class="inner-header">
-            <th>${t('medication.medicationName') ?? 'Medicamento'}</th>
-            <th>${t('medication.dosage') ?? 'Dosagem'}</th>
-            <th>${t('medication.frequency') ?? 'Frequência'}</th>
-            <th>${t('medication.administration') ?? 'Via'}</th>
-            <th>${t('medication.status') ?? 'Estado'}</th>
-          </tr>
+          <thead><tr>
+            <th>Medicamento</th><th>Dosagem</th><th>Frequência</th><th>Via</th><th>Estado</th>
+          </tr></thead>
+          <tbody>
           ${medications.map((m: any) => `
           <tr>
-            <td><strong>${m.name}</strong>${m.activeIngredient ? `<br/><span style="color:${mutedColor};font-size:11px;">${m.activeIngredient}</span>` : ''}</td>
+            <td><strong>${m.name}</strong>${m.activeIngredient ? `<br/><span class="cell-note">${m.activeIngredient}</span>` : ''}</td>
             <td>${m.dosage ?? '-'}</td>
             <td>${m.frequency ?? '-'}</td>
             <td>${m.administration ?? '-'}</td>
-            <td>${medicationStatusMap[m.status] ?? m.status ?? '-'}</td>
-          </tr>
-          `).join('')}
+            <td>${medicationStatusBadge(m.status)}</td>
+          </tr>`).join('')}
+          </tbody>
         </table>
-      ` : '';
+      ` : `<div class="empty-note">Sem medicações registadas</div>`;
 
       return `
         <div class="section">
-          <div class="section-title">${t('elderly.elderlyInfo')}</div>
-          <table>
-            ${elderlyDetails.medicalId ? row(t('elderly.medicalId'), String(elderlyDetails.medicalId)) : ''}
-            ${birthDate ? row(t('authentication.birthDate'), `${birthDate}${age !== null ? ` (${age} ${t('elderly.years')})` : ''}`) : ''}
-            ${elderlyDetails.gender ? row(t('elderly.gender'), genderMap[elderlyDetails.gender] ?? elderlyDetails.gender) : ''}
-            ${elderlyDetails.phone ? row(t('elderly.phone'), elderlyDetails.phone) : ''}
-            ${elderlyDetails.emergencyContact ? row(t('elderly.emergencyContact'), elderlyDetails.emergencyContact) : ''}
-            ${elderlyDetails.address ? row(t('elderly.address'), elderlyDetails.address) : ''}
-            ${elderlyDetails.floor != null ? row(t('elderly.floor'), String(elderlyDetails.floor)) : ''}
-          </table>
-          ${measurementRows ? `<div class="subsection-label">${t('elderly.measurements')}</div><table>${measurementRows}</table>` : ''}
-          ${pathologiesHtml}
-          ${medicationsHtml}
+          <div class="section-title">👤 ${t('elderly.elderlyInfo')}</div>
+          <div class="section-body">
+            <div class="profile-grid">
+              ${elderlyDetails.medicalId ? `<div class="profile-item"><span class="profile-label">${t('elderly.medicalId')}</span><span class="profile-value">${elderlyDetails.medicalId}</span></div>` : ''}
+              ${birthDate ? `<div class="profile-item"><span class="profile-label">Data de Nascimento</span><span class="profile-value">${birthDate}${age !== null ? ` (${age} anos)` : ''}</span></div>` : ''}
+              ${elderlyDetails.gender ? `<div class="profile-item"><span class="profile-label">${t('elderly.gender')}</span><span class="profile-value">${genderMap[elderlyDetails.gender] ?? elderlyDetails.gender}</span></div>` : ''}
+              ${elderlyDetails.phone ? `<div class="profile-item"><span class="profile-label">${t('elderly.phone')}</span><span class="profile-value">${elderlyDetails.phone}</span></div>` : ''}
+              ${elderlyDetails.emergencyContact ? `<div class="profile-item profile-item-wide"><span class="profile-label">📞 ${t('elderly.emergencyContact')}</span><span class="profile-value">${elderlyDetails.emergencyContact}</span></div>` : ''}
+              ${elderlyDetails.address ? `<div class="profile-item profile-item-wide"><span class="profile-label">${t('elderly.address')}</span><span class="profile-value">${elderlyDetails.address}</span></div>` : ''}
+            </div>
+            ${measurementCards ? `
+              <div class="subsection-title">📊 ${t('elderly.measurements')}</div>
+              <div class="mcards">${measurementCards}</div>
+            ` : ''}
+            ${pathologiesHtml}
+            ${medicationsHtml}
+          </div>
         </div>
       `;
     })() : '';
 
     const photoHtml = photoBase64
       ? `<div class="section">
-          <div class="section-title">${t('fallOccurrence.injuryPhoto')}</div>
-          <img src="data:image/jpeg;base64,${photoBase64}" style="max-width:100%;max-height:320px;border-radius:8px;border:1px solid ${borderColor};" />
+          <div class="section-title">📷 ${t('fallOccurrence.injuryPhoto')}</div>
+          <div class="section-body">
+            <img src="data:image/jpeg;base64,${photoBase64}" style="max-width:100%;max-height:360px;border-radius:10px;border:2px solid ${borderColor};display:block;margin:0 auto;" />
+          </div>
         </div>`
       : '';
 
@@ -234,90 +265,148 @@ const SosOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, ca
         <meta charset="utf-8"/>
         <style>
           * { box-sizing: border-box; margin: 0; padding: 0; }
-          body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: ${darkColor}; font-size: 13px; }
-          .header { background: ${primaryColor}; color: #fff; padding: 28px 36px 22px; }
-          .header-title { font-size: 26px; font-weight: bold; letter-spacing: 1px; }
-          .header-subtitle { font-size: 13px; opacity: 0.85; margin-top: 4px; }
-          .header-meta { margin-top: 14px; font-size: 12px; opacity: 0.9; background: rgba(0,0,0,0.12); display: inline-block; padding: 4px 12px; border-radius: 20px; }
-          .content { padding: 28px 36px; }
-          .section { margin-bottom: 24px; }
-          .section-title { font-size: 14px; font-weight: bold; color: ${primaryColor}; text-transform: uppercase; letter-spacing: 0.8px; padding-bottom: 8px; border-bottom: 2px solid ${primaryColor}; margin-bottom: 12px; }
-          table { width: 100%; border-collapse: collapse; }
-          .td-label { font-weight: bold; color: ${mutedColor}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 12px; width: 40%; background: ${lightBg}; border-bottom: 1px solid ${borderColor}; vertical-align: top; }
-          .td-value { color: ${darkColor}; font-size: 13px; padding: 8px 12px; border-bottom: 1px solid ${borderColor}; vertical-align: top; }
-          .badge-false-alarm { display: inline-block; background: #fef3c7; color: #b45309; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; border: 1px solid #fbbf24; }
-          .badge-handled { display: inline-block; background: #d1fae5; color: #065f46; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; border: 1px solid #6ee7b7; }
-          .badge-unhandled { display: inline-block; background: #fee2e2; color: #991b1b; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; border: 1px solid #fca5a5; }
-          .badge-yes { display: inline-block; background: #fee2e2; color: #991b1b; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-          .badge-no { display: inline-block; background: #d1fae5; color: #065f46; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-          .badge-injured { display: inline-block; background: #fee2e2; color: #991b1b; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-          .badge-ok { display: inline-block; background: #d1fae5; color: #065f46; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-          .tracking-item { border: 1px solid ${borderColor}; border-radius: 10px; padding: 12px; background: ${lightBg}; margin-bottom: 10px; }
-          .tracking-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
-          .tracking-note { color: ${darkColor}; line-height: 1.5; }
+          body { font-family: -apple-system, Arial, Helvetica, sans-serif; background: #f1f5f9; color: ${darkColor}; font-size: 13px; line-height: 1.5; }
+
+          /* ── HEADER ── */
+          .header { background: linear-gradient(135deg, #35C2C1 0%, #1a9d9c 100%); color: #fff; padding: 32px 40px 28px; }
+          .header-logo { font-size: 11px; font-weight: bold; letter-spacing: 3px; text-transform: uppercase; opacity: 0.75; margin-bottom: 8px; }
+          .header-title { font-size: 28px; font-weight: 800; letter-spacing: 0.5px; }
+          .header-subtitle { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+          .header-badges { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+          .header-pill { font-size: 12px; background: rgba(255,255,255,0.2); padding: 4px 14px; border-radius: 20px; font-weight: 600; }
+          .header-pill-danger { background: rgba(220,38,38,0.35); }
+
+          /* ── LAYOUT ── */
+          .content { padding: 28px 40px; }
+          .section { background: #fff; border-radius: 12px; border: 1px solid ${borderColor}; margin-bottom: 20px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+          .section-title { font-size: 13px; font-weight: 700; color: #fff; background: linear-gradient(90deg, ${primaryColor}, #1a9d9c); text-transform: uppercase; letter-spacing: 1px; padding: 10px 18px; }
+          .section-body { padding: 16px 18px; }
+
+          /* ── INFO TABLE ── */
+          table.info-table { width: 100%; border-collapse: collapse; }
+          .td-label { font-weight: 600; color: ${mutedColor}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 9px 14px; width: 38%; background: ${lightBg}; border-bottom: 1px solid ${borderColor}; vertical-align: top; }
+          .td-value { color: ${darkColor}; font-size: 13px; padding: 9px 14px; border-bottom: 1px solid ${borderColor}; vertical-align: top; }
+
+          /* ── BADGES ── */
+          .badge { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+          .badge-handled { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+          .badge-unhandled { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+          .badge-false-alarm { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+          .badge-yes { background: #fee2e2; color: #991b1b; }
+          .badge-no { background: #dcfce7; color: #166534; }
+          .badge-injured { background: #fee2e2; color: #991b1b; }
+          .badge-ok { background: #dcfce7; color: #166534; }
+          .badge-status { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+          .badge-status-ok { background: #dcfce7; color: #166534; }
+          .badge-status-danger { background: #fee2e2; color: #991b1b; }
+          .badge-status-warn { background: #fef9c3; color: #854d0e; }
+          .badge-status-muted { background: #f1f5f9; color: #64748b; }
+
+          /* ── PROFILE GRID ── */
+          .profile-grid { display: flex; flex-wrap: wrap; gap: 10px; padding: 4px 0 8px; }
+          .profile-item { background: ${lightBg}; border: 1px solid ${borderColor}; border-radius: 8px; padding: 8px 14px; min-width: 160px; flex: 1; }
+          .profile-item-wide { flex: 2; min-width: 280px; }
+          .profile-label { display: block; font-size: 10px; font-weight: 700; color: ${mutedColor}; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+          .profile-value { display: block; font-size: 13px; font-weight: 600; color: ${darkColor}; }
+
+          /* ── MEASUREMENT CARDS ── */
+          .subsection-title { font-size: 12px; font-weight: 700; color: ${darkColor}; margin: 14px 0 8px; padding-bottom: 4px; border-bottom: 1px solid ${sectionBorder}; }
+          .mcards { display: flex; flex-wrap: wrap; gap: 8px; }
+          .mcard { background: ${accentBg}; border: 1px solid #a7f3d0; border-radius: 10px; padding: 10px 14px; min-width: 120px; flex: 1; text-align: center; }
+          .mcard-icon { font-size: 20px; margin-bottom: 4px; }
+          .mcard-label { font-size: 10px; color: ${mutedColor}; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+          .mcard-value { font-size: 18px; font-weight: 800; color: ${primaryColor}; }
+          .mcard-unit { font-size: 11px; font-weight: 400; color: ${mutedColor}; }
+
+          /* ── INNER TABLES ── */
+          .inner-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+          .inner-table thead tr { background: ${lightBg}; }
+          .inner-table th { font-size: 10px; font-weight: 700; color: ${mutedColor}; text-transform: uppercase; letter-spacing: 0.5px; padding: 7px 12px; border-bottom: 2px solid ${borderColor}; text-align: left; }
+          .inner-table td { font-size: 12px; padding: 8px 12px; border-bottom: 1px solid ${borderColor}; vertical-align: top; color: ${darkColor}; }
+          .inner-table tbody tr:last-child td { border-bottom: none; }
+          .inner-table tbody tr:nth-child(even) td { background: #fafafa; }
+          .cell-note { font-size: 11px; color: ${mutedColor}; display: block; margin-top: 2px; }
+          .empty-note { color: ${mutedColor}; font-size: 12px; font-style: italic; padding: 8px 0; }
+
+          /* ── WOUND TRACKING ── */
+          .tracking-item { border: 1px solid ${borderColor}; border-radius: 10px; padding: 12px 14px; background: ${lightBg}; margin-bottom: 10px; }
+          .tracking-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; font-size: 13px; }
+          .tracking-note { color: ${darkColor}; line-height: 1.6; font-size: 13px; }
           .loc-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-          .loc-tag { display: inline-block; background: #e0f7fa; color: #00696b; padding: 2px 9px; border-radius: 12px; font-size: 11px; font-weight: bold; border: 1px solid #b2ebf2; }
-          .subsection-label { font-size: 11px; font-weight: bold; color: ${mutedColor}; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 12px; margin-bottom: 6px; }
-          .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
-          .info-tag { display: inline-block; background: ${accentBg}; color: ${darkColor}; padding: 3px 10px; border-radius: 12px; font-size: 12px; border: 1px solid ${borderColor}; }
-          .inner-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
-          .inner-table td, .inner-table th { font-size: 12px; padding: 6px 10px; border-bottom: 1px solid ${borderColor}; vertical-align: top; text-align: left; }
-          .inner-table th { background: ${accentBg}; color: ${mutedColor}; font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; font-weight: bold; }
-          .inner-header th { background: ${accentBg}; }
-          .footer { margin-top: 36px; padding: 16px 36px; background: ${lightBg}; border-top: 1px solid ${borderColor}; font-size: 11px; color: ${mutedColor}; display: flex; justify-content: space-between; }
+          .loc-tag { display: inline-block; background: #e0f2fe; color: #0369a1; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; border: 1px solid #bae6fd; }
+
+          /* ── FOOTER ── */
+          .footer { margin-top: 8px; padding: 14px 40px; background: #fff; border-top: 2px solid ${borderColor}; font-size: 11px; color: ${mutedColor}; display: flex; justify-content: space-between; align-items: center; }
+          .footer-logo { font-weight: 800; color: ${primaryColor}; font-size: 13px; }
         </style>
       </head>
       <body>
         <div class="header">
-          <div class="header-title">Move+</div>
+          <div class="header-logo">Move+</div>
+          <div class="header-title">Relatório SOS${isActualFall ? ' / Queda' : ''}</div>
           <div class="header-subtitle">${t('sosOccurrence.title')}${isActualFall ? ' — ' + t('fallOccurrence.title') : ''}</div>
-          <div class="header-meta">${t('sosOccurrence.elderly')}: ${elderlyName}</div>
+          <div class="header-badges">
+            <span class="header-pill">👤 ${elderlyName}</span>
+            <span class="header-pill">📅 ${date}</span>
+            ${handledInner
+              ? `<span class="header-pill">✅ ${t('sosOccurrence.handled')}</span>`
+              : `<span class="header-pill header-pill-danger">⚠️ ${t('sosOccurrence.unhandled')}</span>`}
+            ${isActualFall ? `<span class="header-pill header-pill-danger">🏥 Queda Confirmada</span>` : ''}
+            ${isFalseAlarm ? `<span class="header-pill">ℹ️ ${t('sosOccurrence.falseAlarm')}</span>` : ''}
+          </div>
         </div>
 
         <div class="content">
+
           <div class="section">
-            <div class="section-title">${t('sosOccurrence.basicInformation')}</div>
-            <table>
-              ${row(t('sosOccurrence.elderly'), `<strong>${elderlyName}</strong>`)}
-              ${row(t('sosOccurrence.date'), `<strong>${date}</strong>`)}
-              ${row(t('sosOccurrence.status'), handled
-                ? `<span class="badge-handled">${t('sosOccurrence.handled')}</span>`
-                : `<span class="badge-unhandled">${t('sosOccurrence.unhandled')}</span>`)}
-              ${isFalseAlarm ? row('', `<span class="badge-false-alarm">${t('sosOccurrence.falseAlarm')}</span>`) : ''}
-              ${row(t('sosOccurrence.wasActualFall'), isActualFall
-                ? `<span class="badge-yes">${t('sosOccurrence.yes')}</span>`
-                : `<span class="badge-no">${t('sosOccurrence.no')}</span>`)}
-              ${data?.handler ? row(t('sosOccurrence.handledBy'), handlerName) : ''}
-              ${data?.notes ? row(t('sosOccurrence.notes'), data.notes) : ''}
-            </table>
+            <div class="section-title">📋 ${t('sosOccurrence.basicInformation')}</div>
+            <div class="section-body">
+              <table class="info-table">
+                ${row(t('sosOccurrence.elderly'), `<strong>${elderlyName}</strong>`)}
+                ${row(t('sosOccurrence.date'), `<strong>${date}</strong>`)}
+                ${row(t('sosOccurrence.status'), handledInner
+                  ? `<span class="badge badge-handled">✅ ${t('sosOccurrence.handled')}</span>`
+                  : `<span class="badge badge-unhandled">⚠️ ${t('sosOccurrence.unhandled')}</span>`)}
+                ${isFalseAlarm ? row('', `<span class="badge badge-false-alarm">ℹ️ ${t('sosOccurrence.falseAlarm')}</span>`) : ''}
+                ${row(t('sosOccurrence.wasActualFall'), isActualFall
+                  ? `<span class="badge badge-yes">🏥 ${t('sosOccurrence.yes')}</span>`
+                  : `<span class="badge badge-no">✅ ${t('sosOccurrence.no')}</span>`)}
+                ${data?.handler ? row(t('sosOccurrence.handledBy'), handlerName) : ''}
+                ${data?.notes ? row(t('sosOccurrence.notes'), data.notes) : ''}
+              </table>
+            </div>
           </div>
 
           ${elderlyDataHtml}
 
-          ${handled && !isFalseAlarm ? `
+          ${handledInner && !isFalseAlarm ? `
           <div class="section">
-            <div class="section-title">${isActualFall ? t('fallOccurrence.fallDetails') : t('sosOccurrence.occurrenceDetails')}</div>
-            <table>
-              ${row(t('fallOccurrence.recoveryProcess'), data?.recovery ?? '-')}
-              ${row(t('fallOccurrence.preActivity'), data?.preActivity ?? '-')}
-              ${row(t('fallOccurrence.postActivity'), data?.postActivity ?? '-')}
-              ${isActualFall ? row(t('fallOccurrence.fallDirection'), data?.direction ?? '-') : ''}
-              ${row(t('fallOccurrence.environment'), data?.environment ?? '-')}
-            </table>
+            <div class="section-title">🏃 ${isActualFall ? t('fallOccurrence.fallDetails') : t('sosOccurrence.occurrenceDetails')}</div>
+            <div class="section-body">
+              <table class="info-table">
+                ${row(t('fallOccurrence.recoveryProcess'), data?.recovery ?? '-')}
+                ${row(t('fallOccurrence.preActivity'), data?.preActivity ?? '-')}
+                ${row(t('fallOccurrence.postActivity'), data?.postActivity ?? '-')}
+                ${isActualFall ? row(t('fallOccurrence.fallDirection'), data?.direction ?? '-') : ''}
+                ${row(t('fallOccurrence.environment'), data?.environment ?? '-')}
+              </table>
+            </div>
           </div>
 
           <div class="section">
-            <div class="section-title">${t('fallOccurrence.injuryInformation')}</div>
-            <table>
-              ${row(t('fallOccurrence.injured'), data?.injured
-                ? `<span class="badge-injured">${t('fallOccurrence.yes')}</span>`
-                : `<span class="badge-ok">${t('fallOccurrence.no')}</span>`)}
-              ${data?.injured ? row(t('fallOccurrence.injuryDescription'), data?.injuryDescription ?? '-') : ''}
-              ${row(t('fallOccurrence.measuresTaken'), data?.measuresTaken ?? '-')}
-            </table>
-            ${Array.isArray(data?.injuryBodyLocations) && data.injuryBodyLocations.length > 0
-              ? `<div class="subsection-label">${t('woundTracking.bodyLocation')}</div><div class="loc-tags">${(data.injuryBodyLocations as string[]).map((loc: string) => `<span class="loc-tag">${t(`woundTracking.bodyLocation_${loc}`) || loc}</span>`).join('')}</div>`
-              : ''}
+            <div class="section-title">🩹 ${t('fallOccurrence.injuryInformation')}</div>
+            <div class="section-body">
+              <table class="info-table">
+                ${row(t('fallOccurrence.injured'), data?.injured
+                  ? `<span class="badge badge-injured">🤕 ${t('fallOccurrence.yes')}</span>`
+                  : `<span class="badge badge-ok">✅ ${t('fallOccurrence.no')}</span>`)}
+                ${data?.injured ? row(t('fallOccurrence.injuryDescription'), data?.injuryDescription ?? '-') : ''}
+                ${row(t('fallOccurrence.measuresTaken'), data?.measuresTaken ?? '-')}
+              </table>
+              ${Array.isArray(data?.injuryBodyLocations) && data.injuryBodyLocations.length > 0
+                ? `<div class="subsection-title">📍 ${t('woundTracking.bodyLocation')}</div><div class="loc-tags">${(data.injuryBodyLocations as string[]).map((loc: string) => `<span class="loc-tag">${t('woundTracking.bodyLocation_' + loc) || loc}</span>`).join('')}</div>`
+                : ''}
+            </div>
           </div>
 
           ${photoHtml}
@@ -327,8 +416,8 @@ const SosOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, ca
         </div>
 
         <div class="footer">
-          <span>Move+ &copy; ${new Date().getFullYear()}</span>
-          <span>${new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+          <span class="footer-logo">Move+</span>
+          <span>Gerado em ${new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
         </div>
       </body>
       </html>
