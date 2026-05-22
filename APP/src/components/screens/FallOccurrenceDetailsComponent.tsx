@@ -114,25 +114,111 @@ const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, c
       const measurements: any[] = elderlyDetails.measurements ?? [];
       const pathologies: any[] = elderlyDetails.pathologies ?? [];
       const medications: any[] = elderlyDetails.medications ?? [];
-      const latestWeight = measurements.filter(m => m.type === 'WEIGHT').sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-      const latestHeight = measurements.filter(m => m.type === 'HEIGHT').sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
       const birthDate = elderlyDetails.birthDate ? new Date(elderlyDetails.birthDate).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : null;
       const age = elderlyDetails.birthDate ? Math.floor((Date.now() - new Date(elderlyDetails.birthDate).getTime()) / (365.25 * 24 * 3600 * 1000)) : null;
+
+      const measurementTypeLabels: Record<string, string> = {
+        BLOOD_PRESSURE_SYSTOLIC: t('measurements.types.BLOOD_PRESSURE_SYSTOLIC'),
+        BLOOD_PRESSURE_DIASTOLIC: t('measurements.types.BLOOD_PRESSURE_DIASTOLIC'),
+        HEART_RATE: t('measurements.types.HEART_RATE'),
+        WEIGHT: t('measurements.types.WEIGHT'),
+        HEIGHT: t('measurements.types.HEIGHT'),
+        BODY_TEMPERATURE: t('measurements.types.BODY_TEMPERATURE'),
+        BLOOD_GLUCOSE: t('measurements.types.BLOOD_GLUCOSE'),
+        OXYGEN_SATURATION: t('measurements.types.OXYGEN_SATURATION'),
+        BALANCE_SCORE: t('measurements.types.BALANCE_SCORE'),
+        MOBILITY_SCORE: t('measurements.types.MOBILITY_SCORE'),
+        COGNITIVE_SCORE: t('measurements.types.COGNITIVE_SCORE'),
+      };
+
+      const latestByType: Record<string, any> = {};
+      measurements.forEach((m) => {
+        if (!latestByType[m.type] || new Date(m.createdAt) > new Date(latestByType[m.type].createdAt)) {
+          latestByType[m.type] = m;
+        }
+      });
+
+      const measurementRows = Object.values(latestByType)
+        .sort((a, b) => a.type.localeCompare(b.type))
+        .map((m) => row(measurementTypeLabels[m.type] ?? m.type, `${m.value}${m.unit ? ` ${m.unit}` : ''}`))
+        .join('');
+
+      const genderMap: Record<string, string> = { MALE: t('gender.male') ?? 'Masculino', FEMALE: t('gender.female') ?? 'Feminino', OTHER: t('gender.other') ?? 'Outro' };
+
+      const pathologyStatusMap: Record<string, string> = {
+        ACTIVE: t('pathology.statusOptions.active') ?? 'Ativa',
+        INACTIVE: t('pathology.statusOptions.inactive') ?? 'Inativa',
+        RESOLVED: t('pathology.statusOptions.resolved') ?? 'Resolvida',
+        CHRONIC: t('pathology.statusOptions.chronic') ?? 'Crónica',
+      };
+
+      const medicationStatusMap: Record<string, string> = {
+        ACTIVE: t('medication.statusOptions.active') ?? 'Ativo',
+        INACTIVE: t('medication.statusOptions.inactive') ?? 'Inativo',
+        PAUSED: t('medication.statusOptions.paused') ?? 'Pausado',
+        DISCONTINUED: t('medication.statusOptions.discontinued') ?? 'Descontinuado',
+        COMPLETED: t('medication.statusOptions.completed') ?? 'Concluído',
+      };
+
+      const fmtDate = (v: string) => new Date(v).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+      const pathologiesHtml = pathologies.length > 0 ? `
+        <div class="subsection-label">${t('elderly.pathologies')}</div>
+        <table class="inner-table">
+          <tr class="inner-header">
+            <th>${t('pathology.conditionName') ?? 'Nome'}</th>
+            <th>${t('pathology.diagnosisDate') ?? 'Data Diagnóstico'}</th>
+            <th>${t('pathology.diagnosisSite') ?? 'Local Diagnóstico'}</th>
+            <th>${t('pathology.status') ?? 'Estado'}</th>
+          </tr>
+          ${pathologies.map((p: any) => `
+          <tr>
+            <td><strong>${p.name}</strong>${p.description ? `<br/><span style="color:${mutedColor};font-size:11px;">${p.description}</span>` : ''}</td>
+            <td>${p.diagnosisDate ? fmtDate(p.diagnosisDate) : '-'}</td>
+            <td>${p.diagnosisSite ?? '-'}</td>
+            <td>${pathologyStatusMap[p.status] ?? p.status ?? '-'}</td>
+          </tr>
+          `).join('')}
+        </table>
+      ` : '';
+
+      const medicationsHtml = medications.length > 0 ? `
+        <div class="subsection-label">${t('elderly.medications')}</div>
+        <table class="inner-table">
+          <tr class="inner-header">
+            <th>${t('medication.medicationName') ?? 'Medicamento'}</th>
+            <th>${t('medication.dosage') ?? 'Dosagem'}</th>
+            <th>${t('medication.frequency') ?? 'Frequência'}</th>
+            <th>${t('medication.administration') ?? 'Via'}</th>
+            <th>${t('medication.status') ?? 'Estado'}</th>
+          </tr>
+          ${medications.map((m: any) => `
+          <tr>
+            <td><strong>${m.name}</strong>${m.activeIngredient ? `<br/><span style="color:${mutedColor};font-size:11px;">${m.activeIngredient}</span>` : ''}</td>
+            <td>${m.dosage ?? '-'}</td>
+            <td>${m.frequency ?? '-'}</td>
+            <td>${m.administration ?? '-'}</td>
+            <td>${medicationStatusMap[m.status] ?? m.status ?? '-'}</td>
+          </tr>
+          `).join('')}
+        </table>
+      ` : '';
+
       return `
         <div class="section">
           <div class="section-title">${t('elderly.elderlyInfo')}</div>
           <table>
             ${elderlyDetails.medicalId ? row(t('elderly.medicalId'), String(elderlyDetails.medicalId)) : ''}
             ${birthDate ? row(t('authentication.birthDate'), `${birthDate}${age !== null ? ` (${age} ${t('elderly.years')})` : ''}`) : ''}
-            ${latestWeight ? row(t('measurements.weight'), `${latestWeight.value} ${latestWeight.unit ?? 'kg'}`) : ''}
-            ${latestHeight ? row(t('measurements.height'), `${latestHeight.value} ${latestHeight.unit ?? 'cm'}`) : ''}
+            ${elderlyDetails.gender ? row(t('elderly.gender'), genderMap[elderlyDetails.gender] ?? elderlyDetails.gender) : ''}
+            ${elderlyDetails.phone ? row(t('elderly.phone'), elderlyDetails.phone) : ''}
+            ${elderlyDetails.emergencyContact ? row(t('elderly.emergencyContact'), elderlyDetails.emergencyContact) : ''}
+            ${elderlyDetails.address ? row(t('elderly.address'), elderlyDetails.address) : ''}
+            ${elderlyDetails.floor != null ? row(t('elderly.floor'), String(elderlyDetails.floor)) : ''}
           </table>
-          ${pathologies.length > 0 ? `
-          <div class="subsection-label">${t('elderly.pathologies')}</div>
-          <div class="tag-list">${pathologies.map((p: any) => `<span class="info-tag">${p.name}${p.status ? ` (${p.status})` : ''}</span>`).join('')}</div>` : ''}
-          ${medications.length > 0 ? `
-          <div class="subsection-label">${t('elderly.medications')}</div>
-          <div class="tag-list">${medications.map((m: any) => `<span class="info-tag">${m.name}${m.dosage ? ` — ${m.dosage}` : ''}${m.frequency ? `, ${m.frequency}` : ''}</span>`).join('')}</div>` : ''}
+          ${measurementRows ? `<div class="subsection-label">${t('elderly.measurements')}</div><table>${measurementRows}</table>` : ''}
+          ${pathologiesHtml}
+          ${medicationsHtml}
         </div>
       `;
     })() : '';
@@ -176,6 +262,10 @@ const FallOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, c
           .subsection-label { font-size: 11px; font-weight: bold; color: ${mutedColor}; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 12px; margin-bottom: 6px; }
           .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
           .info-tag { display: inline-block; background: ${accentBg}; color: ${darkColor}; padding: 3px 10px; border-radius: 12px; font-size: 12px; border: 1px solid ${borderColor}; }
+          .inner-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+          .inner-table td, .inner-table th { font-size: 12px; padding: 6px 10px; border-bottom: 1px solid ${borderColor}; vertical-align: top; text-align: left; }
+          .inner-table th { background: ${accentBg}; color: ${mutedColor}; font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; font-weight: bold; }
+          .inner-header th { background: ${accentBg}; }
           .footer { margin-top: 36px; padding: 16px 36px; background: ${lightBg}; border-top: 1px solid ${borderColor}; font-size: 11px; color: ${mutedColor}; display: flex; justify-content: space-between; }
         </style>
       </head>
