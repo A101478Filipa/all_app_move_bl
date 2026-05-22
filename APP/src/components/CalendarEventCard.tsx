@@ -66,7 +66,7 @@ export const CalendarEventCard: React.FC<CalendarEventCardProps> = ({ event, onP
             <Text style={styles.location} numberOfLines={1}>{event.location}</Text>
           </View>
         ) : null}
-        {(event.assignedTo || event.externalProfessionalName) ? (
+        {(event.assignedTo || event.externalProfessional || event.externalProfessionalName) ? (
           <View style={styles.createdByRow}>
             <MaterialIcons
               name={event.assignedTo?.role === 'CLINICIAN' ? 'medical-services' : 'person-outline'}
@@ -74,7 +74,11 @@ export const CalendarEventCard: React.FC<CalendarEventCardProps> = ({ event, onP
               color={Color.Gray.v400}
             />
             <Text style={styles.createdByText} numberOfLines={1}>
-              {event.assignedTo ? event.assignedTo.name : event.externalProfessionalName}
+              {event.assignedTo
+                ? event.assignedTo.name
+                : event.externalProfessional
+                  ? `(${t('calendar.external')}) ${event.externalProfessional.name}${event.externalProfessional.specialty ? ` · ${event.externalProfessional.specialty}` : ''}`
+                  : `(${t('calendar.external')}) ${event.externalProfessionalName}`}
             </Text>
           </View>
         ) : event.createdBy ? (

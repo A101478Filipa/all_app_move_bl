@@ -21,6 +21,7 @@ import staffScheduleRoutes from './modules/staffSchedule/staffScheduleRoutes';
 import timeOffRoutes from './modules/timeOff/timeOffRoutes';
 import elderlyAbsenceRoutes from './modules/elderlyAbsence/elderlyAbsenceRoutes';
 import woundTrackingRoutes from './modules/woundTracking/woundTrackingRoutes';
+import externalProfessionalRoutes from './modules/externalProfessional/externalProfessionalRoutes';
 
 const apiRoutes = express.Router();
 
@@ -47,5 +48,6 @@ apiRoutes.use('/staff-schedules', staffScheduleRoutes);
 apiRoutes.use('/time-off', timeOffRoutes);
 apiRoutes.use('/elderly-absences', elderlyAbsenceRoutes);
 apiRoutes.use('/wound-tracking', woundTrackingRoutes);
+apiRoutes.use('/external-professionals', externalProfessionalRoutes);
 
 export default apiRoutes;

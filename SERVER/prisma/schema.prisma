@@ -237,13 +237,14 @@ model Institution {
   website           String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-  clinicians        Clinician[]
-  caregivers        Caregiver[]
-  elderlyProfiles   Elderly[]
-  admins            InstitutionAdmin[]
-  externalPersonnel ExternalPersonnel[]
-  timelineActivities TimelineActivity[]
-  invitations       Invitation[]
+  clinicians             Clinician[]
+  caregivers             Caregiver[]
+  elderlyProfiles        Elderly[]
+  admins                 InstitutionAdmin[]
+  externalPersonnel      ExternalPersonnel[]
+  externalProfessionals  ExternalProfessional[]
+  timelineActivities     TimelineActivity[]
+  invitations            Invitation[]
 }
 
 // MARK: Programmer
@@ -518,6 +519,24 @@ model ExternalPersonnel {
   institution   Institution? @relation(fields: [institutionId], references: [id])
 }
 
+// MARK: ExternalProfessional
+// External professionals (doctors, therapists, etc.) that do not have a system account.
+// Created on-the-fly when an event is assigned to an external person
+// and reusable across future events.
+model ExternalProfessional {
+  id            Int      @id @default(autoincrement())
+  institutionId Int
+  name          String
+  specialty     String?
+  phone         String?
+  email         String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  institution   Institution   @relation(fields: [institutionId], references: [id])
+  calendarEvents CalendarEvent[]
+}
+
 // MARK: DeviceMaintenance
 model DeviceMaintenance {
   id            Int    @id @default(autoincrement())
@@ -611,7 +630,8 @@ model CalendarEvent {
   elderlyId                Int
   createdById              Int
   assignedToId             Int?
-  externalProfessionalName String?
+  externalProfessionalName String?           // Legacy free-text field (kept for backward compat)
+  externalProfessionalId   Int?              // FK to ExternalProfessional (preferred)
   type                     CalendarEventType
   title                    String
   description              String?
@@ -624,6 +644,7 @@ model CalendarEvent {
   elderly                  Elderly           @relation(fields: [elderlyId], references: [id], onDelete: Cascade)
   createdBy                User              @relation("CalendarEventsCreated", fields: [createdById], references: [id])
   assignedTo               User?             @relation("CalendarEventsAssigned", fields: [assignedToId], references: [id])
+  externalProfessional     ExternalProfessional? @relation(fields: [externalProfessionalId], references: [id])
 
   @@index([elderlyId])
   @@index([startDate])

@@ -10,6 +10,7 @@ export const UpdateCalendarEventRequest = z.object({
   allDay: z.boolean().optional(),
   location: z.string().optional(),
   assignedToId: z.number().int().positive().optional().nullable(),
+  externalProfessionalId: z.number().int().positive().optional().nullable(),
   externalProfessionalName: z.string().optional().nullable(),
 });
 

@@ -1023,6 +1023,17 @@
     "externalNameRequired": "External professional name is required",
     "externalProfessional": "External Professional",
     "externalProfessionalPlaceholder": "External professional name",
+    "external": "External",
+    "selectExternalProfessional": "External Professional",
+    "selectOrAddExternal": "Select or add external professional",
+    "addNewExternal": "Add new external professional",
+    "selectExternalRequired": "Please select or create an external professional",
+    "externalName": "Name",
+    "externalNamePlaceholder": "Full name",
+    "externalSpecialty": "Specialty / Role",
+    "externalSpecialtyPlaceholder": "e.g. Doctor, Physiotherapist",
+    "externalPhone": "Phone",
+    "externalPhonePlaceholder": "Phone number",
     "assignedTo": "Responsible"
   }
 }

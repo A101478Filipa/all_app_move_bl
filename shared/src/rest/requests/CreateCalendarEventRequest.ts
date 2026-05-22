@@ -10,6 +10,9 @@ export const CreateCalendarEventRequest = z.object({
   allDay: z.boolean().optional().default(false),
   location: z.string().optional(),
   assignedToId: z.number().int().positive().optional().nullable(),
+  // External professional: prefer externalProfessionalId (FK to saved record);
+  // externalProfessionalName kept for backward compat and inline creation.
+  externalProfessionalId: z.number().int().positive().optional().nullable(),
   externalProfessionalName: z.string().optional().nullable(),
 });
 

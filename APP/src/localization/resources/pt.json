@@ -1009,6 +1009,17 @@
     "externalNameRequired": "O nome do profissional externo é obrigatório",
     "externalProfessional": "Profissional Externo",
     "externalProfessionalPlaceholder": "Nome do profissional externo",
+    "external": "Externo",
+    "selectExternalProfessional": "Profissional Externo",
+    "selectOrAddExternal": "Selecionar ou adicionar profissional externo",
+    "addNewExternal": "Adicionar novo profissional externo",
+    "selectExternalRequired": "Por favor, selecione ou crie um profissional externo",
+    "externalName": "Nome",
+    "externalNamePlaceholder": "Nome completo",
+    "externalSpecialty": "Especialidade / Função",
+    "externalSpecialtyPlaceholder": "ex. Médico, Fisioterapeuta",
+    "externalPhone": "Telefone",
+    "externalPhonePlaceholder": "Número de telefone",
     "assignedTo": "Responsável"
   },
   "incidentConfirmation": {

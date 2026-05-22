@@ -1,6 +1,7 @@
 // Entities
 export * from './entities/address';
 export * from './entities/calendarEvent';
+export * from './entities/externalProfessional';
 export * from './entities/sosOccurrence';
 export * from './entities/users/user';
 export * from './entities/institution';

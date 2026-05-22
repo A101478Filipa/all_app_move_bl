@@ -20,6 +20,19 @@ const userProfileSelect = {
 
 const createdBySelect = userProfileSelect;
 
+const externalProfessionalSelect = {
+  id: true,
+  name: true,
+  specialty: true,
+  phone: true,
+};
+
+const eventInclude = {
+  createdBy: { select: createdBySelect },
+  assignedTo: { select: userProfileSelect },
+  externalProfessional: { select: externalProfessionalSelect },
+} as const;
+
 const formatUserProfile = (user: any) => ({
   id: user.id,
   role: user.role,
@@ -51,10 +64,7 @@ export const getCalendarEvents = async (req, res) => {
     const events = await prisma.calendarEvent.findMany({
       where: { elderlyId },
       orderBy: { startDate: 'asc' },
-      include: {
-        createdBy: { select: createdBySelect },
-        assignedTo: { select: userProfileSelect },
-      },
+      include: eventInclude,
     });
 
     return sendSuccess(res, events.map(e => ({
@@ -112,12 +122,10 @@ export const createCalendarEvent = async (req, res) => {
         allDay: validation.data.allDay ?? false,
         location: validation.data.location,
         assignedToId: validation.data.assignedToId ?? null,
+        externalProfessionalId: validation.data.externalProfessionalId ?? null,
         externalProfessionalName: validation.data.externalProfessionalName ?? null,
       },
-      include: {
-        createdBy: { select: createdBySelect },
-        assignedTo: { select: userProfileSelect },
-      },
+      include: eventInclude,
     });
 
     return sendSuccess(res, {
@@ -181,12 +189,10 @@ export const updateCalendarEvent = async (req, res) => {
         ...(validation.data.allDay !== undefined && { allDay: validation.data.allDay }),
         ...(validation.data.location !== undefined && { location: validation.data.location }),
         ...('assignedToId' in validation.data && { assignedToId: validation.data.assignedToId ?? null }),
+        ...('externalProfessionalId' in validation.data && { externalProfessionalId: validation.data.externalProfessionalId ?? null }),
         ...('externalProfessionalName' in validation.data && { externalProfessionalName: validation.data.externalProfessionalName ?? null }),
       },
-      include: {
-        createdBy: { select: createdBySelect },
-        assignedTo: { select: userProfileSelect },
-      },
+      include: eventInclude,
     });
 
     return sendSuccess(res, {
@@ -217,8 +223,7 @@ export const getProfessionalCalendarEvents = async (req, res) => {
       where: { assignedToId: targetUserId },
       orderBy: { startDate: 'asc' },
       include: {
-        createdBy: { select: createdBySelect },
-        assignedTo: { select: userProfileSelect },
+        ...eventInclude,
         elderly: {
           select: {
             id: true,
@@ -276,8 +281,7 @@ export const getInstitutionCalendarEvents = async (req, res) => {
       where: { elderly: { institutionId } },
       orderBy: { startDate: 'asc' },
       include: {
-        createdBy: { select: createdBySelect },
-        assignedTo: { select: userProfileSelect },
+        ...eventInclude,
         elderly: {
           select: {
             id: true,

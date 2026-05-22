@@ -4,9 +4,10 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { CalendarEventType, CreateCalendarEventRequest } from 'moveplus-shared';
+import { CalendarEventType, CreateCalendarEventRequest, ExternalProfessional } from 'moveplus-shared';
 import { calendarEventApi } from '@src/api/endpoints/calendarEvents';
 import { institutionApi } from '@src/api/endpoints/institution';
+import { externalProfessionalApi } from '@src/api/endpoints/externalProfessionals';
 import { Color } from '@src/styles/colors';
 import { FontFamily, FontSize } from '@src/styles/fonts';
 import { Spacing, spacingStyles } from '@src/styles/spacings';
@@ -54,10 +55,18 @@ type EventForm = {
   allDay: boolean;
   location: string;
   assignedToId: number | null;  // -1 = external professional
-  externalProfessionalName: string;
+  // External professional selection:
+  //   externalProfessionalId > 0  → existing saved external (preferred)
+  //   externalProfessionalId === NEW_EXTERNAL_VALUE → user is filling in a new one
+  externalProfessionalId: number | null;
+  // Fields for creating a new external professional inline:
+  newExternalName: string;
+  newExternalSpecialty: string;
+  newExternalPhone: string;
 };
 
-const EXTERNAL_VALUE = -1;
+const EXTERNAL_VALUE = -1;        // sentinel for assignedToId: "external" mode
+const NEW_EXTERNAL_VALUE = -2;    // sentinel for externalProfessionalId: "create new"
 
 const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
   const { t } = useTranslation();
@@ -68,10 +77,19 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
   const [clinicians, setClinicians] = useState<{ label: string; value: number }[]>([]);
   const [caregivers, setCaregivers] = useState<{ label: string; value: number }[]>([]);
   const [admins, setAdmins] = useState<{ label: string; value: number }[]>([]);
+  const [savedExternals, setSavedExternals] = useState<ExternalProfessional[]>([]);
 
   const initISO = editEvent
     ? new Date(editEvent.startDate).toISOString()
     : selectedDate ?? new Date().toISOString();
+
+  // Determine initial external professional id for edit mode
+  const initExternalId = (): number | null => {
+    if (!editEvent) return null;
+    if (editEvent.externalProfessionalId) return editEvent.externalProfessionalId;
+    if (editEvent.externalProfessionalName) return NEW_EXTERNAL_VALUE; // legacy free-text → treat as "new"
+    return null;
+  };
 
   const [form, setForm] = useState<EventForm>({
     type: editEvent?.type ?? prefillType ?? null,
@@ -82,10 +100,13 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
     endTime: editEvent?.endDate ? toTimeDate(new Date(editEvent.endDate).toISOString()) : null,
     allDay: editEvent?.allDay ?? false,
     location: editEvent?.location ?? '',
-    assignedToId: editEvent?.externalProfessionalName
+    assignedToId: (editEvent?.externalProfessionalId || editEvent?.externalProfessionalName)
       ? EXTERNAL_VALUE
       : editEvent?.assignedToId ?? null,
-    externalProfessionalName: editEvent?.externalProfessionalName ?? '',
+    externalProfessionalId: initExternalId(),
+    newExternalName: editEvent?.externalProfessionalName ?? '',
+    newExternalSpecialty: '',
+    newExternalPhone: '',
   });
 
   useEffect(() => {
@@ -95,17 +116,32 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
       setCaregivers((data.caregivers ?? []).map(c => ({ label: `${c.name} (${t('members.caregiver')})`, value: c.userId })));
       setAdmins((data.admins ?? []).map(c => ({ label: `${c.name} (${t('members.institutionAdmin')})`, value: c.userId })));
     }).catch(() => {});
+
+    externalProfessionalApi.list().then(res => {
+      setSavedExternals(res.data ?? []);
+    }).catch(() => {});
   }, [t]);
 
   const isClinicalType = form.type ? CLINICAL_TYPES.includes(form.type) : false;
   const isExternal = form.assignedToId === EXTERNAL_VALUE;
+  const isNewExternal = isExternal && form.externalProfessionalId === NEW_EXTERNAL_VALUE;
+  const isExistingExternal = isExternal && form.externalProfessionalId !== null && form.externalProfessionalId !== NEW_EXTERNAL_VALUE && form.externalProfessionalId > 0;
 
-  const externalOption = { label: t('calendar.externalProfessional'), value: EXTERNAL_VALUE };
+  const externalOption = { label: `(${t('calendar.external')}) ${t('calendar.externalProfessional')}`, value: EXTERNAL_VALUE };
 
   // Clinical events: only clinicians; non-clinical events: admins + caregivers (no clinicians)
   const responsibleOptions = isClinicalType
     ? [...clinicians, externalOption]
     : [...admins, ...caregivers, externalOption];
+
+  // Dropdown options for saved external professionals + "Add new" option
+  const externalProfessionalOptions = [
+    { label: `+ ${t('calendar.addNewExternal')}`, value: NEW_EXTERNAL_VALUE },
+    ...savedExternals.map(ep => ({
+      label: ep.specialty ? `${ep.name} (${ep.specialty})` : ep.name,
+      value: ep.id,
+    })),
+  ];
 
   const eventTypeOptions = Object.values(CalendarEventType)
     .map(v => ({ label: t(`calendar.types.${v}` as any), value: v }));
@@ -114,7 +150,15 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
     setForm(prev => ({ ...prev, [key]: value }));
 
   const handleTypeChange = (v: CalendarEventType) => {
-    setForm(prev => ({ ...prev, type: v, assignedToId: null, externalProfessionalName: '' }));
+    setForm(prev => ({ ...prev, type: v, assignedToId: null, externalProfessionalId: null, newExternalName: '', newExternalSpecialty: '', newExternalPhone: '' }));
+  };
+
+  const handleAssignedToChange = (v: number) => {
+    if (v !== EXTERNAL_VALUE) {
+      setForm(prev => ({ ...prev, assignedToId: v, externalProfessionalId: null, newExternalName: '', newExternalSpecialty: '', newExternalPhone: '' }));
+    } else {
+      setForm(prev => ({ ...prev, assignedToId: EXTERNAL_VALUE }));
+    }
   };
 
   const handleSubmit = async () => {
@@ -125,12 +169,24 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
 
     // Professional is required for all event types
     if (!form.assignedToId) return handleValidationError(t('calendar.professionalRequired'));
-    if (isExternal && !form.externalProfessionalName.trim()) {
-      return handleValidationError(t('calendar.externalNameRequired'));
-    }
+    if (isExternal && !form.externalProfessionalId) return handleValidationError(t('calendar.selectExternalRequired'));
+    if (isNewExternal && !form.newExternalName.trim()) return handleValidationError(t('calendar.externalNameRequired'));
 
     setLoading(true);
     try {
+      // If "new external", create the external professional first
+      let resolvedExternalProfessionalId: number | undefined;
+      if (isNewExternal) {
+        const created = await externalProfessionalApi.create({
+          name: form.newExternalName.trim(),
+          specialty: form.newExternalSpecialty.trim() || null,
+          phone: form.newExternalPhone.trim() || null,
+        });
+        resolvedExternalProfessionalId = created.data.id;
+      } else if (isExistingExternal) {
+        resolvedExternalProfessionalId = form.externalProfessionalId!;
+      }
+
       const startDate = form.allDay
         ? new Date(form.date)
         : combineDateTime(form.date, form.startTime ?? new Date());
@@ -148,9 +204,8 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
         allDay: form.allDay,
         location: form.location.trim() || undefined,
         assignedToId: (!isExternal && form.assignedToId && form.assignedToId > 0) ? form.assignedToId : undefined,
-        externalProfessionalName: (isExternal && form.externalProfessionalName.trim())
-          ? form.externalProfessionalName.trim()
-          : undefined,
+        externalProfessionalId: resolvedExternalProfessionalId ?? undefined,
+        externalProfessionalName: undefined,
       };
 
       if (isEditing) {
@@ -253,19 +308,48 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
             placeholder={t('calendar.selectResponsible')}
             value={form.assignedToId}
             options={responsibleOptions}
-            onValueChange={v => update('assignedToId', v)}
+            onValueChange={handleAssignedToChange}
             required
           />
 
-          {/* External professional name — shown only when external option selected */}
+          {/* External professional section — shown when external option is selected */}
           {isExternal && (
-            <FormTextInput
-              title={t('calendar.externalProfessional')}
-              value={form.externalProfessionalName}
-              onChangeText={v => update('externalProfessionalName', v)}
-              placeholder={t('calendar.externalProfessionalPlaceholder')}
-              required
-            />
+            <>
+              <FormDropdown
+                title={t('calendar.selectExternalProfessional')}
+                placeholder={t('calendar.selectOrAddExternal')}
+                value={form.externalProfessionalId}
+                options={externalProfessionalOptions}
+                onValueChange={v => update('externalProfessionalId', v)}
+                required
+              />
+
+              {/* Fields shown only when creating a NEW external professional */}
+              {isNewExternal && (
+                <>
+                  <FormTextInput
+                    title={t('calendar.externalName')}
+                    value={form.newExternalName}
+                    onChangeText={v => update('newExternalName', v)}
+                    placeholder={t('calendar.externalNamePlaceholder')}
+                    required
+                  />
+                  <FormTextInput
+                    title={t('calendar.externalSpecialty')}
+                    value={form.newExternalSpecialty}
+                    onChangeText={v => update('newExternalSpecialty', v)}
+                    placeholder={t('calendar.externalSpecialtyPlaceholder')}
+                  />
+                  <FormTextInput
+                    title={t('calendar.externalPhone')}
+                    value={form.newExternalPhone}
+                    onChangeText={v => update('newExternalPhone', v)}
+                    placeholder={t('calendar.externalPhonePlaceholder')}
+                    keyboardType="phone-pad"
+                  />
+                </>
+              )}
+            </>
           )}
 
           <PrimaryButton
