@@ -966,6 +966,10 @@
     "sosAlert": {
       "title": "SOS Alert",
       "body": "{{elderlyName}} is asking for help. Please respond immediately."
+    },
+    "timeOffRequest": {
+      "title": "📋 Time-off Request",
+      "body": "{{requesterName}} submitted a {{timeOffType}} request from {{startDate}} to {{endDate}}."
     }
   },
   "incidentConfirmation": {

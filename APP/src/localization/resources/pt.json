@@ -967,6 +967,10 @@
     "sosAlert":{
       "title": "Alerta SOS",
       "body": "{{elderlyName}} está a pedir ajuda. Por favor, responda imediatamente."
+    },
+    "timeOffRequest": {
+      "title": "📋 Pedido de Ausência",
+      "body": "{{requesterName}} submeteu um pedido de {{timeOffType}} de {{startDate}} a {{endDate}}."
     }
   },
   "calendar": {

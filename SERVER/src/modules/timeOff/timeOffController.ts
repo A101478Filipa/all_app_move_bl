@@ -315,19 +315,35 @@ export const getInstitutionTimeOffs = async (req, res) => {
 export const getVacationPolicy = async (req, res) => {
   const { userId, role } = req.user;
 
-  if (role !== UserRole.INSTITUTION_ADMIN && role !== UserRole.PROGRAMMER) {
-    return sendError(res, 'Forbidden', 403);
-  }
-
   try {
-    const admin = await prisma.institutionAdmin.findUnique({
-      where: { userId },
-      select: { institutionId: true },
-    });
-    if (!admin) return sendError(res, 'Admin not found', 404);
+    let institutionId: number | null = null;
+
+    if (role === UserRole.INSTITUTION_ADMIN || role === UserRole.PROGRAMMER) {
+      const admin = await prisma.institutionAdmin.findUnique({
+        where: { userId },
+        select: { institutionId: true },
+      });
+      institutionId = admin?.institutionId ?? null;
+    } else if (role === UserRole.CAREGIVER) {
+      const caregiver = await prisma.caregiver.findUnique({
+        where: { userId },
+        select: { institutionId: true },
+      });
+      institutionId = caregiver?.institutionId ?? null;
+    } else if (role === UserRole.CLINICIAN) {
+      const clinician = await prisma.clinician.findUnique({
+        where: { userId },
+        select: { institutionId: true },
+      });
+      institutionId = clinician?.institutionId ?? null;
+    } else {
+      return sendError(res, 'Forbidden', 403);
+    }
+
+    if (institutionId == null) return sendError(res, 'Staff profile not found', 404);
 
     const policy = await prisma.institutionVacationPolicy.findUnique({
-      where: { institutionId: admin.institutionId },
+      where: { institutionId },
     });
 
     return sendSuccess(res, policy);

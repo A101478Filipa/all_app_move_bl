@@ -20,7 +20,7 @@ timeOffRoutes.get(
 timeOffRoutes.get(
   '/policy',
   authenticate,
-  authorizeRoles(ADMIN_ONLY),
+  authorizeRoles(ALL_STAFF),
   controller.getVacationPolicy,
 );
 

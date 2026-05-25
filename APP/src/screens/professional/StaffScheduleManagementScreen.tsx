@@ -55,13 +55,15 @@ function formatShortDate(d: string | Date): string {
   return date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function computeUsedVacationDays(timeOffs: StaffTimeOff[]): number {
+function computeUsedVacationDays(timeOffs: StaffTimeOff[], includePending = false, excludeId?: number): number {
   const now = new Date();
   const yearStart = new Date(now.getFullYear(), 0, 1);
   const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
   let total = 0;
   for (const to of timeOffs) {
-    if (to.type !== TimeOffType.VACATION || to.status !== TimeOffStatus.APPROVED) continue;
+    if (to.id === excludeId) continue;
+    if (to.type !== TimeOffType.VACATION) continue;
+    if (to.status !== TimeOffStatus.APPROVED && !(includePending && to.status === TimeOffStatus.PENDING)) continue;
     const start = new Date(to.startDate);
     const end = new Date(to.endDate);
     const effectiveStart = start < yearStart ? yearStart : start;
@@ -125,12 +127,10 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
       }
       setTimeOffs(toRes.data ?? []);
 
-      if (isAdmin) {
-        const policyRes = await timeOffApi.getVacationPolicy().catch(() => ({ data: null }));
-        if (policyRes.data) {
-          setVacationPolicy(policyRes.data);
-          setPolicyDays(String(policyRes.data.maxVacationDaysPerYear));
-        }
+      const policyRes = await timeOffApi.getVacationPolicy().catch(() => ({ data: null }));
+      if (policyRes.data) {
+        setVacationPolicy(policyRes.data);
+        setPolicyDays(String(policyRes.data.maxVacationDaysPerYear));
       }
     } catch (err) {
       handleError(err);
@@ -138,7 +138,7 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
       setLoading(false);
       setScheduleEdited(false);
     }
-  }, [userId, isAdmin]);
+  }, [userId]);
 
   useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
@@ -192,6 +192,19 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
     if (toEnd < toStart) {
       Alert.alert('Erro', 'A data de fim tem de ser igual ou posterior à de início.');
       return;
+    }
+
+    // Vacation limit check
+    if (toType === TimeOffType.VACATION && maxVacationDays != null) {
+      const newDays = Math.round((toEnd.getTime() - toStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const usedAlready = computeUsedVacationDays(timeOffs, true, editingTimeOff?.id);
+      if (usedAlready + newDays > maxVacationDays) {
+        Alert.alert(
+          'Limite de férias excedido',
+          `Já tem ${usedAlready} dia(s) de férias registados este ano (aprovados e pendentes). Este pedido de ${newDays} dia(s) excederia o limite de ${maxVacationDays} dias.`,
+        );
+        return;
+      }
     }
     try {
       setSaving(true);
