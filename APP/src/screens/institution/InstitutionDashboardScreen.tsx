@@ -459,7 +459,9 @@ const InstitutionDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuthStore();
   const { t } = useTranslation();
 
-  const isCaregiver = user?.user?.role === UserRole.CAREGIVER || user?.user?.role === UserRole.INSTITUTION_ADMIN;
+  const userRole = user?.user?.role;
+  const isActualAdmin = userRole === UserRole.INSTITUTION_ADMIN || userRole === UserRole.PROGRAMMER;
+  const isCaregiver = userRole === UserRole.CAREGIVER || userRole === UserRole.INSTITUTION_ADMIN;
 
   useFocusEffect(
     useCallback(() => {
@@ -499,9 +501,13 @@ const InstitutionDashboardScreen: React.FC<Props> = ({ navigation }) => {
     const userId = user?.user?.id;
     const name = user?.name;
     if (userId) {
-      navigation.push('ProfessionalCalendar', { userId, professionalName: name, isAdmin: true });
+      navigation.push('ProfessionalCalendar', { userId, professionalName: name, isAdmin: isActualAdmin });
     }
-  }, [navigation, user]);
+  }, [navigation, user, isActualAdmin]);
+
+  const handleViewTeamSchedules = useCallback(() => {
+    navigation.push('AdminTeamSchedules');
+  }, [navigation]);
 
   const handleViewBathSchedule = useCallback(() => {
     navigation.push('BathSchedule');
@@ -593,6 +599,16 @@ const InstitutionDashboardScreen: React.FC<Props> = ({ navigation }) => {
               onPress={handleAddMeasurement}
               color={Color.primary}
             />
+
+            {isActualAdmin && (
+              <DashboardWidget
+                title="Horários Equipa"
+                subtitle="Pedidos de férias, horários e ausências"
+                icon={<MaterialIcons name="groups" size={24} color="#7C3AED" />}
+                onPress={handleViewTeamSchedules}
+                color="#7C3AED"
+              />
+            )}
 
             <DashboardWidget
               title={t('dashboard.myCalendar')}

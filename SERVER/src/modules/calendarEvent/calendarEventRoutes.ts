@@ -44,7 +44,7 @@ calendarEventRoutes.get(
 calendarEventRoutes.get(
   '/institution',
   authenticate,
-  authorizeRoles([UserRole.CAREGIVER, UserRole.INSTITUTION_ADMIN, UserRole.PROGRAMMER]),
+  authorizeRoles([UserRole.CAREGIVER, UserRole.INSTITUTION_ADMIN, UserRole.CLINICIAN, UserRole.PROGRAMMER]),
   controller.getInstitutionCalendarEvents
 );
 

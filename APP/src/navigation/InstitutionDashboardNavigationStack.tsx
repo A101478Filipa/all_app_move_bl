@@ -34,6 +34,7 @@ import { Color } from "@src/styles/colors";
 import { Pathology, Medication, MeasurementType, CalendarEvent, CalendarEventType } from "moveplus-shared";
 import BathScheduleScreen from '@src/screens/institution/BathScheduleScreen';
 import StaffScheduleManagementScreen from '@src/screens/professional/StaffScheduleManagementScreen';
+import AdminTeamSchedulesScreen from '@src/screens/professional/AdminTeamSchedulesScreen';
 
 export type InstitutionDashboardNavigationStackParamList = {
   InstitutionDashboardScreen: undefined;
@@ -130,6 +131,7 @@ export type InstitutionDashboardNavigationStackParamList = {
     userId: number;
     staffName: string;
   };
+  AdminTeamSchedules: undefined;
 };
 
 const Stack = createNativeStackNavigator<InstitutionDashboardNavigationStackParamList>();
@@ -308,6 +310,11 @@ export const InstitutionDashboardNavigationStack = () => {
         name='StaffScheduleManagement'
         component={StaffScheduleManagementScreen}
         options={({ route }) => ({ title: route.params.staffName })}
+      />
+      <Stack.Screen
+        name='AdminTeamSchedules'
+        component={AdminTeamSchedulesScreen}
+        options={{ title: 'Horários Equipa' }}
       />
     </Stack.Navigator>
   );

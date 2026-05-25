@@ -1,4 +1,7 @@
-import { CreateTimeOffRequest, UpdateTimeOffRequest, UserRole } from 'moveplus-shared';
+import {
+  CreateTimeOffRequest, UpdateTimeOffRequest, RespondTimeOffRequest,
+  UpsertVacationPolicyRequest, UserRole, TimeOffStatus,
+} from 'moveplus-shared';
 import { sendSuccess, sendError, sendInputValidationError, sendEmptySuccess } from '../../utils/apiResponse';
 import prisma from '../../prisma';
 
@@ -44,6 +47,7 @@ export const getTimeOffs = async (req, res) => {
       include: {
         user: { select: userSummarySelect },
         createdBy: { select: userSummarySelect },
+        respondedBy: { select: userSummarySelect },
       },
     });
 
@@ -51,6 +55,7 @@ export const getTimeOffs = async (req, res) => {
       ...t,
       user: formatUser(t.user),
       createdBy: formatUser(t.createdBy),
+      respondedBy: t.respondedBy ? formatUser(t.respondedBy) : null,
     })));
   } catch (error) {
     console.error('Error fetching time-offs:', error);
@@ -58,9 +63,9 @@ export const getTimeOffs = async (req, res) => {
   }
 };
 
-// POST /time-off
+// POST /time-off — any staff member can request; admin creates as APPROVED
 export const createTimeOff = async (req, res) => {
-  const { userId: requesterId } = req.user;
+  const { userId: requesterId, role } = req.user;
 
   const validation = CreateTimeOffRequest.safeParse(req.body);
   if (!validation.success) {
@@ -69,16 +74,41 @@ export const createTimeOff = async (req, res) => {
 
   const { userId, type, startDate, endDate, note } = validation.data;
 
+  // Caregivers and clinicians can only create for themselves
+  if (
+    (role === UserRole.CAREGIVER || role === UserRole.CLINICIAN) &&
+    userId !== requesterId
+  ) {
+    return sendError(res, 'You can only create time-off requests for yourself', 403);
+  }
+
   if (endDate < startDate) {
     return sendError(res, 'endDate must be after or equal to startDate', 400);
   }
 
+  // Admins / programmers create as APPROVED directly; others submit as PENDING
+  const isAdmin = role === UserRole.INSTITUTION_ADMIN || role === UserRole.PROGRAMMER;
+  const status = isAdmin ? TimeOffStatus.APPROVED : TimeOffStatus.PENDING;
+
   try {
     const timeOff = await prisma.staffTimeOff.create({
-      data: { userId, createdById: requesterId, type, startDate, endDate, note: note ?? null },
+      data: {
+        userId,
+        createdById: requesterId,
+        type,
+        status,
+        startDate,
+        endDate,
+        note: note ?? null,
+        ...(isAdmin && {
+          respondedById: requesterId,
+          respondedAt: new Date(),
+        }),
+      },
       include: {
         user: { select: userSummarySelect },
         createdBy: { select: userSummarySelect },
+        respondedBy: { select: userSummarySelect },
       },
     });
 
@@ -86,6 +116,7 @@ export const createTimeOff = async (req, res) => {
       ...timeOff,
       user: formatUser(timeOff.user),
       createdBy: formatUser(timeOff.createdBy),
+      respondedBy: timeOff.respondedBy ? formatUser(timeOff.respondedBy) : null,
     }, 'Time-off created', 201);
   } catch (error) {
     console.error('Error creating time-off:', error);
@@ -93,12 +124,67 @@ export const createTimeOff = async (req, res) => {
   }
 };
 
-// PUT /time-off/:id
+// PUT /time-off/:id/respond — admin approves or denies a request
+export const respondTimeOff = async (req, res) => {
+  const { userId: requesterId, role } = req.user;
+  const id = Number(req.params.id);
+
+  if (role !== UserRole.INSTITUTION_ADMIN && role !== UserRole.PROGRAMMER) {
+    return sendError(res, 'Forbidden', 403);
+  }
+
+  const existing = await prisma.staffTimeOff.findUnique({ where: { id } });
+  if (!existing) return sendError(res, 'Time-off not found', 404);
+
+  const validation = RespondTimeOffRequest.safeParse(req.body);
+  if (!validation.success) {
+    return sendInputValidationError(res, 'Invalid request data', validation.error.errors);
+  }
+
+  try {
+    const timeOff = await prisma.staffTimeOff.update({
+      where: { id },
+      data: {
+        status: validation.data.status,
+        responseNote: validation.data.responseNote ?? null,
+        respondedById: requesterId,
+        respondedAt: new Date(),
+      },
+      include: {
+        user: { select: userSummarySelect },
+        createdBy: { select: userSummarySelect },
+        respondedBy: { select: userSummarySelect },
+      },
+    });
+
+    return sendSuccess(res, {
+      ...timeOff,
+      user: formatUser(timeOff.user),
+      createdBy: formatUser(timeOff.createdBy),
+      respondedBy: timeOff.respondedBy ? formatUser(timeOff.respondedBy) : null,
+    }, 'Time-off updated');
+  } catch (error) {
+    console.error('Error responding to time-off:', error);
+    return sendError(res, 'Internal Server Error', 500);
+  }
+};
+
+// PUT /time-off/:id — admin: any; staff: own PENDING only
 export const updateTimeOff = async (req, res) => {
+  const { userId: requesterId, role } = req.user;
   const id = Number(req.params.id);
 
   const existing = await prisma.staffTimeOff.findUnique({ where: { id } });
   if (!existing) return sendError(res, 'Time-off not found', 404);
+
+  const isAdmin = role === UserRole.INSTITUTION_ADMIN || role === UserRole.PROGRAMMER;
+
+  if (!isAdmin) {
+    if (existing.userId !== requesterId) return sendError(res, 'Forbidden', 403);
+    if ((existing.status as any) !== TimeOffStatus.PENDING) {
+      return sendError(res, 'Only pending requests can be edited', 400);
+    }
+  }
 
   const validation = UpdateTimeOffRequest.safeParse(req.body);
   if (!validation.success) {
@@ -117,6 +203,7 @@ export const updateTimeOff = async (req, res) => {
       include: {
         user: { select: userSummarySelect },
         createdBy: { select: userSummarySelect },
+        respondedBy: { select: userSummarySelect },
       },
     });
 
@@ -124,6 +211,7 @@ export const updateTimeOff = async (req, res) => {
       ...timeOff,
       user: formatUser(timeOff.user),
       createdBy: formatUser(timeOff.createdBy),
+      respondedBy: timeOff.respondedBy ? formatUser(timeOff.respondedBy) : null,
     }, 'Time-off updated');
   } catch (error) {
     console.error('Error updating time-off:', error);
@@ -131,12 +219,22 @@ export const updateTimeOff = async (req, res) => {
   }
 };
 
-// DELETE /time-off/:id
+// DELETE /time-off/:id — admin: any; staff: own PENDING only
 export const deleteTimeOff = async (req, res) => {
+  const { userId: requesterId, role } = req.user;
   const id = Number(req.params.id);
 
   const existing = await prisma.staffTimeOff.findUnique({ where: { id } });
   if (!existing) return sendError(res, 'Time-off not found', 404);
+
+  const isAdmin = role === UserRole.INSTITUTION_ADMIN || role === UserRole.PROGRAMMER;
+
+  if (!isAdmin) {
+    if (existing.userId !== requesterId) return sendError(res, 'Forbidden', 403);
+    if ((existing.status as any) !== TimeOffStatus.PENDING) {
+      return sendError(res, 'Only pending requests can be deleted', 400);
+    }
+  }
 
   try {
     await prisma.staffTimeOff.delete({ where: { id } });
@@ -177,10 +275,11 @@ export const getInstitutionTimeOffs = async (req, res) => {
 
     const timeOffs = await prisma.staffTimeOff.findMany({
       where: { userId: { in: staffUserIds } },
-      orderBy: { startDate: 'asc' },
+      orderBy: [{ status: 'asc' }, { startDate: 'asc' }],
       include: {
         user: { select: userSummarySelect },
         createdBy: { select: userSummarySelect },
+        respondedBy: { select: userSummarySelect },
       },
     });
 
@@ -188,9 +287,74 @@ export const getInstitutionTimeOffs = async (req, res) => {
       ...t,
       user: formatUser(t.user),
       createdBy: formatUser(t.createdBy),
+      respondedBy: t.respondedBy ? formatUser(t.respondedBy) : null,
     })));
   } catch (error) {
     console.error('Error fetching institution time-offs:', error);
+    return sendError(res, 'Internal Server Error', 500);
+  }
+};
+
+// GET /time-off/policy — get the institution vacation policy
+export const getVacationPolicy = async (req, res) => {
+  const { userId, role } = req.user;
+
+  if (role !== UserRole.INSTITUTION_ADMIN && role !== UserRole.PROGRAMMER) {
+    return sendError(res, 'Forbidden', 403);
+  }
+
+  try {
+    const admin = await prisma.institutionAdmin.findUnique({
+      where: { userId },
+      select: { institutionId: true },
+    });
+    if (!admin) return sendError(res, 'Admin not found', 404);
+
+    const policy = await prisma.institutionVacationPolicy.findUnique({
+      where: { institutionId: admin.institutionId },
+    });
+
+    return sendSuccess(res, policy);
+  } catch (error) {
+    console.error('Error fetching vacation policy:', error);
+    return sendError(res, 'Internal Server Error', 500);
+  }
+};
+
+// PUT /time-off/policy — create or update the institution vacation policy
+export const upsertVacationPolicy = async (req, res) => {
+  const { userId, role } = req.user;
+
+  if (role !== UserRole.INSTITUTION_ADMIN && role !== UserRole.PROGRAMMER) {
+    return sendError(res, 'Forbidden', 403);
+  }
+
+  const validation = UpsertVacationPolicyRequest.safeParse(req.body);
+  if (!validation.success) {
+    return sendInputValidationError(res, 'Invalid request data', validation.error.errors);
+  }
+
+  try {
+    const admin = await prisma.institutionAdmin.findUnique({
+      where: { userId },
+      select: { institutionId: true },
+    });
+    if (!admin) return sendError(res, 'Admin not found', 404);
+
+    const policy = await prisma.institutionVacationPolicy.upsert({
+      where: { institutionId: admin.institutionId },
+      create: {
+        institutionId: admin.institutionId,
+        maxVacationDaysPerYear: validation.data.maxVacationDaysPerYear,
+      },
+      update: {
+        maxVacationDaysPerYear: validation.data.maxVacationDaysPerYear,
+      },
+    });
+
+    return sendSuccess(res, policy, 'Vacation policy updated');
+  } catch (error) {
+    console.error('Error upserting vacation policy:', error);
     return sendError(res, 'Internal Server Error', 500);
   }
 };

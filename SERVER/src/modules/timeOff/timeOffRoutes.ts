@@ -16,7 +16,23 @@ timeOffRoutes.get(
   controller.getInstitutionTimeOffs,
 );
 
-// GET /time-off/:userId  — list time-off for a user
+// GET /time-off/policy — institution vacation policy (must be before /:userId)
+timeOffRoutes.get(
+  '/policy',
+  authenticate,
+  authorizeRoles(ADMIN_ONLY),
+  controller.getVacationPolicy,
+);
+
+// PUT /time-off/policy — upsert institution vacation policy (must be before /:id)
+timeOffRoutes.put(
+  '/policy',
+  authenticate,
+  authorizeRoles(ADMIN_ONLY),
+  controller.upsertVacationPolicy,
+);
+
+// GET /time-off/:userId  — list time-off for a user (self or admin)
 timeOffRoutes.get(
   '/:userId',
   authenticate,
@@ -24,27 +40,35 @@ timeOffRoutes.get(
   controller.getTimeOffs,
 );
 
-// POST /time-off  — create time-off (Admin only)
+// POST /time-off  — all staff can submit a request
 timeOffRoutes.post(
   '/',
   authenticate,
-  authorizeRoles(ADMIN_ONLY),
+  authorizeRoles(ALL_STAFF),
   controller.createTimeOff,
 );
 
-// PUT /time-off/:id  — update time-off (Admin only)
+// PUT /time-off/:id/respond  — admin approves or denies (must be before /:id)
+timeOffRoutes.put(
+  '/:id/respond',
+  authenticate,
+  authorizeRoles(ADMIN_ONLY),
+  controller.respondTimeOff,
+);
+
+// PUT /time-off/:id  — update time-off (admin: any; staff: own PENDING)
 timeOffRoutes.put(
   '/:id',
   authenticate,
-  authorizeRoles(ADMIN_ONLY),
+  authorizeRoles(ALL_STAFF),
   controller.updateTimeOff,
 );
 
-// DELETE /time-off/:id  — delete time-off (Admin only)
+// DELETE /time-off/:id  — delete time-off (admin: any; staff: own PENDING)
 timeOffRoutes.delete(
   '/:id',
   authenticate,
-  authorizeRoles(ADMIN_ONLY),
+  authorizeRoles(ALL_STAFF),
   controller.deleteTimeOff,
 );
 
