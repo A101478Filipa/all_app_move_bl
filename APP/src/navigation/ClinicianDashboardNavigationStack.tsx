@@ -11,6 +11,7 @@ import DataAccessRequestsScreen from "@src/screens/dataAccessRequest/DataAccessR
 import { ElderlyMeasurementsComponent, ElderlyMeasurementsArgs } from "@components/screens/ElderlyMeasurementsComponent";
 import { NotificationCenterStack } from "@src/navigation/NotificationCenterStack";
 import ElderlyCalendarScreen from "@src/screens/elderly/ElderlyCalendarScreen";
+import ElderlyAbsencesScreen from "@src/screens/elderly/ElderlyAbsencesScreen";
 import AddCalendarEventScreen from "@src/screens/elderly/AddCalendarEventScreen";
 import SelectElderlyScreen from "@src/screens/elderly/SelectElderlyScreen";
 import ElderlyMedicationsListScreen from "@src/screens/elderly/ElderlyMedicationsListScreen";
@@ -19,6 +20,7 @@ import ElderlyFallsListScreen from "@src/screens/elderly/ElderlyFallsListScreen"
 import ElderlyWoundTrackingScreen from "@src/screens/elderly/ElderlyWoundTrackingScreen";
 import ElderlyMeasurementsListScreen from "@src/screens/elderly/ElderlyMeasurementsListScreen";
 import ElderlySOSListScreen from "@src/screens/elderly/ElderlySOSListScreen";
+import StaffScheduleManagementScreen from "@src/screens/professional/StaffScheduleManagementScreen";
 import { getScreenOptionsWithNavigation } from "@src/utils/navigationHelper";
 import { useTranslation } from "@src/localization/hooks/useTranslation";
 import React from "react";
@@ -57,6 +59,10 @@ export type ClinicianDashboardNavigationStackParamList = {
     elderlyId: number;
     elderlyName?: string;
   };
+  ElderlyAbsences: {
+    elderlyId: number;
+    elderlyName?: string;
+  };
   AddCalendarEvent: {
     elderlyId: number;
     editEvent?: CalendarEvent;
@@ -86,6 +92,10 @@ export type ClinicianDashboardNavigationStackParamList = {
     isAdmin?: boolean;
   };
   InstitutionTimelineScreen: undefined;
+  StaffScheduleManagement: {
+    userId: number;
+    staffName: string;
+  };
 };
 
 const Stack = createNativeStackNavigator<ClinicianDashboardNavigationStackParamList>();
@@ -166,6 +176,11 @@ export const ClinicianDashboardNavigationStack = () => {
         options={{ title: t('navigation.calendar') }}
       />
       <Stack.Screen
+        name='ElderlyAbsences'
+        component={ElderlyAbsencesScreen}
+        options={({ route }) => ({ title: route.params?.elderlyName ? `Ausências · ${route.params.elderlyName}` : 'Ausências' })}
+      />
+      <Stack.Screen
         name='AddCalendarEvent'
         component={AddCalendarEventScreen}
         options={({ route }) => ({
@@ -213,6 +228,11 @@ export const ClinicianDashboardNavigationStack = () => {
         name='ElderlySOSList'
         component={ElderlySOSListScreen}
         options={{ title: t('sosOccurrence.title') }}
+      />
+      <Stack.Screen
+        name='StaffScheduleManagement'
+        component={StaffScheduleManagementScreen}
+        options={({ route }) => ({ title: route.params.staffName })}
       />
     </Stack.Navigator>
   );

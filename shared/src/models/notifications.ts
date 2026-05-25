@@ -73,6 +73,20 @@ export interface SosOccurrenceNotificationData extends NotificationData {
 }
 
 /**
+ * Time-off request notification data (sent to institution admins)
+ */
+export interface TimeOffRequestNotificationData extends NotificationData {
+  type: 'time_off_request';
+  timeOffId: number;
+  params: {
+    requesterName: string;
+    timeOffType: string;
+    startDate: string;
+    endDate: string;
+  };
+}
+
+/**
  * Union type of all notification data types
  */
 export type AnyNotificationData =
@@ -80,7 +94,8 @@ export type AnyNotificationData =
   | FallDetectionAlertNotificationData
   | InactivityAlertNotificationData
   | DataAccessRequestNotificationData
-  | SosOccurrenceNotificationData;
+  | SosOccurrenceNotificationData
+  | TimeOffRequestNotificationData;
 
 /**
  * Notification translation keys for fall alerts
@@ -123,6 +138,14 @@ export const SosAlertNotificationKeys = {
 } as const;
 
 /**
+ * Notification translation keys for time-off requests
+ */
+export const TimeOffRequestNotificationKeys = {
+  titleKey: 'notifications.timeOffRequest.title',
+  bodyKey: 'notifications.timeOffRequest.body',
+} as const;
+
+/**
  * All notification translation keys
  */
 export const NotificationKeys = {
@@ -131,6 +154,7 @@ export const NotificationKeys = {
   inactivityAlert: InactivityAlertNotificationKeys,
   dataAccessRequest: DataAccessRequestNotificationKeys,
   sosAlert: SosAlertNotificationKeys,
+  timeOffRequest: TimeOffRequestNotificationKeys,
 } as const;
 
 /**
@@ -142,6 +166,7 @@ export const NotificationType = {
   INACTIVITY_ALERT: 'inactivity_alert',
   DATA_ACCESS_REQUEST: 'data_access_request',
   SOS_OCCURRENCE: 'sos_occurrence',
+  TIME_OFF_REQUEST: 'time_off_request',
 } as const;
 
 export type NotificationTypeValue = typeof NotificationType[keyof typeof NotificationType];

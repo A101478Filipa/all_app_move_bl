@@ -55,23 +55,24 @@ const userRole = user?.user?.role;
   const canAddPathology = [UserRole.INSTITUTION_ADMIN, UserRole.CLINICIAN, UserRole.PROGRAMMER].includes(userRole as UserRole);
   const canEditProfile = [UserRole.INSTITUTION_ADMIN, UserRole.CAREGIVER].includes(userRole as UserRole);
   const canAddFall = [UserRole.INSTITUTION_ADMIN, UserRole.CAREGIVER, UserRole.CLINICIAN].includes(userRole as UserRole);
+  const canAddAbsence = [UserRole.INSTITUTION_ADMIN, UserRole.CAREGIVER, UserRole.PROGRAMMER].includes(userRole as UserRole);
 
   useEffect(() => {
     if (canAddData || canEditProfile) {
       navigation.setOptions({
         headerRight: () => (
-          <View style={{ flexDirection: 'row', gap: 4 }}>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             {canEditProfile && (
               <TouchableOpacity
                 style={styles.headerButton}
                 onPress={() => navigation.navigate('EditElderly', { elderlyId, name: route.params?.name ?? '' })}
               >
-                <MaterialIcons name="edit" size={24} color={Color.Background.white} />
+                <MaterialIcons name="edit" size={22} color={Color.Background.white} />
               </TouchableOpacity>
             )}
             {canAddData && (
               <TouchableOpacity style={styles.headerButton} onPress={open}>
-                <MaterialIcons name="add" size={24} color={Color.Background.white} />
+                <MaterialIcons name="add" size={22} color={Color.Background.white} />
               </TouchableOpacity>
             )}
           </View>
@@ -109,6 +110,11 @@ const userRole = user?.user?.role;
     close();
     navigation.navigate('ElderlyWoundTrackingScreen', { elderlyId, openModal: true });
   }, [elderlyId, navigation, close]);
+
+  const handleAddAbsence = useCallback(() => {
+    close();
+    navigation.navigate('ElderlyAbsences', { elderlyId, elderlyName: route.params?.name ?? '' });
+  }, [elderlyId, navigation, close, route.params?.name]);
   const renderBackdrop = useCallback(
     (props) => (
       <BottomSheetBackdrop
@@ -151,6 +157,7 @@ const userRole = user?.user?.role;
         onAddCalendarEvent={canAddData ? () => navigation.navigate('AddCalendarEvent', { elderlyId }) : undefined}
         onAddFall={canAddFall ? handleAddFall : undefined}
         onAddWound={canAddFall ? handleAddWound : undefined}
+        onAddAbsence={canAddAbsence ? handleAddAbsence : undefined}
       />
 
       <BottomSheet
@@ -220,6 +227,16 @@ const userRole = user?.user?.role;
                 onPress={handleAddWound}
               />
             )}
+
+            {canAddAbsence && (
+              <MenuItem
+                iconName="person-off"
+                iconColor="#64748B"
+                title="Registar Ausência"
+                subtitle="Registar período de ausência do utente"
+                onPress={handleAddAbsence}
+              />
+            )}
           </VStack>
         </BottomSheetView>
       </BottomSheet>
@@ -238,15 +255,6 @@ const styles = StyleSheet.create({
     backgroundColor: Color.Orange.v300,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.sm_8,
-    shadowColor: Color.dark,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
   },
   bottomSheetBackground: {
     backgroundColor: Color.Background.white,

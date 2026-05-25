@@ -4,6 +4,7 @@ import {
   FallOccurrenceNotificationData,
   DataAccessRequestNotificationData,
   SosOccurrenceNotificationData,
+  TimeOffRequestNotificationData,
   NotificationKeys,
   NotificationType,
 } from 'moveplus-shared';
@@ -147,6 +148,10 @@ export async function sendDataAccessRequestNotification(
   clinicianUsername: string,
   requestId: number
 ) {
+  const userLang = 'pt';
+  const title = getTranslation(userLang, 'dataAccessRequestTitle');
+  const body = getTranslation(userLang, 'dataAccessRequestBody', { clinicianUsername });
+
   const notificationData: DataAccessRequestNotificationData = {
     type: NotificationType.DATA_ACCESS_REQUEST,
     requestId,
@@ -164,8 +169,8 @@ export async function sendDataAccessRequestNotification(
     data: {
       userId: elderlyUserId,
       type: NotificationType.DATA_ACCESS_REQUEST,
-      title: NotificationKeys.dataAccessRequest.titleKey,
-      body: NotificationKeys.dataAccessRequest.bodyKey,
+      title,
+      body,
       data: notificationData as any,
     },
   });
@@ -182,11 +187,12 @@ export async function sendDataAccessRequestNotification(
   }
 
   try {
+    const { titleKey: _tk, bodyKey: _bk, ...pushData } = notificationData;
     const ticket = await notificationService.sendPushNotification(
       elderlyPushToken,
-      NotificationKeys.dataAccessRequest.titleKey,
-      NotificationKeys.dataAccessRequest.bodyKey,
-      notificationData
+      title,
+      body,
+      pushData as any
     );
 
     if (ticket) {
@@ -312,6 +318,94 @@ export async function sendSosOccurrenceNotifications(
   } catch (error) {
     console.error('Error sending SOS occurrence notifications:', error);
     throw error;
+  }
+}
+
+/**
+ * Send push notification to all institution admins when a staff time-off request is submitted
+ */
+export async function sendTimeOffRequestNotifications(
+  requesterId: number,
+  timeOffId: number,
+  requesterName: string,
+  timeOffType: string,
+  startDate: Date,
+  endDate: Date
+) {
+  try {
+    // Find the institution of the requester (could be caregiver or clinician)
+    const requesterUser = await prisma.user.findUnique({
+      where: { id: requesterId },
+      include: {
+        caregiver: { select: { institutionId: true } },
+        clinician: { select: { institutionId: true } },
+      },
+    });
+
+    const institutionId =
+      requesterUser?.caregiver?.institutionId ||
+      requesterUser?.clinician?.institutionId;
+
+    if (!institutionId) {
+      console.log('Requester has no institution, skipping time-off notifications');
+      return;
+    }
+
+    // Find all admins of that institution
+    const admins = await prisma.institutionAdmin.findMany({
+      where: { institutionId },
+      include: { user: { select: { id: true, pushToken: true } } },
+    });
+
+    if (admins.length === 0) return;
+
+    const userLang = 'pt';
+    const fmt = (d: Date) => d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const title = getTranslation(userLang, 'timeOffRequestTitle');
+    const body = getTranslation(userLang, 'timeOffRequestBody', {
+      requesterName,
+      timeOffType,
+      startDate: fmt(new Date(startDate)),
+      endDate: fmt(new Date(endDate)),
+    });
+
+    const notificationData: TimeOffRequestNotificationData = {
+      type: NotificationType.TIME_OFF_REQUEST,
+      timeOffId,
+      screen: 'AdminTeamSchedules',
+      timestamp: new Date().toISOString(),
+      titleKey: NotificationKeys.timeOffRequest.titleKey,
+      bodyKey: NotificationKeys.timeOffRequest.bodyKey,
+      params: { requesterName, timeOffType, startDate: fmt(new Date(startDate)), endDate: fmt(new Date(endDate)) },
+    };
+
+    const dbNotifications = admins.map(a => ({
+      userId: a.user.id,
+      type: NotificationType.TIME_OFF_REQUEST,
+      title,
+      body,
+      data: notificationData as any,
+    }));
+
+    await prisma.notification.createMany({ data: dbNotifications });
+
+    const { titleKey: _tk, bodyKey: _bk, ...pushData } = notificationData;
+    let ticketCount = 0;
+
+    for (const admin of admins) {
+      const token = admin.user.pushToken;
+      if (token && notificationService.isValidPushToken(token)) {
+        const ticket = await notificationService.sendPushNotification(token, title, body, pushData as any);
+        if (ticket) ticketCount++;
+      }
+    }
+
+    console.log(
+      `Time-off notification: saved to ${admins.length} admin notification centers, push sent to ${ticketCount} admins`
+    );
+  } catch (error) {
+    console.error('Error sending time-off request notifications:', error);
+    // Don't throw — notification failure must not block the main request
   }
 }
 

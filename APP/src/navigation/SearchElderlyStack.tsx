@@ -15,6 +15,7 @@ import EditPathologyScreen from '@screens/pathology/EditPathologyScreen';
 import FallOccurrenceScreen from '@screens/fallOccurrence/FallOccurrenceScreen';
 import { ElderlyMeasurementsComponent, ElderlyMeasurementsArgs } from '@components/screens/ElderlyMeasurementsComponent';
 import ElderlyCalendarScreen from '@src/screens/elderly/ElderlyCalendarScreen';
+import ElderlyAbsencesScreen from '@src/screens/elderly/ElderlyAbsencesScreen';
 import AddCalendarEventScreen from '@src/screens/elderly/AddCalendarEventScreen';
 import ElderlyMedicationsListScreen from '@src/screens/elderly/ElderlyMedicationsListScreen';
 import ElderlyPathologiesListScreen from '@src/screens/elderly/ElderlyPathologiesListScreen';
@@ -41,6 +42,10 @@ export type SearchElderlyStackParamList = {
   EditPathology: { pathology: Pathology; elderlyId: number };
   FallOccurrenceScreen: { fallOccurrenceId: number };
   ElderlyCalendar: {
+    elderlyId: number;
+    elderlyName?: string;
+  };
+  ElderlyAbsences: {
     elderlyId: number;
     elderlyName?: string;
   };
@@ -139,6 +144,11 @@ export const SearchElderlyStack = () => {
         name='ElderlyCalendar'
         component={ElderlyCalendarScreen}
         options={{ title: t('navigation.calendar') }}
+      />
+      <Stack.Screen
+        name='ElderlyAbsences'
+        component={ElderlyAbsencesScreen}
+        options={({ route }) => ({ title: route.params?.elderlyName ? `Ausências · ${route.params.elderlyName}` : 'Ausências' })}
       />
       <Stack.Screen
         name='AddCalendarEvent'

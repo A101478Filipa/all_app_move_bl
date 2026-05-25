@@ -70,10 +70,11 @@ type ElderlyDetailsComponentArgs = {
   onAddCalendarEvent?: () => void;
   onAddFall?: () => void;
   onAddWound?: () => void;
+  onAddAbsence?: () => void;
 }
 
 // MARK: Component
-const ElderlyDetailsComponent = ({ screenState, elderly, onRefresh, navigation, onAddMeasurement, onAddMedication, onAddPathology, onAddCalendarEvent, onAddFall, onAddWound }: ElderlyDetailsComponentArgs) => {
+const ElderlyDetailsComponent = ({ screenState, elderly, onRefresh, navigation, onAddMeasurement, onAddMedication, onAddPathology, onAddCalendarEvent, onAddFall, onAddWound, onAddAbsence }: ElderlyDetailsComponentArgs) => {
   const { t } = useTranslation();
 
   if (screenState === ScreenState.LOADING) {
@@ -300,6 +301,17 @@ const ElderlyDetailsComponent = ({ screenState, elderly, onRefresh, navigation, 
                   onAdd={onAddWound}
                   fullWidth
                   onPress={() => navigation.push('ElderlyWoundTrackingScreen', { elderlyId: elderly.id })}
+                />
+              </HStack>
+
+              <HStack spacing={Spacing.sm_12} style={styles.gridRow}>
+                <CategoryCard
+                  iconName="person-off"
+                  iconColor="#64748B"
+                  title="Ausências"
+                  onAdd={onAddAbsence}
+                  fullWidth
+                  onPress={() => navigation.push('ElderlyAbsences', { elderlyId: elderly.id, elderlyName: elderly.name })}
                 />
               </HStack>
             </VStack>

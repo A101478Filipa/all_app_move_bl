@@ -1,8 +1,12 @@
 {
   "fallAlertTitle": "⚠️ Alerta de Queda",
   "fallAlertBody": "{elderlyName} reportou uma queda. Por favor, verifique imediatamente.",
+  "timeOffRequestTitle": "📋 Pedido de Ausência",
+  "timeOffRequestBody": "{requesterName} submeteu um pedido de {timeOffType} de {startDate} a {endDate}.",
   "fallDetectionAlertTitle": "🚨 Queda Detetada",
   "fallDetectionAlertBody": "{elderlyName} pode ter sofrido uma queda (detetada pelo acelerómetro). Por favor, verifique imediatamente.",
   "sosAlertTitle": "🆘 Alerta SOS",
-  "sosAlertBody": "{elderlyName} está a pedir ajuda. Por favor, responda imediatamente."
+  "sosAlertBody": "{elderlyName} está a pedir ajuda. Por favor, responda imediatamente.",
+  "dataAccessRequestTitle": "🔐 Pedido de Acesso a Dados",
+  "dataAccessRequestBody": "{clinicianUsername} solicitou acesso aos dados de saúde. Por favor, reveja e responda."
 }

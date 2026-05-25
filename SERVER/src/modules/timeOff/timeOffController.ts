@@ -4,6 +4,7 @@ import {
 } from 'moveplus-shared';
 import { sendSuccess, sendError, sendInputValidationError, sendEmptySuccess } from '../../utils/apiResponse';
 import prisma from '../../prisma';
+import { sendTimeOffRequestNotifications } from '../../utils/notificationHelpers';
 
 const userSummarySelect = {
   id: true,
@@ -112,12 +113,27 @@ export const createTimeOff = async (req, res) => {
       },
     });
 
-    return sendSuccess(res, {
+    const responsePayload = {
       ...timeOff,
       user: formatUser(timeOff.user),
       createdBy: formatUser(timeOff.createdBy),
       respondedBy: timeOff.respondedBy ? formatUser(timeOff.respondedBy) : null,
-    }, 'Time-off created', 201);
+    };
+
+    // Fire-and-forget: notify admins if it's a staff-submitted PENDING request
+    if (status === TimeOffStatus.PENDING) {
+      const requesterDisplay = formatUser(timeOff.createdBy).name;
+      sendTimeOffRequestNotifications(
+        requesterId,
+        timeOff.id,
+        requesterDisplay,
+        String(type),
+        new Date(startDate),
+        new Date(endDate),
+      ).catch(err => console.error('Time-off notification failed:', err));
+    }
+
+    return sendSuccess(res, responsePayload, 'Time-off created', 201);
   } catch (error) {
     console.error('Error creating time-off:', error);
     return sendError(res, 'Internal Server Error', 500);
