@@ -47,6 +47,8 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
   const currentUserId = user?.user?.id;
   const canEdit = [UserRole.INSTITUTION_ADMIN, UserRole.CAREGIVER, UserRole.PROGRAMMER, UserRole.CLINICIAN].includes(userRole);
   const canCreate = [UserRole.INSTITUTION_ADMIN, UserRole.CAREGIVER, UserRole.PROGRAMMER, UserRole.CLINICIAN].includes(userRole);
+  // Absences can only be managed by caregivers and admins (not clinicians)
+  const canManageAbsence = [UserRole.INSTITUTION_ADMIN, UserRole.CAREGIVER, UserRole.PROGRAMMER].includes(userRole);
 
   const today = new Date();
 
@@ -370,7 +372,7 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
               {selectedDay} {new Date(year, month, selectedDay).toLocaleString('default', { month: 'long' })}
             </Text>
             <View style={styles.headerBtns}>
-              {canCreate && (
+              {canManageAbsence && (
                 <TouchableOpacity
                   style={[styles.addBtn, { backgroundColor: '#64748B' }]}
                   onPress={openAddAbsence}
@@ -451,7 +453,7 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
                       {new Date(absence.startDate).toLocaleDateString('pt-PT')} – {new Date(absence.endDate).toLocaleDateString('pt-PT')}
                     </Text>
                   </View>
-                  {canEdit && (
+                  {canManageAbsence && (
                     <TouchableOpacity onPress={() => deleteAbsence(absence)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                       <MaterialIcons name="delete-outline" size={18} color={Color.Error.default} />
                     </TouchableOpacity>
