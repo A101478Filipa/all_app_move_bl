@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SosOccurrence } from 'moveplus-shared';
@@ -21,7 +21,13 @@ type Props = NativeStackScreenProps<any, 'ElderlySOSList'>;
 const ElderlySOSListScreen: React.FC<Props> = ({ route, navigation }) => {
   const { elderlyId } = route.params;
   const { t } = useTranslation();
-  const { elderly, state, refreshElderly } = useElderlyDetailsStore();
+  const { elderly, state, refreshElderly, fetchElderly } = useElderlyDetailsStore();
+
+  useEffect(() => {
+    if (!elderly || elderly.id !== elderlyId) {
+      fetchElderly(elderlyId);
+    }
+  }, [elderlyId]);
 
   const occurrences: SosOccurrence[] = (elderly as any)?.sosOccurrences ?? [];
 

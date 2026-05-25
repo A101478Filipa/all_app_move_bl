@@ -13,6 +13,7 @@ import MeasurementDetailsScreen from "@src/screens/measurements/MeasurementDetai
 import PathologyDetailsScreen from "@src/screens/pathology/PathologyDetailsScreen";
 import DataAccessRequestsScreen from "@src/screens/dataAccessRequest/DataAccessRequestsScreen";
 import InstitutionInvitationsScreen from "@src/screens/invitation/InstitutionInvitationsScreen";
+import StaffScheduleManagementScreen from "@src/screens/professional/StaffScheduleManagementScreen";
 import { NotificationCenterStack } from "@src/navigation/NotificationCenterStack";
 import { getScreenOptionsWithNavigation } from "@src/utils/navigationHelper";
 import { useTranslation } from 'react-i18next';
@@ -53,6 +54,10 @@ export type UserMenuStackParamList = {
   };
   InstitutionInvitations: {
     institutionId: number;
+  };
+  StaffScheduleManagement: {
+    userId: number;
+    staffName: string;
   };
 };
 
@@ -164,6 +169,11 @@ export const UserMenuNavigationStack = () => {
         options={{
           title: t('invitation.invitationsTitle'),
         }}
+      />
+      <Stack.Screen
+        name="StaffScheduleManagement"
+        component={StaffScheduleManagementScreen}
+        options={({ route }) => ({ title: route.params.staffName })}
       />
     </Stack.Navigator>
   );

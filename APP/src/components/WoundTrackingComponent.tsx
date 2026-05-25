@@ -17,6 +17,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
+import { translateBodyLocation } from '@src/utils/measurementHelper';
 import { Color } from '@src/styles/colors';
 import { Spacing } from '@src/styles/spacings';
 import { Border } from '@src/styles/borders';
@@ -24,6 +25,7 @@ import { FontFamily, FontSize } from '@src/styles/fonts';
 import { shadowStyles } from '@src/styles/shadow';
 import { buildAvatarUrl } from '@src/services/ApiService';
 import { woundTrackingApi, WoundTracking } from '@src/api/endpoints/woundTracking';
+
 
 type OccurrenceType = 'fall' | 'sos' | 'elderly';
 
@@ -34,13 +36,10 @@ type Props = {
   canDelete?: boolean;
 };
 
-type FilterTab = 'all' | 'ongoing' | 'resolved';
-
 const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType, canAdd = false, canDelete = false }) => {
   const { t } = useTranslation();
   const [trackings, setTrackings] = useState<WoundTracking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [modalVisible, setModalVisible] = useState(false);
   const [notes, setNotes] = useState('');
   const [isResolved, setIsResolved] = useState(false);
@@ -65,12 +64,6 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
   }, [occurrenceId, occurrenceType]);
 
   useEffect(() => { fetchTrackings(); }, [fetchTrackings]);
-
-  const filteredTrackings = trackings.filter(item => {
-    if (activeFilter === 'ongoing') return !item.isResolved;
-    if (activeFilter === 'resolved') return item.isResolved;
-    return true;
-  });
 
   const openModal = () => {
     setNotes('');
@@ -197,12 +190,12 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
       ) : null}
 
       {item.bodyLocations && item.bodyLocations.length > 0 ? (
-        <View style={styles.locationChipsRow}>
-          <MaterialIcons name="place" size={13} color={Color.primary} style={{ marginTop: 1 }} />
-          <View style={styles.locationChipsWrap}>
-            {item.bodyLocations.map(loc => (
-              <View key={loc} style={styles.locationChip}>
-                <Text style={styles.locationChipText}>{t(`woundTracking.bodyLocation_${loc}`)}</Text>
+        <View style={styles.locationBlock}>
+          <Text style={styles.locationLabel}>{t('woundTracking.bodyLocation')}</Text>
+          <View style={styles.locationTags}>
+            {(item.bodyLocations as string[]).map(loc => (
+              <View key={loc} style={styles.locationTag}>
+                <Text style={styles.locationTagText}>{translateBodyLocation(loc, t)}</Text>
               </View>
             ))}
           </View>
@@ -230,23 +223,6 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
         <Text style={styles.title}>{t('woundTracking.title')}</Text>
       </View>
 
-      {/* Filter tabs */}
-      {!loading && trackings.length > 0 && (
-        <View style={styles.filterRow}>
-          {(['all', 'ongoing', 'resolved'] as FilterTab[]).map(tab => (
-            <TouchableOpacity
-              key={tab}
-              style={[styles.filterTab, activeFilter === tab && styles.filterTabActive]}
-              onPress={() => setActiveFilter(tab)}
-            >
-              <Text style={[styles.filterTabText, activeFilter === tab && styles.filterTabTextActive]}>
-                {t(`woundTracking.filter_${tab}`)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
       {/* Add button below title */}
       {canAdd && (
         <TouchableOpacity style={styles.addButton} onPress={openModal}>
@@ -257,11 +233,11 @@ const WoundTrackingComponent: React.FC<Props> = ({ occurrenceId, occurrenceType,
 
       {loading ? (
         <ActivityIndicator size="small" color={Color.primary} style={styles.loader} />
-      ) : filteredTrackings.length === 0 ? (
+      ) : trackings.length === 0 ? (
         <Text style={styles.emptyText}>{t('woundTracking.noUpdates')}</Text>
       ) : (
         <View style={styles.timeline}>
-          {filteredTrackings.map(renderTrackingCard)}
+          {trackings.map(renderTrackingCard)}
         </View>
       )}
 
@@ -375,33 +351,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs_4 + 2,
     borderRadius: Border.sm_8,
     marginBottom: Spacing.md_16,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    gap: Spacing.xs_4,
-    marginBottom: Spacing.sm_12,
-  },
-  filterTab: {
-    flex: 1,
-    paddingVertical: Spacing.xs_4 + 2,
-    paddingHorizontal: Spacing.xs_4,
-    borderRadius: Border.sm_8,
-    borderWidth: 1,
-    borderColor: Color.Gray.v200,
-    alignItems: 'center',
-  },
-  filterTabActive: {
-    backgroundColor: Color.primary,
-    borderColor: Color.primary,
-  },
-  filterTabText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSize.bodysmall_14 - 1,
-    color: Color.Gray.v400,
-    textAlign: 'center',
-  },
-  filterTabTextActive: {
-    color: Color.white,
   },
   addButtonText: {
     fontFamily: FontFamily.medium,
@@ -658,27 +607,32 @@ const styles = StyleSheet.create({
     top: 48,
     right: 20,
   },
-  // Body location chips displayed in tracking card
-  locationChipsRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 4,
+  // Body location display block inside tracking card
+  locationBlock: {
+    marginTop: Spacing.sm_8,
   },
-  locationChipsWrap: {
-    flex: 1,
+  locationLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.bodysmall_14 - 1,
+    color: Color.Gray.v400,
+    marginBottom: Spacing.xs_4,
+  },
+  locationTags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs_4,
   },
-  locationChip: {
-    paddingHorizontal: Spacing.xs_4 + 2,
-    paddingVertical: 2,
-    borderRadius: 12,
-    backgroundColor: Color.primary + '15',
+  locationTag: {
+    backgroundColor: Color.primary + '18',
+    borderRadius: Border.sm_8,
+    paddingHorizontal: Spacing.sm_8,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: Color.primary + '40',
   },
-  locationChipText: {
+  locationTagText: {
     fontFamily: FontFamily.medium,
-    fontSize: FontSize.bodysmall_14 - 2,
+    fontSize: FontSize.bodysmall_14 - 1,
     color: Color.primary,
   },
 });

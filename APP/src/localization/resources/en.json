@@ -5,6 +5,8 @@
     "accountSettings": "Account",
     "institutionDetails": "Institution Details",
     "institutionTimeline": "Institution Timeline",
+    "dataAccessRequests": "Access Requests",
+    "mySchedule": "My Schedule",
     "logout": "Logout"
   },
   "settings": {
@@ -81,7 +83,8 @@
     "goBack": "Go Back",
     "today": "today",
     "yesterday": "yesterday",
-    "at": "at"
+    "at": "at",
+    "notApplicable": "N/A"
   },
   "gender": {
     "male": "Male",
@@ -134,7 +137,11 @@
     "birthdayToday": "Today! 🎂",
     "birthdayTomorrow": "Tomorrow",
     "birthdayInDays": "In {{days}} days",
-    "birthdayAge": "{{age}} years old"
+    "birthdayAge": "{{age}} years old",
+    "pendingAccessRequests": "Pending Access Requests",
+    "pendingAccessRequestsSubtitle": "Requests awaiting your response",
+    "mySchedule": "My Schedule",
+    "myScheduleSubtitle": "View schedule and days off"
   },
   "bath": {
     "title": "Baths",
@@ -454,7 +461,17 @@
     "noPendingRequests": "No patients with pending access",
     "noApprovedRequests": "No patients with approved access",
     "searchPlaceholder": "Search by name or medical ID",
-    "noResultsFound": "No patients found matching your search"
+    "noResultsFound": "No patients found matching your search",
+    "adminSectionTitle": "Access Management",
+    "adminPendingRequests": "Access Requests",
+    "adminPendingRequestsSubtitle": "Clinician requests awaiting response",
+    "noPendingForInstitution": "No pending access requests",
+    "clinicianRequesting": "Requesting clinician",
+    "requestedOn": "Requested on",
+    "approve": "Approve",
+    "deny": "Deny",
+    "approvedOnBehalf": "Access successfully approved",
+    "deniedOnBehalf": "Access denied"
   },
   "fallOccurrence": {
     "title": "Fall Occurrence",
@@ -624,7 +641,10 @@
     "bodyLocationGroup_head": "Head / Neck",
     "bodyLocationGroup_trunk": "Trunk",
     "bodyLocationGroup_upperLimbs": "Upper Limbs",
-    "bodyLocationGroup_lowerLimbs": "Lower Limbs"
+    "bodyLocationGroup_lowerLimbs": "Lower Limbs",
+    "bodyLocation_BACK": "Back",
+    "bodyLocation_HEEL_LEFT": "L. Heel",
+    "bodyLocation_HEEL_RIGHT": "R. Heel"
   },
   "pathology": {
     "title": "Pathology",
@@ -922,6 +942,7 @@
     "minutesAgo": "{{count}}m ago",
     "hoursAgo": "{{count}}h ago",
     "daysAgo": "{{count}}d ago",
+    "actions": "Actions",
     "viewDetails": "View Details",
     "markAsRead": "Mark as Read",
     "markAsUnread": "Mark as Unread",
@@ -1034,6 +1055,7 @@
     "externalSpecialtyPlaceholder": "e.g. Doctor, Physiotherapist",
     "externalPhone": "Phone",
     "externalPhonePlaceholder": "Phone number",
-    "assignedTo": "Responsible"
+    "assignedTo": "Responsible",
+    "unavailableTimeOff": "(Unavailable)"
   }
 }

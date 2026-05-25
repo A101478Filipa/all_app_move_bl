@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, RefreshControl,
   TouchableOpacity, Modal, TextInput, Switch,
@@ -29,9 +29,15 @@ type Props = NativeStackScreenProps<any, 'ElderlyFallsList'>;
 const ElderlyFallsListScreen: React.FC<Props> = ({ route, navigation }) => {
   const { elderlyId } = route.params;
   const { t } = useTranslation();
-  const { elderly, state, refreshElderly } = useElderlyDetailsStore();
+  const { elderly, state, refreshElderly, fetchElderly } = useElderlyDetailsStore();
   const { user } = useAuthStore();
   const role = user?.user?.role;
+
+  useEffect(() => {
+    if (!elderly || elderly.id !== elderlyId) {
+      fetchElderly(elderlyId);
+    }
+  }, [elderlyId]);
 
   const canAddFall = [
     UserRole.INSTITUTION_ADMIN,
@@ -320,7 +326,6 @@ const styles = StyleSheet.create({
     backgroundColor: Color.Orange.v300,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.sm_8,
   },
   modalOverlay: {
     flex: 1,

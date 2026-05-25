@@ -10,6 +10,7 @@ import { groupMeasurements } from '@src/utils/chartsHelper';
 import { Color } from '@src/styles/colors';
 import { FontFamily, FontSize } from '@src/styles/fonts';
 import { Spacing, spacingStyles } from '@src/styles/spacings';
+import { Border } from '@src/styles/borders';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
 import ScreenState from '@src/constants/screenState';
@@ -19,8 +20,14 @@ type Props = NativeStackScreenProps<any, 'ElderlyMeasurementsList'>;
 const ElderlyMeasurementsListScreen: React.FC<Props> = ({ route, navigation }) => {
   const { elderlyId } = route.params;
   const { t } = useTranslation();
-  const { elderly, state, refreshElderly } = useElderlyDetailsStore();
+  const { elderly, state, refreshElderly, fetchElderly } = useElderlyDetailsStore();
   const { user } = useAuthStore();
+
+  useEffect(() => {
+    if (!elderly || elderly.id !== elderlyId) {
+      fetchElderly(elderlyId);
+    }
+  }, [elderlyId]);
 
   const canAdd = user && [
     UserRole.INSTITUTION_ADMIN, UserRole.CAREGIVER, UserRole.CLINICIAN, UserRole.PROGRAMMER,
@@ -32,9 +39,9 @@ const ElderlyMeasurementsListScreen: React.FC<Props> = ({ route, navigation }) =
         headerRight: () => (
           <TouchableOpacity
             onPress={() => navigation.push('AddMeasurement', { elderlyId })}
-            style={{ padding: Spacing.xs_4, marginRight: Spacing.xs_4 }}
+            style={styles.headerButton}
           >
-            <MaterialIcons name="add" size={24} color={Color.primary} />
+            <MaterialIcons name="add" size={22} color={Color.Background.white} />
           </TouchableOpacity>
         ),
       });
@@ -117,5 +124,13 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.medium,
     color: Color.Gray.v400,
     textAlign: 'center',
+  },
+  headerButton: {
+    width: 36,
+    height: 36,
+    borderRadius: Border.sm_8,
+    backgroundColor: Color.Orange.v300,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

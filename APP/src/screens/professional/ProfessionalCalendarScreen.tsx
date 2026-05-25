@@ -740,12 +740,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           );
         }
-        if (!isWorkDay(selectedDate)) return (
-          <View style={[styles.dayBanner, { backgroundColor: Color.Gray.v200 + '55', borderColor: Color.Gray.v300 }]}>
-            <MaterialIcons name="do-not-disturb" size={15} color={Color.Gray.v400} />
-            <Text style={[styles.dayBannerText, { color: Color.Gray.v400 }]}>Dia não trabalhado</Text>
-          </View>
-        );
         return null;
       })()}
 

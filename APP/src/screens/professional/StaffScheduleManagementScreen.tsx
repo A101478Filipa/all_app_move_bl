@@ -8,11 +8,12 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import {
-  StaffWorkSchedule, StaffTimeOff, TimeOffType,
-  UpsertWorkScheduleRequest, CreateTimeOffRequest, UpdateTimeOffRequest,
+  StaffWorkSchedule, StaffTimeOff, TimeOffType, TimeOffStatus, VacationPolicy,
+  UpsertWorkScheduleRequest, CreateTimeOffRequest, UpdateTimeOffRequest, UserRole,
 } from 'moveplus-shared';
 import { staffScheduleApi } from '@src/api/endpoints/staffSchedule';
 import { timeOffApi } from '@src/api/endpoints/timeOff';
+import { useAuthStore } from '@src/stores/authStore';
 import { ActivityIndicatorOverlay } from '@components/ActivityIndicatorOverlay';
 import { Color } from '@src/styles/colors';
 import { FontFamily, FontSize } from '@src/styles/fonts';
@@ -37,16 +38,53 @@ const TIME_OFF_COLORS: Record<TimeOffType, string> = {
   [TimeOffType.SICK_LEAVE]: '#A855F7',
 };
 
+const STATUS_LABELS: Record<TimeOffStatus, string> = {
+  [TimeOffStatus.PENDING]:  'Pendente',
+  [TimeOffStatus.APPROVED]: 'Aprovado',
+  [TimeOffStatus.DENIED]:   'Recusado',
+};
+
+const STATUS_COLORS: Record<TimeOffStatus, string> = {
+  [TimeOffStatus.PENDING]:  '#F97316',
+  [TimeOffStatus.APPROVED]: '#22C55E',
+  [TimeOffStatus.DENIED]:   '#EF4444',
+};
+
 function formatShortDate(d: string | Date): string {
   const date = new Date(d);
   return date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function computeUsedVacationDays(timeOffs: StaffTimeOff[]): number {
+  const now = new Date();
+  const yearStart = new Date(now.getFullYear(), 0, 1);
+  const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+  let total = 0;
+  for (const to of timeOffs) {
+    if (to.type !== TimeOffType.VACATION || to.status !== TimeOffStatus.APPROVED) continue;
+    const start = new Date(to.startDate);
+    const end = new Date(to.endDate);
+    const effectiveStart = start < yearStart ? yearStart : start;
+    const effectiveEnd = end > yearEnd ? yearEnd : end;
+    if (effectiveStart <= effectiveEnd) {
+      const days = Math.round((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      total += days;
+    }
+  }
+  return total;
 }
 
 const defaultWorkDays = [1, 2, 3, 4, 5];
 
 const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) => {
   const { userId, staffName } = route.params ?? {};
+  const { user } = useAuthStore();
   const { handleError } = useErrorHandler();
+
+  const currentUserId = user?.user?.id;
+  const currentRole = user?.user?.role as UserRole;
+  const isAdmin = currentRole === UserRole.INSTITUTION_ADMIN || currentRole === UserRole.PROGRAMMER;
+  const isAdminViewingOther = isAdmin && userId !== currentUserId;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -67,6 +105,11 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
   const [toEnd, setToEnd] = useState<Date>(new Date());
   const [toNote, setToNote] = useState('');
 
+  // Vacation policy state (admin only)
+  const [vacationPolicy, setVacationPolicy] = useState<VacationPolicy | null>(null);
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
+  const [policyDays, setPolicyDays] = useState('22');
+
   const fetchData = useCallback(async () => {
     try {
       const [schedRes, toRes] = await Promise.all([
@@ -81,13 +124,21 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
         setEndTime(sched.endTime);
       }
       setTimeOffs(toRes.data ?? []);
+
+      if (isAdmin) {
+        const policyRes = await timeOffApi.getVacationPolicy().catch(() => ({ data: null }));
+        if (policyRes.data) {
+          setVacationPolicy(policyRes.data);
+          setPolicyDays(String(policyRes.data.maxVacationDaysPerYear));
+        }
+      }
     } catch (err) {
       handleError(err);
     } finally {
       setLoading(false);
       setScheduleEdited(false);
     }
-  }, [userId]);
+  }, [userId, isAdmin]);
 
   useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
@@ -152,6 +203,9 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
         const payload: CreateTimeOffRequest = { userId, type: toType, startDate: toStart, endDate: toEnd, note: toNote || null };
         const created = await timeOffApi.createTimeOff(payload);
         setTimeOffs(prev => [...prev, created.data]);
+        if (!isAdmin) {
+          Alert.alert('Pedido enviado', 'O seu pedido foi enviado para aprovação pelo administrador.');
+        }
       }
       setShowTimeOffModal(false);
     } catch (err) {
@@ -181,7 +235,60 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
     );
   };
 
+  const approveTimeOff = async (to: StaffTimeOff) => {
+    try {
+      setSaving(true);
+      const updated = await timeOffApi.respondTimeOff(to.id, { status: TimeOffStatus.APPROVED });
+      setTimeOffs(prev => prev.map(t => t.id === to.id ? updated.data : t));
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const denyTimeOff = (to: StaffTimeOff) => {
+    Alert.alert('Recusar pedido', 'Tem a certeza que quer recusar este pedido?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Recusar', style: 'destructive', onPress: async () => {
+          try {
+            setSaving(true);
+            const updated = await timeOffApi.respondTimeOff(to.id, { status: TimeOffStatus.DENIED });
+            setTimeOffs(prev => prev.map(t => t.id === to.id ? updated.data : t));
+          } catch (err) {
+            handleError(err);
+          } finally {
+            setSaving(false);
+          }
+        },
+      },
+    ]);
+  };
+
+  const savePolicy = async () => {
+    const days = parseInt(policyDays, 10);
+    if (isNaN(days) || days < 1 || days > 365) {
+      Alert.alert('Erro', 'Insira um valor entre 1 e 365 dias.');
+      return;
+    }
+    try {
+      setSaving(true);
+      const result = await timeOffApi.upsertVacationPolicy({ maxVacationDaysPerYear: days });
+      setVacationPolicy(result.data);
+      setShowPolicyModal(false);
+      Alert.alert('Guardado', `Máximo de férias definido para ${days} dias por ano.`);
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) return <ActivityIndicatorOverlay />;
+
+  const usedVacationDays = computeUsedVacationDays(timeOffs);
+  const maxVacationDays = vacationPolicy?.maxVacationDaysPerYear;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -203,8 +310,8 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
                 <TouchableOpacity
                   key={iso}
                   style={[styles.dowChip, active && styles.dowChipActive]}
-                  onPress={() => toggleDay(iso)}
-                  activeOpacity={0.75}
+                  onPress={() => isAdmin ? toggleDay(iso) : undefined}
+                  activeOpacity={isAdmin ? 0.75 : 1}
                 >
                   <Text style={[styles.dowChipText, active && styles.dowChipTextActive]}>
                     {DOW_LABELS[i]}
@@ -221,7 +328,8 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
               <TextInput
                 style={styles.timeInput}
                 value={startTime}
-                onChangeText={v => { setStartTime(v); setScheduleEdited(true); }}
+                onChangeText={isAdmin ? (v => { setStartTime(v); setScheduleEdited(true); }) : undefined}
+                editable={isAdmin}
                 placeholder="09:00"
                 keyboardType="numbers-and-punctuation"
                 maxLength={5}
@@ -233,7 +341,8 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
               <TextInput
                 style={styles.timeInput}
                 value={endTime}
-                onChangeText={v => { setEndTime(v); setScheduleEdited(true); }}
+                onChangeText={isAdmin ? (v => { setEndTime(v); setScheduleEdited(true); }) : undefined}
+                editable={isAdmin}
                 placeholder="17:00"
                 keyboardType="numbers-and-punctuation"
                 maxLength={5}
@@ -241,15 +350,17 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
             </View>
           </View>
 
-          <TouchableOpacity
-            style={[styles.saveBtn, !scheduleEdited && styles.saveBtnDisabled]}
-            onPress={saveSchedule}
-            disabled={!scheduleEdited || saving}
-            activeOpacity={0.8}
-          >
-            <MaterialIcons name="save" size={18} color="#fff" />
-            <Text style={styles.saveBtnText}>Guardar horário</Text>
-          </TouchableOpacity>
+          {isAdmin && (
+            <TouchableOpacity
+              style={[styles.saveBtn, !scheduleEdited && styles.saveBtnDisabled]}
+              onPress={saveSchedule}
+              disabled={!scheduleEdited || saving}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="save" size={18} color="#fff" />
+              <Text style={styles.saveBtnText}>Guardar horário</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* ── Time-off Section ── */}
@@ -262,33 +373,116 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
             </TouchableOpacity>
           </View>
 
+          {/* Vacation days stats */}
+          {maxVacationDays != null && (
+            <View style={styles.vacationStatsRow}>
+              <MaterialIcons name="event-available" size={16} color={Color.primary} />
+              <Text style={styles.vacationStatsText}>
+                Férias {new Date().getFullYear()}: <Text style={{ fontFamily: FontFamily.bold }}>{usedVacationDays}</Text> / {maxVacationDays} dias aprovados
+              </Text>
+            </View>
+          )}
+
           {timeOffs.length === 0 ? (
-            <Text style={styles.emptyText}>Nenhuma ausência registada.</Text>
+            <Text style={styles.emptyText}>
+              {isAdmin ? 'Nenhuma ausência registada.' : 'Não tem pedidos de ausência.'}
+            </Text>
           ) : (
             timeOffs.map(to => {
-              const color = TIME_OFF_COLORS[to.type];
+              const typeColor = TIME_OFF_COLORS[to.type];
+              const statusColor = STATUS_COLORS[to.status ?? TimeOffStatus.APPROVED];
+              const isPending = to.status === TimeOffStatus.PENDING;
+              const canEdit = isAdmin || (isPending && to.userId === currentUserId);
+              const canDelete = isAdmin || (isPending && to.userId === currentUserId);
+
               return (
-                <View key={to.id} style={[styles.timeOffRow, { borderLeftColor: color }]}>
-                  <View style={[styles.timeOffBadge, { backgroundColor: color + '22' }]}>
-                    <Text style={[styles.timeOffBadgeText, { color }]}>{TIME_OFF_LABELS[to.type]}</Text>
+                <View key={to.id} style={[styles.timeOffRow, { borderLeftColor: typeColor }]}>
+                  <View style={styles.timeOffLeft}>
+                    <View style={[styles.timeOffBadge, { backgroundColor: typeColor + '22' }]}>
+                      <Text style={[styles.timeOffBadgeText, { color: typeColor }]}>{TIME_OFF_LABELS[to.type]}</Text>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: statusColor + '22' }]}>
+                      <Text style={[styles.statusBadgeText, { color: statusColor }]}>
+                        {STATUS_LABELS[to.status ?? TimeOffStatus.APPROVED]}
+                      </Text>
+                    </View>
                   </View>
                   <View style={styles.timeOffDates}>
                     <Text style={styles.timeOffDateText}>
                       {formatShortDate(to.startDate)} – {formatShortDate(to.endDate)}
                     </Text>
                     {!!to.note && <Text style={styles.timeOffNote}>{to.note}</Text>}
+                    {!!to.responseNote && (
+                      <Text style={[styles.timeOffNote, { color: statusColor }]}>{to.responseNote}</Text>
+                    )}
                   </View>
-                  <TouchableOpacity onPress={() => openEditTimeOff(to)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <MaterialIcons name="edit" size={18} color={Color.Gray.v400} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => deleteTimeOff(to)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <MaterialIcons name="delete-outline" size={18} color={Color.Error.default} />
-                  </TouchableOpacity>
+                  <View style={styles.timeOffActions}>
+                    {/* Admin viewing another user: show approve/deny for PENDING */}
+                    {isAdminViewingOther && isPending ? (
+                      <>
+                        <TouchableOpacity
+                          onPress={() => approveTimeOff(to)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          style={styles.actionBtn}
+                        >
+                          <MaterialIcons name="check" size={20} color="#22C55E" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => denyTimeOff(to)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          style={styles.actionBtn}
+                        >
+                          <MaterialIcons name="close" size={20} color="#EF4444" />
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <>
+                        {canEdit && (
+                          <TouchableOpacity onPress={() => openEditTimeOff(to)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                            <MaterialIcons name="edit" size={18} color={Color.Gray.v400} />
+                          </TouchableOpacity>
+                        )}
+                        {canDelete && (
+                          <TouchableOpacity onPress={() => deleteTimeOff(to)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                            <MaterialIcons name="delete-outline" size={18} color={Color.Error.default} />
+                          </TouchableOpacity>
+                        )}
+                      </>
+                    )}
+                  </View>
                 </View>
               );
             })
           )}
         </View>
+
+        {/* ── Vacation Policy Section (admin only) ── */}
+        {isAdmin && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <MaterialIcons name="policy" size={20} color={Color.primary} />
+              <Text style={styles.sectionTitle}>Política de Férias</Text>
+              <TouchableOpacity
+                style={styles.addBtn}
+                onPress={() => setShowPolicyModal(true)}
+                activeOpacity={0.8}
+              >
+                <MaterialIcons name="edit" size={16} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.policyText}>
+              Máximo de dias de férias por trabalhador por ano:{' '}
+              <Text style={{ fontFamily: FontFamily.bold, color: Color.dark }}>
+                {vacationPolicy ? `${vacationPolicy.maxVacationDaysPerYear} dias` : 'Não definido'}
+              </Text>
+            </Text>
+            {!vacationPolicy && (
+              <Text style={styles.policyHint}>
+                Prima o botão de edição para definir o máximo de dias de férias anuais para todos os trabalhadores deste lar.
+              </Text>
+            )}
+          </View>
+        )}
 
       </ScrollView>
 
@@ -297,7 +491,7 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowTimeOffModal(false)} />
         <View style={styles.modalSheet}>
           <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>{editingTimeOff ? 'Editar ausência' : 'Nova ausência'}</Text>
+          <Text style={styles.modalTitle}>{editingTimeOff ? 'Editar pedido' : (isAdmin ? 'Nova ausência' : 'Pedir ausência')}</Text>
 
           {/* Type selector */}
           <Text style={styles.fieldLabel}>Tipo</Text>
@@ -345,7 +539,29 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
 
           <TouchableOpacity style={styles.saveBtn} onPress={saveTimeOff} disabled={saving} activeOpacity={0.85}>
             <MaterialIcons name="save" size={18} color="#fff" />
-            <Text style={styles.saveBtnText}>{editingTimeOff ? 'Guardar alterações' : 'Criar ausência'}</Text>
+            <Text style={styles.saveBtnText}>{editingTimeOff ? 'Guardar alterações' : (isAdmin ? 'Criar ausência' : 'Enviar pedido')}</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      {/* ── Vacation Policy Modal ── */}
+      <Modal visible={showPolicyModal} transparent animationType="slide" onRequestClose={() => setShowPolicyModal(false)}>
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowPolicyModal(false)} />
+        <View style={styles.modalSheet}>
+          <View style={styles.modalHandle} />
+          <Text style={styles.modalTitle}>Política de Férias</Text>
+          <Text style={styles.fieldLabel}>Máximo de dias de férias por trabalhador por ano (1 – 365)</Text>
+          <TextInput
+            style={styles.timeInput}
+            value={policyDays}
+            onChangeText={setPolicyDays}
+            keyboardType="number-pad"
+            maxLength={3}
+            placeholder="22"
+          />
+          <TouchableOpacity style={styles.saveBtn} onPress={savePolicy} disabled={saving} activeOpacity={0.85}>
+            <MaterialIcons name="save" size={18} color="#fff" />
+            <Text style={styles.saveBtnText}>Guardar política</Text>
           </TouchableOpacity>
         </View>
       </Modal>
@@ -567,5 +783,54 @@ const styles = StyleSheet.create({
     color: Color.dark,
     minHeight: 60,
     textAlignVertical: 'top',
+  },
+  timeOffLeft: {
+    flexDirection: 'column',
+    gap: 4,
+    flexShrink: 0,
+  },
+  statusBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    flexShrink: 0,
+  },
+  statusBadgeText: {
+    fontFamily: FontFamily.semi_bold,
+    fontSize: 10,
+  },
+  timeOffActions: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  actionBtn: {
+    padding: 4,
+  },
+  vacationStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Color.Background.subtle,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  vacationStatsText: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.caption_12,
+    color: Color.Gray.v500,
+  },
+  policyText: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.bodysmall_14,
+    color: Color.Gray.v500,
+  },
+  policyHint: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.caption_12,
+    color: Color.Gray.v400,
+    fontStyle: 'italic',
   },
 });

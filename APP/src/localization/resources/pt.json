@@ -5,6 +5,8 @@
     "accountSettings": "Conta",
     "institutionDetails": "Detalhes da Instituição",
     "institutionTimeline": "Cronograma da Instituição",
+    "dataAccessRequests": "Pedidos de Acesso",
+    "mySchedule": "O Meu Horário",
     "logout": "Terminar Sessão"
   },
   "settings": {
@@ -74,7 +76,8 @@
     "goBack": "Voltar",
     "today": "hoje",
     "yesterday": "ontem",
-    "at": "às"
+    "at": "às",
+    "notApplicable": "N/D"
   },
   "gender": {
     "male": "Masculino",
@@ -125,7 +128,11 @@
     "birthdayToday": "Hoje! 🎂",
     "birthdayTomorrow": "Amanhã",
     "birthdayInDays": "Em {{days}} dias",
-    "birthdayAge": "{{age}} anos"
+    "birthdayAge": "{{age}} anos",
+    "pendingAccessRequests": "Pedidos de Acesso Pendentes",
+    "pendingAccessRequestsSubtitle": "Pedidos aguardam a sua resposta",
+    "mySchedule": "O Meu Horário",
+    "myScheduleSubtitle": "Ver horário e dias de folga"
   },
   "bath": {
     "title": "Banhos",
@@ -452,7 +459,17 @@
     "noPendingRequests": "Sem pacientes com acesso pendente",
     "noApprovedRequests": "Sem pacientes com acesso aprovado",
     "searchPlaceholder": "Pesquisar por nome ou ID médico",
-    "noResultsFound": "Nenhum paciente encontrado"
+    "noResultsFound": "Nenhum paciente encontrado",
+    "adminSectionTitle": "Gestão de Acessos",
+    "adminPendingRequests": "Pedidos de Acesso",
+    "adminPendingRequestsSubtitle": "Pedidos de clínicos aguardam resposta",
+    "noPendingForInstitution": "Sem pedidos de acesso pendentes",
+    "clinicianRequesting": "Clínico a solicitar",
+    "requestedOn": "Pedido em",
+    "approve": "Aprovar",
+    "deny": "Recusar",
+    "approvedOnBehalf": "Acesso aprovado com sucesso",
+    "deniedOnBehalf": "Acesso recusado"
   },
   "fallOccurrence": {
     "title": "Ocorrência de Queda",
@@ -622,7 +639,10 @@
     "bodyLocationGroup_head": "Cabeça / Pescoço",
     "bodyLocationGroup_trunk": "Tronco",
     "bodyLocationGroup_upperLimbs": "Membros Superiores",
-    "bodyLocationGroup_lowerLimbs": "Membros Inferiores"
+    "bodyLocationGroup_lowerLimbs": "Membros Inferiores",
+    "bodyLocation_BACK": "Costas",
+    "bodyLocation_HEEL_LEFT": "Calcanhar Esq.",
+    "bodyLocation_HEEL_RIGHT": "Calcanhar Dir."
   },
   "pathology": {
     "title": "Patologia",
@@ -923,6 +943,7 @@
     "minutesAgo": "há {{count}}m",
     "hoursAgo": "há {{count}}h",
     "daysAgo": "há {{count}}d",
+    "actions": "Ações",
     "viewDetails": "Ver Detalhes",
     "markAsRead": "Marcar como Lida",
     "markAsUnread": "Marcar como Não Lida",
@@ -1020,7 +1041,8 @@
     "externalSpecialtyPlaceholder": "ex. Médico, Fisioterapeuta",
     "externalPhone": "Telefone",
     "externalPhonePlaceholder": "Número de telefone",
-    "assignedTo": "Responsável"
+    "assignedTo": "Responsável",
+    "unavailableTimeOff": "(Indisponível)"
   },
   "incidentConfirmation": {
     "fallDetected": "Queda Detetada!",

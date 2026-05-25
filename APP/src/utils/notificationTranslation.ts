@@ -5,6 +5,10 @@ import type { NotificationData } from 'moveplus-shared';
  * Translates notification content based on translation keys
  * Used to translate notifications that arrive with translation keys instead of hardcoded text
  */
+// Only keys that look like proper i18n keys (dot-separated lowercase words) should be translated.
+// Raw strings from old notifications or natural language (like "Dr. Smith") must NOT be translated.
+const isTranslationKey = (key: string) => /^[a-z][a-zA-Z]*(?:\.[a-zA-Z][a-zA-Z]*)+$/.test(key);
+
 export function translateNotification(
   titleKey: string | undefined,
   bodyKey: string | undefined,
@@ -13,11 +17,11 @@ export function translateNotification(
   fallbackBody?: string
 ): { title: string; body: string } {
   const title = titleKey
-    ? String(i18n.t(titleKey, params))
+    ? (isTranslationKey(titleKey) ? String(i18n.t(titleKey, params)) : titleKey)
     : (fallbackTitle || '');
 
   const body = bodyKey
-    ? String(i18n.t(bodyKey, params))
+    ? (isTranslationKey(bodyKey) ? String(i18n.t(bodyKey, params)) : bodyKey)
     : (fallbackBody || '');
 
   return { title, body };

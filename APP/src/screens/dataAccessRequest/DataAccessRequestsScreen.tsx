@@ -1,11 +1,11 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, RefreshControl, View, Animated, ActivityIndicator, TextInput } from 'react-native';
+import { ScrollView, StyleSheet, Text, RefreshControl, View, Animated, ActivityIndicator, TextInput, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { UserMenuStackParamList } from '@navigation/UserMenuNavigationStack';
 import { dataAccessRequestApi, DataAccessRequest } from '@src/api/endpoints/dataAccessRequest';
 import { Color } from '@src/styles/colors';
 import { Spacing } from '@src/styles/spacings';
-import { VStack } from '@components/CoreComponents';
+import { VStack, HStack } from '@components/CoreComponents';
 import { PatientResultCard } from '@components/PatientResultCard';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
 import { FontFamily, FontSize } from '@src/styles/fonts';
@@ -13,14 +13,117 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Border } from '@src/styles/borders';
 import { useDebounce } from '@src/hooks/useDebounce';
 import { shadowStyles } from '@styles/shadow';
+import { useErrorHandler } from '@src/hooks/useErrorHandler';
+import { useAuthStore } from '@src/stores/authStore';
+import { UserRole } from 'moveplus-shared';
 
 type RequestFilter = 'APPROVED' | 'PENDING';
 
 type Props = NativeStackScreenProps<UserMenuStackParamList, 'DataAccessRequests'>;
 
+type AdminRequestCardProps = {
+  request: DataAccessRequest;
+  onRespond: (id: number, status: 'APPROVED' | 'DENIED') => void;
+};
+
+const AdminRequestCard: React.FC<AdminRequestCardProps> = ({ request, onRespond }) => {
+  const { t } = useTranslation();
+  const elderlyName = request.elderly?.name ?? '?';
+  const clinicianName = request.clinician?.name ?? '?';
+  const requestedAt = request.requestedAt
+    ? new Date(request.requestedAt).toLocaleDateString()
+    : '';
+
+  return (
+    <View style={adminCardStyles.card}>
+      <VStack spacing={Spacing.sm_8}>
+        <Text style={adminCardStyles.elderlyName}>{elderlyName}</Text>
+        <HStack spacing={Spacing.xs_4} align="center">
+          <MaterialIcons name="person" size={14} color={Color.Gray.v400} />
+          <Text style={adminCardStyles.meta}>
+            {t('dataAccessRequest.clinicianRequesting')}: {clinicianName}
+          </Text>
+        </HStack>
+        {requestedAt !== '' && (
+          <HStack spacing={Spacing.xs_4} align="center">
+            <MaterialIcons name="schedule" size={14} color={Color.Gray.v400} />
+            <Text style={adminCardStyles.meta}>
+              {t('dataAccessRequest.requestedOn')}: {requestedAt}
+            </Text>
+          </HStack>
+        )}
+        {request.notes ? (
+          <Text style={adminCardStyles.notes}>{request.notes}</Text>
+        ) : null}
+        <HStack spacing={Spacing.sm_8} style={{ marginTop: Spacing.xs_4 }}>
+          <TouchableOpacity
+            style={[adminCardStyles.btn, adminCardStyles.approveBtn]}
+            onPress={() => onRespond(request.id, 'APPROVED')}
+          >
+            <Text style={adminCardStyles.btnText}>{t('dataAccessRequest.approve')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[adminCardStyles.btn, adminCardStyles.denyBtn]}
+            onPress={() => onRespond(request.id, 'DENIED')}
+          >
+            <Text style={adminCardStyles.btnText}>{t('dataAccessRequest.deny')}</Text>
+          </TouchableOpacity>
+        </HStack>
+      </VStack>
+    </View>
+  );
+};
+
+const adminCardStyles = StyleSheet.create({
+  card: {
+    backgroundColor: Color.white,
+    borderRadius: Border.lg_16,
+    padding: Spacing.md_16,
+    borderWidth: 1,
+    borderColor: Color.Gray.v100,
+    ...shadowStyles.cardShadow,
+  },
+  elderlyName: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.bodymedium_16,
+    color: Color.Gray.v500,
+  },
+  meta: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.bodysmall_14,
+    color: Color.Gray.v400,
+  },
+  notes: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.bodysmall_14,
+    color: Color.Gray.v400,
+    fontStyle: 'italic',
+  },
+  btn: {
+    flex: 1,
+    paddingVertical: Spacing.sm_8,
+    borderRadius: Border.md_12,
+    alignItems: 'center',
+  },
+  approveBtn: {
+    backgroundColor: Color.primary,
+  },
+  denyBtn: {
+    backgroundColor: Color.Error.default,
+  },
+  btnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.bodysmall_14,
+    color: Color.white,
+  },
+});
+
 const DataAccessRequestsScreen: React.FC<Props> = ({ navigation, route }) => {
   const { filter } = route.params;
   const { t } = useTranslation();
+  const { user } = useAuthStore();
+  const { handleError, handleSuccess } = useErrorHandler();
+  const isAdmin = user?.user?.role === UserRole.INSTITUTION_ADMIN;
   const [allRequests, setAllRequests] = useState<DataAccessRequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<DataAccessRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +177,20 @@ const DataAccessRequestsScreen: React.FC<Props> = ({ navigation, route }) => {
     setFilteredRequests(filtered);
   }, [debouncedSearchQuery, allRequests]);
 
+  const handleAdminRespond = useCallback(async (id: number, status: 'APPROVED' | 'DENIED') => {
+    try {
+      await dataAccessRequestApi.respondToRequestAsCaregiver(id, { status });
+      handleSuccess(
+        status === 'APPROVED'
+          ? t('dataAccessRequest.approvedOnBehalf')
+          : t('dataAccessRequest.deniedOnBehalf')
+      );
+      fetchRequests();
+    } catch (err) {
+      handleError(err);
+    }
+  }, [fetchRequests, handleError, handleSuccess, t]);
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchRequests();
@@ -87,8 +204,11 @@ const DataAccessRequestsScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const getEmptyMessage = () => {
-    if (searchQuery.trim()) {
+    if (debouncedSearchQuery.trim()) {
       return t('dataAccessRequest.noResultsFound');
+    }
+    if (isAdmin && filter === 'PENDING') {
+      return t('dataAccessRequest.noPendingForInstitution');
     }
     return filter === 'APPROVED'
       ? t('dataAccessRequest.noApprovedRequests')
@@ -146,6 +266,17 @@ const DataAccessRequestsScreen: React.FC<Props> = ({ navigation, route }) => {
             </View>
           ) : (
             filteredRequests.map((request) => {
+              // Admin view: requests have clinician info, show approve/deny card
+              if (isAdmin && filter === 'PENDING' && request.clinician) {
+                return (
+                  <AdminRequestCard
+                    key={request.id}
+                    request={request}
+                    onRespond={handleAdminRespond}
+                  />
+                );
+              }
+
               if (!request.elderly) return null;
 
               const patientData = {

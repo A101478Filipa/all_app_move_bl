@@ -1,11 +1,16 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Color } from '@src/styles/colors';
-import { Text } from 'react-native';
+import { ScrollView, Text } from 'react-native';
 import { VStack } from '@components/CoreComponents';
 import { FontFamily, FontSize } from '@src/styles/fonts';
 import { Spacing } from '@src/styles/spacings';
 import { LineChart, lineDataItem } from 'react-native-gifted-charts';
 import { MeasurementChartDataItem } from '@src/utils/chartsHelper';
+
+const POINT_SPACING = 60;
+const INITIAL_SPACING = 20;
+const END_SPACING = 20;
+const MIN_CHART_WIDTH = 300;
 
 export type MeasurementChartProps = {
   data: MeasurementChartDataItem[];
@@ -15,12 +20,31 @@ export type MeasurementChartProps = {
 export const MeasurementChart = ({ data, onDataPointPress }: MeasurementChartProps) => {
   // Use per-point colors if available; fall back to the semantic measurement color
   const hasCustomColors = data.some(d => (d as any).dataPointColor);
+  const scrollRef = useRef<ScrollView>(null);
+
+  const chartWidth = Math.max(MIN_CHART_WIDTH, data.length * POINT_SPACING + INITIAL_SPACING + END_SPACING);
+  const isScrollable = chartWidth > MIN_CHART_WIDTH;
+
+  // Scroll to most recent (rightmost) point when data changes
+  useEffect(() => {
+    if (isScrollable) {
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 100);
+    }
+  }, [data.length]);
 
   return (
+    <ScrollView
+      ref={scrollRef}
+      horizontal
+      showsHorizontalScrollIndicator={isScrollable}
+      scrollEnabled={isScrollable}
+      scrollEventThrottle={16}
+      bounces={false}
+    >
     <LineChart
       data={data}
       thickness={3}
-      width={300}
+      width={chartWidth}
       height={240}
       maxValue={Math.max(...data.map(d => d.value)) * 1.1}
       noOfSections={5}
@@ -55,9 +79,9 @@ export const MeasurementChart = ({ data, onDataPointPress }: MeasurementChartPro
       endFillColor={Color.Semantic.measurements}
       startOpacity={0.1}
       endOpacity={0.02}
-      spacing={60}
-      initialSpacing={20}
-      endSpacing={20}
+      spacing={POINT_SPACING}
+      initialSpacing={INITIAL_SPACING}
+      endSpacing={END_SPACING}
       pointerConfig={onDataPointPress ? {
         pointerStripUptoDataPoint: true,
         pointerStripColor: Color.Semantic.measurements,
@@ -79,6 +103,7 @@ export const MeasurementChart = ({ data, onDataPointPress }: MeasurementChartPro
         },
       } : undefined}
     />
+    </ScrollView>
   );
 };
 

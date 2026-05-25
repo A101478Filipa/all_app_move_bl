@@ -121,6 +121,13 @@ enum TimeOffType {
   SICK_LEAVE
 }
 
+// MARK: TimeOffStatus
+enum TimeOffStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
 // MARK: DataAccessRequestStatus
 enum DataAccessRequestStatus {
   PENDING
@@ -180,6 +187,7 @@ model User {
   workSchedule            StaffWorkSchedule?
   timeOffs                StaffTimeOff[] @relation("TimeOffUser")
   timeOffsCreated         StaffTimeOff[] @relation("TimeOffCreatedBy")
+  timeOffsResponded       StaffTimeOff[] @relation("TimeOffRespondedBy")
   elderlyAbsencesCreated  ElderlyAbsence[]
 }
 
@@ -245,6 +253,7 @@ model Institution {
   externalProfessionals  ExternalProfessional[]
   timelineActivities     TimelineActivity[]
   invitations            Invitation[]
+  vacationPolicy         InstitutionVacationPolicy?
 }
 
 // MARK: Programmer
@@ -685,20 +694,35 @@ model StaffWorkSchedule {
 
 // MARK: StaffTimeOff
 model StaffTimeOff {
-  id           Int         @id @default(autoincrement())
+  id           Int            @id @default(autoincrement())
   userId       Int
   createdById  Int
   type         TimeOffType
+  status       TimeOffStatus  @default(PENDING)
   startDate    DateTime
   endDate      DateTime
   note         String?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  user         User        @relation("TimeOffUser", fields: [userId], references: [id], onDelete: Cascade)
-  createdBy    User        @relation("TimeOffCreatedBy", fields: [createdById], references: [id])
+  respondedById Int?
+  respondedAt  DateTime?
+  responseNote String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  user         User           @relation("TimeOffUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy    User           @relation("TimeOffCreatedBy", fields: [createdById], references: [id])
+  respondedBy  User?          @relation("TimeOffRespondedBy", fields: [respondedById], references: [id])
 
   @@index([userId])
   @@index([startDate])
+}
+
+// MARK: InstitutionVacationPolicy
+model InstitutionVacationPolicy {
+  id                     Int      @id @default(autoincrement())
+  institutionId          Int      @unique
+  maxVacationDaysPerYear Int      @default(22)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  institution            Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
 }
 
 // MARK: ElderlyAbsence

@@ -21,6 +21,7 @@ import { ElderlyMeasurementsComponent, ElderlyMeasurementsArgs } from "@componen
 import ElderlyCalendarScreen from "@src/screens/elderly/ElderlyCalendarScreen";
 import AddCalendarEventScreen from "@src/screens/elderly/AddCalendarEventScreen";
 import ProfessionalCalendarScreen from "@src/screens/professional/ProfessionalCalendarScreen";
+import SelectElderlyScreen from "@src/screens/elderly/SelectElderlyScreen";
 import ElderlyMedicationsListScreen from "@src/screens/elderly/ElderlyMedicationsListScreen";
 import ElderlyPathologiesListScreen from "@src/screens/elderly/ElderlyPathologiesListScreen";
 import ElderlyFallsListScreen from "@src/screens/elderly/ElderlyFallsListScreen";
@@ -138,6 +139,10 @@ export type InstitutionMembersNavigationStackParamList = {
     professionalName?: string;
     isAdmin?: boolean;
   };
+  SelectElderlyScreen: {
+    calendarMode?: boolean;
+    selectedDate?: string;
+  } | undefined;
 };
 
 const Stack = createNativeStackNavigator<InstitutionMembersNavigationStackParamList>();
@@ -302,6 +307,11 @@ export const InstitutionMembersNavigationStack = () => {
         name='ElderlySOSList'
         component={ElderlySOSListScreen}
         options={{ title: t('sosOccurrence.title') }}
+      />
+      <Stack.Screen
+        name='SelectElderlyScreen'
+        component={SelectElderlyScreen}
+        options={{ title: t('navigation.selectPatient') }}
       />
     </Stack.Navigator>
   );

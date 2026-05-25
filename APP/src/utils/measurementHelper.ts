@@ -1,3 +1,24 @@
+import { MeasurementType, MeasurementUnit } from 'moveplus-shared';
+import { TFunction } from 'i18next';
+import i18n from '../localization';
+
+// Normalize legacy SIDE_PART formats (e.g. RIGHT_KNEE → KNEE_RIGHT)
+const normalizeLegacyBodyLocation = (loc: string): string => {
+  const m = /^(LEFT|RIGHT)_(.+)$/.exec(loc);
+  if (m) return `${m[2]}_${m[1]}`;
+  return loc;
+};
+
+export const translateBodyLocation = (loc: string, t: TFunction): string => {
+  const key = `woundTracking.bodyLocation_${loc}`;
+  if (i18n.exists(key)) return t(key) as string;
+  const normalized = normalizeLegacyBodyLocation(loc);
+  const normalizedKey = `woundTracking.bodyLocation_${normalized}`;
+  if (i18n.exists(normalizedKey)) return t(normalizedKey) as string;
+  // Last resort: prettify the raw string
+  return loc.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+};
+
 /**
  * Get the symbol for a measurement unit
  */
@@ -21,8 +42,6 @@ export const getMeasurementUnitSymbol = (unit: MeasurementUnit): string => {
       return '';
   }
 };
-import { MeasurementType, MeasurementUnit } from 'moveplus-shared';
-import { TFunction } from 'i18next';
 
 /**
  * Get the translated display name for a measurement type

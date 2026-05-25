@@ -5,9 +5,9 @@ import { authenticate, authorizeRoles } from '../../middleware/authMiddleware';
 
 const elderlyAbsenceRoutes = express.Router();
 
-const STAFF = [UserRole.CAREGIVER, UserRole.INSTITUTION_ADMIN, UserRole.CLINICIAN, UserRole.PROGRAMMER];
+const ADMIN_AND_CAREGIVER = [UserRole.CAREGIVER, UserRole.INSTITUTION_ADMIN, UserRole.PROGRAMMER];
 const ADMIN_ONLY = [UserRole.INSTITUTION_ADMIN, UserRole.PROGRAMMER];
-const STAFF_OR_ELDERLY = [...STAFF, UserRole.ELDERLY];
+const STAFF_OR_ELDERLY = [UserRole.CAREGIVER, UserRole.INSTITUTION_ADMIN, UserRole.CLINICIAN, UserRole.PROGRAMMER, UserRole.ELDERLY];
 
 // GET /elderly-absences/institution — all absences for admin's institution (must be before /:elderlyId)
 elderlyAbsenceRoutes.get(
@@ -25,27 +25,27 @@ elderlyAbsenceRoutes.get(
   controller.getAbsences,
 );
 
-// POST /elderly-absences/:elderlyId  — create absence
+// POST /elderly-absences/:elderlyId  — create absence (admin + caregiver only)
 elderlyAbsenceRoutes.post(
   '/:elderlyId',
   authenticate,
-  authorizeRoles(STAFF),
+  authorizeRoles(ADMIN_AND_CAREGIVER),
   controller.createAbsence,
 );
 
-// PUT /elderly-absences/entry/:id  — update absence
+// PUT /elderly-absences/entry/:id  — update absence (admin + caregiver only)
 elderlyAbsenceRoutes.put(
   '/entry/:id',
   authenticate,
-  authorizeRoles(STAFF),
+  authorizeRoles(ADMIN_AND_CAREGIVER),
   controller.updateAbsence,
 );
 
-// DELETE /elderly-absences/entry/:id  — delete absence
+// DELETE /elderly-absences/entry/:id  — delete absence (admin + caregiver only)
 elderlyAbsenceRoutes.delete(
   '/entry/:id',
   authenticate,
-  authorizeRoles(STAFF),
+  authorizeRoles(ADMIN_AND_CAREGIVER),
   controller.deleteAbsence,
 );
 

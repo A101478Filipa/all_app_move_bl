@@ -496,11 +496,14 @@ const styles = StyleSheet.create({
     color: Color.primary,
   },
   sortChipsContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
     paddingBottom: Spacing.sm_8,
-    paddingHorizontal: 2,
+    paddingHorizontal: Spacing.xs_4,
   },
   filterChip: {
+    flexShrink: 0,
     paddingVertical: Spacing.xs_4 + 2,
     paddingHorizontal: Spacing.md_16,
     borderRadius: Border.full,

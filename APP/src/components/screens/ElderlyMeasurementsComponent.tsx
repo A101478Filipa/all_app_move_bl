@@ -85,7 +85,7 @@ export const ElderlyMeasurementsComponent: React.FC<Props> = ({ route, navigatio
       navigation.setOptions({
         headerRight: () => (
           <TouchableOpacity style={styles.headerButton} onPress={handleAddMeasurement}>
-            <MaterialIcons name="add" size={24} color={Color.Background.white} />
+            <MaterialIcons name="add" size={22} color={Color.Background.white} />
           </TouchableOpacity>
         ),
       });
@@ -251,15 +251,6 @@ const styles = StyleSheet.create({
     backgroundColor: Color.Orange.v300,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.sm_8,
-    shadowColor: Color.dark,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
   },
   headerSection: {
     alignSelf: 'stretch',

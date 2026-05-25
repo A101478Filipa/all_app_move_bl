@@ -214,7 +214,7 @@ const UserMenuScreen: React.FC<Props> = ({ navigation }) => {
                   title={t('menu.institutionTimeline')}
                   onPress={onInstitutionTimeline}
                   hasNavigation={true}
-                  isLast={!isAdmin}
+                  isLast={!isAdmin && !isClinician}
                 />
               )}
               {isAdmin && (
@@ -223,6 +223,30 @@ const UserMenuScreen: React.FC<Props> = ({ navigation }) => {
                   iconColor={Color.Cyan.v400}
                   title={t('invitation.viewInvitations')}
                   onPress={onInstitutionInvitations}
+                  hasNavigation={true}
+                  isLast={false}
+                />
+              )}
+              {isAdmin && (
+                <MenuOption
+                  iconName="vpn-key"
+                  iconColor={Color.Orange.v400}
+                  title={t('menu.dataAccessRequests')}
+                  onPress={onPendingAccessRequests}
+                  hasNavigation={true}
+                  isLast={true}
+                />
+              )}
+              {(isClinician || isCaregiver) && (
+                <MenuOption
+                  iconName="schedule"
+                  iconColor={Color.Cyan.v400}
+                  title={t('menu.mySchedule')}
+                  onPress={() => {
+                    const userId = user?.user?.id;
+                    const staffName = user?.name ?? '';
+                    if (userId) navigation.navigate('StaffScheduleManagement', { userId, staffName });
+                  }}
                   hasNavigation={true}
                   isLast={true}
                 />

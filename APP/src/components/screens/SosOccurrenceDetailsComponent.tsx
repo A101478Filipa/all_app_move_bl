@@ -8,6 +8,7 @@ import { Border } from '@src/styles/borders';
 import { FontFamily, FontSize } from '@src/styles/fonts';
 import { shadowStyles } from '@src/styles/shadow';
 import { formatDateLong } from '@src/utils/Date';
+import { translateBodyLocation } from '@src/utils/measurementHelper';
 import { useTranslation } from 'react-i18next';
 import { buildAvatarUrl } from '@src/services/ApiService';
 import * as Print from 'expo-print';
@@ -83,7 +84,7 @@ const SosOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, ca
             </div>
             ${tracking.notes ? `<div class="tracking-note">${tracking.notes}</div>` : ''}
             ${tracking.bodyLocations && (tracking.bodyLocations as string[]).length > 0
-              ? `<div class="loc-tags">${(tracking.bodyLocations as string[]).map((loc: string) => `<span class="loc-tag">${t('woundTracking.bodyLocation_' + loc) || loc}</span>`).join('')}</div>`
+              ? `<div class="loc-tags">${(tracking.bodyLocations as string[]).map((loc: string) => `<span class="loc-tag">${translateBodyLocation(loc, t)}</span>`).join('')}</div>`
               : ''}
           </div>
         `).join('')}
@@ -404,7 +405,7 @@ const SosOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, ca
                 ${row(t('fallOccurrence.measuresTaken'), data?.measuresTaken ?? '-')}
               </table>
               ${Array.isArray(data?.injuryBodyLocations) && data.injuryBodyLocations.length > 0
-                ? `<div class="subsection-title">📍 ${t('woundTracking.bodyLocation')}</div><div class="loc-tags">${(data.injuryBodyLocations as string[]).map((loc: string) => `<span class="loc-tag">${t('woundTracking.bodyLocation_' + loc) || loc}</span>`).join('')}</div>`
+                ? `<div class="subsection-title">📍 ${t('woundTracking.bodyLocation')}</div><div class="loc-tags">${(data.injuryBodyLocations as string[]).map((loc: string) => `<span class="loc-tag">${translateBodyLocation(loc, t)}</span>`).join('')}</div>`
                 : ''}
             </div>
           </div>
@@ -514,7 +515,7 @@ const SosOccurrenceDetailsComponent: React.FC<Props> = ({ data, occurrenceId, ca
                     <View style={styles.injuryLocationTags}>
                       {(data.injuryBodyLocations as string[]).map((loc: string) => (
                         <View key={loc} style={styles.injuryLocationTag}>
-                          <Text style={styles.injuryLocationTagText}>{t(`woundTracking.bodyLocation_${loc}`) || loc}</Text>
+                          <Text style={styles.injuryLocationTagText}>{translateBodyLocation(loc, t)}</Text>
                         </View>
                       ))}
                     </View>

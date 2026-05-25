@@ -42,6 +42,7 @@ export * from './enums/medicationStatus';
 export * from './enums/pathologyStatus';
 export * from './enums/dataAccessRequestStatus';
 export * from './enums/timeOffType';
+export * from './enums/timeOffStatus';
 export * from './enums/bodyLocation';
 
 // Models

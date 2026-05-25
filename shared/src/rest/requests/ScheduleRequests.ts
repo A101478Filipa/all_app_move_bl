@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { TimeOffType } from '../../enums/timeOffType';
+import { TimeOffStatus } from '../../enums/timeOffStatus';
 
 export const UpsertWorkScheduleRequest = z.object({
   workDays: z
@@ -46,3 +47,16 @@ export const UpdateElderlyAbsenceRequest = z.object({
 });
 
 export type UpdateElderlyAbsenceRequest = z.infer<typeof UpdateElderlyAbsenceRequest>;
+
+export const RespondTimeOffRequest = z.object({
+  status: z.enum([TimeOffStatus.APPROVED, TimeOffStatus.DENIED]),
+  responseNote: z.string().optional().nullable(),
+});
+
+export type RespondTimeOffRequest = z.infer<typeof RespondTimeOffRequest>;
+
+export const UpsertVacationPolicyRequest = z.object({
+  maxVacationDaysPerYear: z.number().int().min(1).max(365),
+});
+
+export type UpsertVacationPolicyRequest = z.infer<typeof UpsertVacationPolicyRequest>;

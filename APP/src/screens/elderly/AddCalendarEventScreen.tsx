@@ -8,6 +8,7 @@ import { CalendarEventType, CreateCalendarEventRequest, ExternalProfessional } f
 import { calendarEventApi } from '@src/api/endpoints/calendarEvents';
 import { institutionApi } from '@src/api/endpoints/institution';
 import { externalProfessionalApi } from '@src/api/endpoints/externalProfessionals';
+import { timeOffApi, StaffTimeOffWithUser } from '@src/api/endpoints/timeOff';
 import { Color } from '@src/styles/colors';
 import { FontFamily, FontSize } from '@src/styles/fonts';
 import { Spacing, spacingStyles } from '@src/styles/spacings';
@@ -76,8 +77,8 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(false);
   const [clinicians, setClinicians] = useState<{ label: string; value: number }[]>([]);
   const [caregivers, setCaregivers] = useState<{ label: string; value: number }[]>([]);
-  const [admins, setAdmins] = useState<{ label: string; value: number }[]>([]);
   const [savedExternals, setSavedExternals] = useState<ExternalProfessional[]>([]);
+  const [institutionTimeOffs, setInstitutionTimeOffs] = useState<StaffTimeOffWithUser[]>([]);
 
   const initISO = editEvent
     ? new Date(editEvent.startDate).toISOString()
@@ -114,11 +115,14 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
       const data = res.data;
       setClinicians((data.clinicians ?? []).map(c => ({ label: `${c.name} (${t('members.clinician')})`, value: c.userId })));
       setCaregivers((data.caregivers ?? []).map(c => ({ label: `${c.name} (${t('members.caregiver')})`, value: c.userId })));
-      setAdmins((data.admins ?? []).map(c => ({ label: `${c.name} (${t('members.institutionAdmin')})`, value: c.userId })));
     }).catch(() => {});
 
     externalProfessionalApi.list().then(res => {
       setSavedExternals(res.data ?? []);
+    }).catch(() => {});
+
+    timeOffApi.getInstitutionTimeOffs().then(res => {
+      setInstitutionTimeOffs(res.data ?? []);
     }).catch(() => {});
   }, [t]);
 
@@ -127,12 +131,28 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
   const isNewExternal = isExternal && form.externalProfessionalId === NEW_EXTERNAL_VALUE;
   const isExistingExternal = isExternal && form.externalProfessionalId !== null && form.externalProfessionalId !== NEW_EXTERNAL_VALUE && form.externalProfessionalId > 0;
 
+  const isOnTimeOff = (userId: number): boolean => {
+    if (!form.date) return false;
+    const evDate = new Date(form.date);
+    return institutionTimeOffs.some(to =>
+      to.user.id === userId &&
+      new Date(to.startDate) <= evDate &&
+      new Date(to.endDate) >= evDate
+    );
+  };
+
+  const tagTimeOff = (items: { label: string; value: number }[]) =>
+    items.map(item => isOnTimeOff(item.value)
+      ? { ...item, label: `${item.label} ${t('calendar.unavailableTimeOff')}` }
+      : item
+    );
+
   const externalOption = { label: `(${t('calendar.external')}) ${t('calendar.externalProfessional')}`, value: EXTERNAL_VALUE };
 
   // Clinical events: only clinicians; non-clinical events: admins + caregivers (no clinicians)
   const responsibleOptions = isClinicalType
-    ? [...clinicians, externalOption]
-    : [...admins, ...caregivers, externalOption];
+    ? [...tagTimeOff(clinicians), externalOption]
+    : [...tagTimeOff(caregivers), externalOption];
 
   // Dropdown options for saved external professionals + "Add new" option
   const externalProfessionalOptions = [
