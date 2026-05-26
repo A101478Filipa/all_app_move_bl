@@ -1,53 +1,27 @@
 import { create } from 'zustand';
-import { DataAccessRequest } from '@src/api/endpoints/dataAccessRequest';
-import { dataAccessRequestApi } from '@src/api/endpoints/dataAccessRequest';
 import { fallOccurrenceApi } from '@src/api/endpoints/fallOccurrences';
 import { sosOccurrenceApi } from '@src/api/endpoints/sosOccurrences';
 import ScreenState from '@src/constants/screenState';
 
 type ElderlyDashboardState = {
-  pendingAccessRequests: DataAccessRequest[];
   state: ScreenState;
   isReportingFall: boolean;
   isReportingSos: boolean;
   fetch: () => Promise<void>;
   refresh: () => Promise<void>;
-  removeRequest: (requestId: number) => void;
   reportFall: (userId: number, description: string) => Promise<void>;
   reportSos: (userId: number) => Promise<void>;
 };
 
 export const useElderlyDashboardStore = create<ElderlyDashboardState>((set, get) => ({
-  pendingAccessRequests: [],
-  state: ScreenState.LOADING,
+  state: ScreenState.IDLE,
   isReportingFall: false,
   isReportingSos: false,
   fetch: async () => {
-    set({ state: ScreenState.LOADING });
-    try {
-      const response = await dataAccessRequestApi.getMyRequests();
-      const pendingRequests = response.data.filter(req => req.status === 'PENDING');
-      set({ pendingAccessRequests: pendingRequests, state: ScreenState.IDLE });
-    } catch (err) {
-      console.error('Error fetching access requests:', err);
-      set({ state: ScreenState.ERROR });
-    }
+    set({ state: ScreenState.IDLE });
   },
   refresh: async () => {
-    set({ state: ScreenState.REFRESHING });
-    try {
-      const response = await dataAccessRequestApi.getMyRequests();
-      const pendingRequests = response.data.filter(req => req.status === 'PENDING');
-      set({ pendingAccessRequests: pendingRequests, state: ScreenState.IDLE });
-    } catch (err) {
-      console.error('Error refreshing access requests:', err);
-      set({ state: ScreenState.ERROR });
-    }
-  },
-  removeRequest: (requestId: number) => {
-    set((state) => ({
-      pendingAccessRequests: state.pendingAccessRequests.filter(req => req.id !== requestId)
-    }));
+    set({ state: ScreenState.IDLE });
   },
   reportFall: async (userId: number, description: string) => {
     if (get().isReportingFall) return;

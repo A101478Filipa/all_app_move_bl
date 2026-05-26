@@ -88,8 +88,6 @@ export const NotificationCenterScreen: React.FC = () => {
     } else if (notification.type === 'sos_occurrence' && notification.data?.sosOccurrenceId) {
       params.occurrenceId = notification.data.sosOccurrenceId;
       (navigation as any).navigate('SosOccurrenceScreen', params);
-    } else if (notification.type === 'data_access_request') {
-      (navigation as any).navigate('DataAccessRequests', { filter: 'PENDING' });
     }
   }, [navigation]);
 

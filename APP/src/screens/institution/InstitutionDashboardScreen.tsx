@@ -10,7 +10,7 @@ import ScreenState from '@src/constants/screenState';
 import { shadowStyles } from '@src/styles/shadow';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { InstitutionDashboardNavigationStackParamList } from '../../navigation/InstitutionDashboardNavigationStack';
-import { useInstitutionDashboardStore, useCaregiverDashboardStore } from '@src/stores';
+import { useInstitutionDashboardStore } from '@src/stores';
 import { useFocusEffect } from '@react-navigation/core';
 import { useCallback } from 'react';
 import FallOccurrenceCard from '@src/components/FallOccurrenceCard';
@@ -19,7 +19,6 @@ import { VStack, HStack } from '@components/CoreComponents';
 import { useAuthStore } from '@src/stores';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
-import { PendingDataAccessRequestsWidget } from '@components/PendingDataAccessRequestsWidget';
 import { calculateFallRiskScore } from '@src/utils/fallRiskCalculator';
 import { UpcomingBirthdaysWidget } from '@components/UpcomingBirthdaysWidget';
 import { WoundOverviewCase } from '@src/api/endpoints/institution';
@@ -450,26 +449,16 @@ const UnhandledSosSection: React.FC<{
 // MARK: Screen
 const InstitutionDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const { sections, sosOccurrences, woundOverview, fetch, refresh, state } = useInstitutionDashboardStore();
-  const {
-    pendingAccessRequests,
-    state: caregiverDashboardState,
-    fetch: fetchCaregiverRequests,
-    removeRequest 
-  } = useCaregiverDashboardStore();
   const { user } = useAuthStore();
   const { t } = useTranslation();
 
   const userRole = user?.user?.role;
   const isActualAdmin = userRole === UserRole.INSTITUTION_ADMIN || userRole === UserRole.PROGRAMMER;
-  const isCaregiver = userRole === UserRole.CAREGIVER || userRole === UserRole.INSTITUTION_ADMIN;
 
   useFocusEffect(
     useCallback(() => {
       fetch();
-      if (isCaregiver) {
-        fetchCaregiverRequests();
-      }
-    }, [isCaregiver])
+    }, [])
   );
 
   const onFallPress = useCallback(
@@ -565,16 +554,6 @@ const InstitutionDashboardScreen: React.FC<Props> = ({ navigation }) => {
           sosOccurrences={sosOccurrences}
           onSosPress={onSosPress}
         />
-
-        {/* Pending Data Access Requests for Caregivers */}
-        {isCaregiver && (
-          <PendingDataAccessRequestsWidget
-            requests={pendingAccessRequests}
-            state={caregiverDashboardState}
-            onRequestResponded={removeRequest}
-            userRole={user?.user?.role}
-          />
-        )}
 
         {/* Wound Tracking Overview */}
         <WoundOverviewWidget

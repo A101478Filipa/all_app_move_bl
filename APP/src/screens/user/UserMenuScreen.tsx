@@ -151,14 +151,6 @@ const UserMenuScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('InstitutionDetails');
   }
 
-  const onPendingAccessRequests = () => {
-    navigation.navigate('DataAccessRequests', { filter: 'PENDING' });
-  }
-
-  const onApprovedAccessRequests = () => {
-    navigation.navigate('DataAccessRequests', { filter: 'APPROVED' });
-  }
-
   const onNotificationCenter = () => {
     navigation.navigate('NotificationCenter');
   }
@@ -223,16 +215,6 @@ const UserMenuScreen: React.FC<Props> = ({ navigation }) => {
                   iconColor={Color.Cyan.v400}
                   title={t('invitation.viewInvitations')}
                   onPress={onInstitutionInvitations}
-                  hasNavigation={true}
-                  isLast={false}
-                />
-              )}
-              {isAdmin && (
-                <MenuOption
-                  iconName="vpn-key"
-                  iconColor={Color.Orange.v400}
-                  title={t('menu.dataAccessRequests')}
-                  onPress={onPendingAccessRequests}
                   hasNavigation={true}
                   isLast={true}
                 />

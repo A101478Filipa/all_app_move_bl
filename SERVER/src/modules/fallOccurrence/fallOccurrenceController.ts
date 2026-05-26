@@ -6,7 +6,6 @@ import {
 } from "moveplus-shared";
 import { sendSuccess, sendError, sendInputValidationError } from "../../utils/apiResponse";
 import { TimelineService } from "../../services/timelineService";
-import { DataAccessRequestStatus } from "@prisma/client";
 import { sendFallOccurrenceNotifications } from "../../utils/notificationHelpers";
 
 export const createFallOccurrence = async (req, res) => {
@@ -237,35 +236,18 @@ export const indexFallOccurrence = async (req, res) => {
     }
 
     if (role === UserRole.CLINICIAN) {
-      const clinician = await prisma.clinician.findUnique({
-        where: { userId },
-      });
-
-      if (clinician) {
-        const accessRequest = await prisma.dataAccessRequest.findUnique({
-          where: {
-            clinicianId_elderlyId: {
-              clinicianId: clinician.id,
-              elderlyId: occurrence.elderly.id,
-            },
-          },
-        });
-
-        if (accessRequest?.status === DataAccessRequestStatus.APPROVED) {
-          let concreteHandler = null;
-          if (occurrence.handler) {
-            concreteHandler =
-              occurrence.handler.programmer ??
-              occurrence.handler.clinician ??
-              occurrence.handler.caregiver ??
-              occurrence.handler.elderly ??
-              occurrence.handler.institutionAdmin ??
-              occurrence.handler.externalPersonnel ??
-              null;
-          }
-          return sendSuccess(res, { ...occurrence, handler: concreteHandler }, 'Occurrence fetched successfully');
-        }
+      let concreteHandler = null;
+      if (occurrence.handler) {
+        concreteHandler =
+          occurrence.handler.programmer ??
+          occurrence.handler.clinician ??
+          occurrence.handler.caregiver ??
+          occurrence.handler.elderly ??
+          occurrence.handler.institutionAdmin ??
+          occurrence.handler.externalPersonnel ??
+          null;
       }
+      return sendSuccess(res, { ...occurrence, handler: concreteHandler }, 'Occurrence fetched successfully');
     }
 
     return sendError(res, 'Forbidden: You do not have access to this fall occurrence', 403);

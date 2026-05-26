@@ -1,5 +1,3 @@
-import { DataAccessRequestStatus } from '../../enums/dataAccessRequestStatus';
-
 export interface SearchElderlyResponse {
   id: number;
   medicalId: number;
@@ -9,11 +7,4 @@ export interface SearchElderlyResponse {
   user: {
     avatarUrl?: string;
   };
-  hasFullAccess: boolean;
-  accessRequest?: {
-    id: number;
-    status: DataAccessRequestStatus;
-    requestedAt: Date;
-    respondedAt?: Date;
-  } | null;
 }

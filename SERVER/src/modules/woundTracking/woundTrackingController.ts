@@ -1,7 +1,6 @@
 import prisma from "../../prisma";
 import { sendSuccess, sendError } from "../../utils/apiResponse";
 import { UserRole } from "moveplus-shared";
-import { DataAccessRequestStatus } from "@prisma/client";
 
 const woundTrackingInclude = {
   createdByUser: { select: { id: true } },
@@ -29,7 +28,7 @@ export const getFallWoundTrackings = async (req, res) => {
     const hasAccess =
       role === UserRole.PROGRAMMER ||
       occurrence.elderly.institutionId === institutionId ||
-      (role === UserRole.CLINICIAN && await checkClinicianAccess(userId, occurrence.elderly.id));
+      role === UserRole.CLINICIAN;
 
     if (!hasAccess) return sendError(res, 'Forbidden', 403);
 
@@ -103,7 +102,7 @@ export const getSosWoundTrackings = async (req, res) => {
     const hasAccess =
       role === UserRole.PROGRAMMER ||
       occurrence.elderly.institutionId === institutionId ||
-      (role === UserRole.CLINICIAN && await checkClinicianAccess(userId, occurrence.elderly.id));
+      role === UserRole.CLINICIAN;
 
     if (!hasAccess) return sendError(res, 'Forbidden', 403);
 
@@ -173,7 +172,7 @@ export const getElderlyWoundTrackings = async (req, res) => {
     const hasAccess =
       role === UserRole.PROGRAMMER ||
       elderly.institutionId === institutionId ||
-      (role === UserRole.CLINICIAN && await checkClinicianAccess(userId, elderlyId));
+      role === UserRole.CLINICIAN;
 
     if (!hasAccess) return sendError(res, 'Forbidden', 403);
 
@@ -206,7 +205,7 @@ export const addElderlyWoundTracking = async (req, res) => {
     const hasAccess =
       role === UserRole.PROGRAMMER ||
       elderly.institutionId === userInstitutionId ||
-      (role === UserRole.CLINICIAN && await checkClinicianAccess(userId, elderlyId));
+      role === UserRole.CLINICIAN;
 
     if (!hasAccess) return sendError(res, 'Forbidden', 403);
 
@@ -277,7 +276,7 @@ export const getElderlyWoundCases = async (req, res) => {
     const hasAccess =
       role === UserRole.PROGRAMMER ||
       elderly.institutionId === institutionId ||
-      (role === UserRole.CLINICIAN && await checkClinicianAccess(userId, elderlyId));
+      role === UserRole.CLINICIAN;
 
     if (!hasAccess) return sendError(res, 'Forbidden', 403);
 
@@ -320,13 +319,6 @@ export const getInstitutionWoundOverview = async (req, res) => {
     }
 
     let allowedElderlyIds: number[] | undefined;
-
-    if (role === UserRole.CLINICIAN) {
-      allowedElderlyIds = await getApprovedClinicianElderlyIds(userId);
-      if (!allowedElderlyIds.length) {
-        return sendSuccess(res, { openCount: 0, resolvedCount: 0, cases: [] }, 'Institution wound overview fetched');
-      }
-    }
 
     const elderlyWhere = {
       institutionId,
@@ -381,30 +373,6 @@ export const getInstitutionWoundOverview = async (req, res) => {
     return sendError(res, 'Internal server error', 500);
   }
 };
-
-async function checkClinicianAccess(userId: number, elderlyId: number): Promise<boolean> {
-  const clinician = await prisma.clinician.findUnique({ where: { userId } });
-  if (!clinician) return false;
-  const req = await prisma.dataAccessRequest.findUnique({
-    where: { clinicianId_elderlyId: { clinicianId: clinician.id, elderlyId } },
-  });
-  return req?.status === DataAccessRequestStatus.APPROVED;
-}
-
-async function getApprovedClinicianElderlyIds(userId: number): Promise<number[]> {
-  const clinician = await prisma.clinician.findUnique({ where: { userId } });
-  if (!clinician) return [];
-
-  const requests = await prisma.dataAccessRequest.findMany({
-    where: {
-      clinicianId: clinician.id,
-      status: DataAccessRequestStatus.APPROVED,
-    },
-    select: { elderlyId: true },
-  });
-
-  return requests.map((request) => request.elderlyId);
-}
 
 function buildWoundCase(occurrenceType: 'fall' | 'sos', occurrence: any) {
   const latestTracking = occurrence.woundTrackings?.[0] ?? null;

@@ -7,7 +7,6 @@ import MedicationDetailsScreen from "@src/screens/medication/MedicationDetailsSc
 import MeasurementDetailsScreen from "@src/screens/measurements/MeasurementDetailsScreen";
 import PathologyDetailsScreen from "@src/screens/pathology/PathologyDetailsScreen";
 import { FallOccurrenceScreen } from "@src/screens/fallOccurrence/FallOccurrenceScreen";
-import DataAccessRequestsScreen from "@src/screens/dataAccessRequest/DataAccessRequestsScreen";
 import { ElderlyMeasurementsComponent, ElderlyMeasurementsArgs } from "@components/screens/ElderlyMeasurementsComponent";
 import { NotificationCenterStack } from "@src/navigation/NotificationCenterStack";
 import ElderlyCalendarScreen from "@src/screens/elderly/ElderlyCalendarScreen";
@@ -31,9 +30,6 @@ import { CalendarEvent } from "moveplus-shared";
 export type ClinicianDashboardNavigationStackParamList = {
   ClinicianDashboardScreen: undefined;
   NotificationCenter: undefined;
-  DataAccessRequests: {
-    filter: 'APPROVED' | 'PENDING';
-  };
   SelectElderlyScreen: {
     calendarMode?: boolean;
     selectedDate?: string;
@@ -125,15 +121,6 @@ export const ClinicianDashboardNavigationStack = () => {
         name='NotificationCenter'
         component={NotificationCenterStack}
         options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name='DataAccessRequests'
-        component={DataAccessRequestsScreen}
-        options={({ route }) => ({
-          title: route.params.filter === 'APPROVED'
-            ? t('dataAccessRequest.approvedRequests')
-            : t('dataAccessRequest.pendingRequests'),
-        })}
       />
       <Stack.Screen
         name='SelectElderlyScreen'

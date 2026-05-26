@@ -5,7 +5,6 @@
     "accountSettings": "Conta",
     "institutionDetails": "Detalhes da Instituição",
     "institutionTimeline": "Cronograma da Instituição",
-    "dataAccessRequests": "Pedidos de Acesso",
     "mySchedule": "O Meu Horário",
     "logout": "Terminar Sessão"
   },
@@ -129,8 +128,6 @@
     "birthdayTomorrow": "Amanhã",
     "birthdayInDays": "Em {{days}} dias",
     "birthdayAge": "{{age}} anos",
-    "pendingAccessRequests": "Pedidos de Acesso Pendentes",
-    "pendingAccessRequestsSubtitle": "Pedidos aguardam a sua resposta",
     "mySchedule": "O Meu Horário",
     "myScheduleSubtitle": "Ver horário e dias de folga"
   },
@@ -452,25 +449,6 @@
     "failedToUpdateMedication": "Falha ao atualizar medicação. Tente novamente.",
     "failedToLoadMedication": "Falha ao carregar detalhes da medicação. Tente novamente."
   },
-  "dataAccessRequest": {
-    "sectionTitle": "Meus Pacientes",
-    "pendingRequests": "Acesso Pendente",
-    "approvedRequests": "Pacientes Aprovados",
-    "noPendingRequests": "Sem pacientes com acesso pendente",
-    "noApprovedRequests": "Sem pacientes com acesso aprovado",
-    "searchPlaceholder": "Pesquisar por nome ou ID médico",
-    "noResultsFound": "Nenhum paciente encontrado",
-    "adminSectionTitle": "Gestão de Acessos",
-    "adminPendingRequests": "Pedidos de Acesso",
-    "adminPendingRequestsSubtitle": "Pedidos de clínicos aguardam resposta",
-    "noPendingForInstitution": "Sem pedidos de acesso pendentes",
-    "clinicianRequesting": "Clínico a solicitar",
-    "requestedOn": "Pedido em",
-    "approve": "Aprovar",
-    "deny": "Recusar",
-    "approvedOnBehalf": "Acesso aprovado com sucesso",
-    "deniedOnBehalf": "Acesso recusado"
-  },
   "fallOccurrence": {
     "title": "Ocorrência de Queda",
     "details": "Detalhes da Queda",
@@ -745,23 +723,6 @@
     "sosReported": "Alerta SOS Enviado",
     "sosReportedDescription": "Os seus cuidadores foram notificados",
     "failedToReportSos": "Falha ao enviar alerta SOS. Tente novamente.",
-    "pendingAccessRequests": "Pedidos de Acesso Pendentes",
-    "pendingAccessRequestsDescription": "Médicos solicitando acesso aos seus dados",
-    "request": "pedido",
-    "requests": "pedidos",
-    "requestedOn": "Solicitado em",
-    "notes": "Notas",
-    "approve": "Aprovar",
-    "deny": "Recusar",
-    "accessApproved": "Pedido de acesso aprovado",
-    "accessDenied": "Pedido de acesso recusado",
-    "failedToLoadRequests": "Falha ao carregar pedidos de acesso",
-    "failedToRespond": "Falha ao responder ao pedido. Tente novamente.",
-    "unknown": "Desconhecido",
-    "confirmDataAccess": "Confirmar Acesso aos Dados",
-    "confirmDataAccessMessage": "Tem certeza de que deseja conceder a {{clinicianName}} acesso aos seus dados?",
-    "dataAccessWarning": "Isto permitirá que o médico visualize as suas informações pessoais e registos médicos.",
-    "grantAccess": "Conceder Acesso",
     "noMedications": "Sem medicações registadas",
     "noPathologies": "Sem patologias registadas",
     "noFalls": "Sem quedas registadas",
@@ -788,11 +749,7 @@
   "gender": "Género",
   "phone": "Telefone",
   "email": "Email",
-  "years": "anos",
-  "pendingAccessRequests": "Pedidos de Acesso Pendentes para os Seus Idosos",
-  "forElderly": "Para o Idoso",
-  "accessApprovedOnBehalf": "Pedido de acesso aprovado em nome do idoso",
-  "accessDeniedOnBehalf": "Pedido de acesso negado em nome do idoso"
+  "years": "anos"
   },
   "institution": {
     "title": "Instituição",
@@ -920,19 +877,7 @@
     "verifyIdHint": "Por favor, verifique o ID e tente novamente",
     "startSearch": "Iniciar Pesquisa",
     "startSearchMessage": "Introduza um ID médico acima para encontrar informações do paciente",
-    "yearsOld": "anos",
-    "medicalDataPrivate": "Dados médicos são privados",
-    "requestAccess": "Solicitar Acesso",
-    "requestAgain": "Solicitar Acesso Novamente",
-    "requesting": "A solicitar...",
-    "accessRequested": "Acesso Solicitado",
-    "accessRequestedMessage": "O seu pedido foi enviado ao paciente",
-    "requestFailed": "Pedido Falhou",
-    "failedToRequestAccess": "Falha ao solicitar acesso",
-    "statusPending": "Aprovação Pendente",
-    "statusApproved": "Acesso Concedido",
-    "statusDenied": "Acesso Negado",
-    "statusRevoked": "Acesso Revogado"
+    "yearsOld": "anos"
   },
   "notifications": {
     "title": "Notificações",
@@ -959,10 +904,6 @@
     "inactivityAlert": {
       "title": "Alerta de Inatividade",
       "body": "{{elderlyName}} está inativo há um período prolongado. Por favor, verifique."
-    },
-    "dataAccessRequest": {
-      "title": "Pedido de Acesso a Dados",
-      "body": "Dr. {{clinicianUsername}} solicitou acesso aos seus dados de saúde. Por favor, reveja e responda."
     },
     "sosAlert":{
       "title": "Alerta SOS",

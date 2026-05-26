@@ -3,7 +3,7 @@ import * as Notifications from 'expo-notifications';
 import notificationService from '@src/services/notificationService';
 import { notificationApi } from '@src/api/endpoints/notifications';
 import { useAuthStore } from '@stores/authStore';
-import type { NotificationData, FallOccurrenceNotificationData, SosOccurrenceNotificationData, FallDetectionAlertNotificationData, DataAccessRequestNotificationData } from 'moveplus-shared';
+import type { NotificationData, FallOccurrenceNotificationData, SosOccurrenceNotificationData, FallDetectionAlertNotificationData } from 'moveplus-shared';
 import { NotificationType } from 'moveplus-shared';
 import { CommonActions } from '@react-navigation/native';
 import { navigationRef } from '@src/services/NavigationService';
@@ -86,23 +86,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
             params: {
               screen: 'FallOccurrenceScreen',
               params: { occurrenceId: alertData.fallOccurrenceId },
-            },
-          })
-        );
-      }
-    }
-
-    if (data.type === NotificationType.DATA_ACCESS_REQUEST) {
-      if (navigationRef.isReady()) {
-        navigationRef.dispatch(
-          CommonActions.navigate({
-            name: 'MenuTab',
-            params: {
-              screen: 'NotificationCenter',
-              params: {
-                screen: 'DataAccessRequests',
-                params: { filter: 'PENDING' },
-              },
             },
           })
         );

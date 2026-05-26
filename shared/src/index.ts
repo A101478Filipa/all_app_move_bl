@@ -17,7 +17,6 @@ export * from './entities/deviceMaintenance';
 export * from './entities/measurement';
 export * from './entities/medication';
 export * from './entities/timelineActivity';
-export * from './entities/dataAccessRequest';
 
 // Entities/User
 export * from './entities/users/caregiver';
@@ -40,7 +39,6 @@ export * from './enums/userRole';
 export * from './enums/gender';
 export * from './enums/medicationStatus';
 export * from './enums/pathologyStatus';
-export * from './enums/dataAccessRequestStatus';
 export * from './enums/timeOffType';
 export * from './enums/timeOffStatus';
 export * from './enums/bodyLocation';

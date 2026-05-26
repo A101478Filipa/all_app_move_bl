@@ -1,7 +1,6 @@
 import { SearchElderlyResponse, UserRole } from "moveplus-shared";
 import prisma from "../../prisma";
 import { sendSuccess, sendError } from "../../utils/apiResponse";
-import { DataAccessRequestStatus } from "@prisma/client";
 
 export const searchElderlyByMedicalId = async (req, res) => {
   const { role, userId } = req.user;
@@ -44,30 +43,6 @@ export const searchElderlyByMedicalId = async (req, res) => {
       return sendError(res, 'Forbidden: Only clinicians and programmers can search patients', 403);
     }
 
-    let hasFullAccess = false;
-    let accessRequest = null;
-
-    if (role === UserRole.PROGRAMMER) {
-      hasFullAccess = true;
-    } else if (role === UserRole.CLINICIAN) {
-      const clinician = await prisma.clinician.findUnique({
-        where: { userId },
-      });
-
-      if (clinician) {
-        accessRequest = await prisma.dataAccessRequest.findUnique({
-          where: {
-            clinicianId_elderlyId: {
-              clinicianId: clinician.id,
-              elderlyId: elderly.id,
-            },
-          },
-        });
-
-        hasFullAccess = accessRequest?.status === DataAccessRequestStatus.APPROVED;
-      }
-    }
-
     const data: SearchElderlyResponse = {
       id: elderly.id,
       medicalId: elderly.medicalId,
@@ -77,13 +52,6 @@ export const searchElderlyByMedicalId = async (req, res) => {
       user: {
         avatarUrl: elderly.user.avatarUrl,
       },
-      hasFullAccess,
-      accessRequest: accessRequest ? {
-        id: accessRequest.id,
-        status: accessRequest.status,
-        requestedAt: accessRequest.requestedAt,
-        respondedAt: accessRequest.respondedAt,
-      } : null,
     };
 
     return sendSuccess(res, data, 'Elderly found');
@@ -148,24 +116,7 @@ export const showElderly = async (req, res) => {
     }
 
     if (role === UserRole.CLINICIAN) {
-      const clinician = await prisma.clinician.findUnique({
-        where: { userId },
-      });
-
-      if (clinician) {
-        const accessRequest = await prisma.dataAccessRequest.findUnique({
-          where: {
-            clinicianId_elderlyId: {
-              clinicianId: clinician.id,
-              elderlyId: elderly.id,
-            },
-          },
-        });
-
-        if (accessRequest?.status === DataAccessRequestStatus.APPROVED) {
-          return sendSuccess(res, elderlyWithCount, 'Elderly details retrieved successfully');
-        }
-      }
+      return sendSuccess(res, elderlyWithCount, 'Elderly details retrieved successfully');
     }
 
     return sendError(res, 'Forbidden: You do not have access to this patient', 403);

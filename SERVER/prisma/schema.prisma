@@ -128,14 +128,6 @@ enum TimeOffStatus {
   DENIED
 }
 
-// MARK: DataAccessRequestStatus
-enum DataAccessRequestStatus {
-  PENDING
-  APPROVED
-  DENIED
-  REVOKED
-}
-
 // MARK: Address
 model Address {
   id           Int      @id @default(autoincrement())
@@ -283,7 +275,6 @@ model Clinician {
   updatedAt     DateTime @updatedAt
   user          User       @relation(fields: [userId], references: [id])
   institution   Institution? @relation(fields: [institutionId], references: [id])
-  dataAccessRequests DataAccessRequest[]
 }
 
 // MARK: Caregiver
@@ -331,7 +322,6 @@ model Elderly {
   medications      Medication[]
   measurements     Measurement[]
   timelineActivities TimelineActivity[]
-  dataAccessRequests DataAccessRequest[]
   calendarEvents   CalendarEvent[]
   elderlyAbsences  ElderlyAbsence[]
   woundTrackings   WoundTracking[]
@@ -609,28 +599,6 @@ model TimelineActivity {
   institution   Institution @relation(fields: [institutionId], references: [id])
   elderly       Elderly?    @relation(fields: [elderlyId], references: [id])
   user          User?       @relation(fields: [userId], references: [id])
-}
-
-// MARK: DataAccessRequest
-model DataAccessRequest {
-  id            Int                      @id @default(autoincrement())
-  clinicianId   Int
-  elderlyId     Int
-  status        DataAccessRequestStatus  @default(PENDING)
-  requestedAt   DateTime                 @default(now())
-  respondedAt   DateTime?
-  expiresAt     DateTime?                // Optional: auto-revoke after certain time
-  notes         String?                  // Optional: reason for request
-  createdAt     DateTime                 @default(now())
-  updatedAt     DateTime                 @updatedAt
-
-  clinician     Clinician @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
-  elderly       Elderly   @relation(fields: [elderlyId], references: [id], onDelete: Cascade)
-
-  @@unique([clinicianId, elderlyId])
-  @@index([clinicianId])
-  @@index([elderlyId])
-  @@index([status])
 }
 
 // MARK: CalendarEvent

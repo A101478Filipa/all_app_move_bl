@@ -2,7 +2,6 @@ import prisma from '../prisma';
 import notificationService from '../services/notificationService';
 import {
   FallOccurrenceNotificationData,
-  DataAccessRequestNotificationData,
   SosOccurrenceNotificationData,
   TimeOffRequestNotificationData,
   NotificationKeys,
@@ -137,75 +136,6 @@ export async function sendFallOccurrenceNotifications(
     throw error;
   }
 }
-
-/**
- * Send push notification when a clinician requests data access
- * Notifies the elderly user about the access request
- */
-export async function sendDataAccessRequestNotification(
-  elderlyUserId: number,
-  elderlyPushToken: string | null,
-  clinicianUsername: string,
-  requestId: number
-) {
-  const userLang = 'pt';
-  const title = getTranslation(userLang, 'dataAccessRequestTitle');
-  const body = getTranslation(userLang, 'dataAccessRequestBody', { clinicianUsername });
-
-  const notificationData: DataAccessRequestNotificationData = {
-    type: NotificationType.DATA_ACCESS_REQUEST,
-    requestId,
-    screen: 'DataAccessRequests',
-    timestamp: new Date().toISOString(),
-    titleKey: NotificationKeys.dataAccessRequest.titleKey,
-    bodyKey: NotificationKeys.dataAccessRequest.bodyKey,
-    params: {
-      clinicianUsername,
-    },
-  };
-
-  // Always save notification to database for notification center
-  await prisma.notification.create({
-    data: {
-      userId: elderlyUserId,
-      type: NotificationType.DATA_ACCESS_REQUEST,
-      title,
-      body,
-      data: notificationData as any,
-    },
-  });
-
-  // Only send push notification if user has a valid push token
-  if (!elderlyPushToken) {
-    console.log('Elderly user has no push token, notification saved to database only');
-    return;
-  }
-
-  if (!notificationService.isValidPushToken(elderlyPushToken)) {
-    console.log('Invalid push token for elderly user, notification saved to database only');
-    return;
-  }
-
-  try {
-    const { titleKey: _tk, bodyKey: _bk, ...pushData } = notificationData;
-    const ticket = await notificationService.sendPushNotification(
-      elderlyPushToken,
-      title,
-      body,
-      pushData as any
-    );
-
-    if (ticket) {
-      console.log(`Data access request notification sent successfully to elderly user`);
-    } else {
-      console.log('Failed to send push notification, but notification saved to database');
-    }
-  } catch (error) {
-    console.error('Error sending data access request notification:', error);
-    // Don't throw - notification is already saved to database
-  }
-}
-
 
 /**
  * Send push notifications when an SOS occurrence is created

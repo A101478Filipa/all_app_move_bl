@@ -11,7 +11,6 @@ import InstitutionAdminDetailsScreen from "@screens/admin/AdminDetailsScreen";
 import MedicationDetailsScreen from "@src/screens/medication/MedicationDetailsScreen";
 import MeasurementDetailsScreen from "@src/screens/measurements/MeasurementDetailsScreen";
 import PathologyDetailsScreen from "@src/screens/pathology/PathologyDetailsScreen";
-import DataAccessRequestsScreen from "@src/screens/dataAccessRequest/DataAccessRequestsScreen";
 import InstitutionInvitationsScreen from "@src/screens/invitation/InstitutionInvitationsScreen";
 import StaffScheduleManagementScreen from "@src/screens/professional/StaffScheduleManagementScreen";
 import { NotificationCenterStack } from "@src/navigation/NotificationCenterStack";
@@ -25,9 +24,6 @@ export type UserMenuStackParamList = {
   InstitutionTimeline: undefined;
   InstitutionDetails: undefined;
   UserAdditionalInfo: undefined;
-  DataAccessRequests: {
-    filter: 'APPROVED' | 'PENDING';
-  };
   FallOccurrenceScreen: {
     occurrenceId: number;
   };
@@ -104,15 +100,6 @@ export const UserMenuNavigationStack = () => {
         options={{
           title: t('menu.institutionDetails'),
         }}
-      />
-      <Stack.Screen
-        name="DataAccessRequests"
-        component={DataAccessRequestsScreen}
-        options={({ route }) => ({
-          title: route.params.filter === 'APPROVED'
-            ? t('dataAccessRequest.approvedRequests')
-            : t('dataAccessRequest.pendingRequests'),
-        })}
       />
       <Stack.Screen
         name="FallOccurrenceScreen"

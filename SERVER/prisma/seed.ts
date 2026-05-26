@@ -1,7 +1,7 @@
 import {
   Gender, MeasurementUnit, MeasurementType, UserRole, MedicationStatus,
   PathologyStatus, ActivityType, CalendarEventType, TimeOffType, TimelineActivityType,
-  DataAccessRequestStatus, MeasurementStatus,
+  MeasurementStatus,
 } from '@prisma/client';
 import prisma from '../src/prisma';
 import bcrypt from 'bcryptjs';
@@ -412,25 +412,6 @@ async function main() {
       { elderlyId: 15, registeredById: clinicianProfiles[2].userId, name: 'Allopurinol',          activeIngredient: 'Allopurinol',             dosage: '100mg',        frequency: 'Once daily',         administration: 'Oral',    startDate: daysAgo(300), status: MedicationStatus.ACTIVE,        notes: 'Gout prevention' },
     ],
   });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // DATA ACCESS REQUESTS (6)
-  // ═══════════════════════════════════════════════════════════════════════════
-  const darData = [
-    { clinicianId: clinicianProfiles[0].id, elderlyId: 1,  status: DataAccessRequestStatus.APPROVED, notes: 'Ongoing treatment',                  requestedAt: daysAgo(60), respondedAt: daysAgo(59) },
-    { clinicianId: clinicianProfiles[0].id, elderlyId: 3,  status: DataAccessRequestStatus.APPROVED, notes: 'Mobility assessment data needed',     requestedAt: daysAgo(45), respondedAt: daysAgo(44) },
-    { clinicianId: clinicianProfiles[1].id, elderlyId: 6,  status: DataAccessRequestStatus.APPROVED, notes: 'Cardiology follow-up',                requestedAt: daysAgo(30), respondedAt: daysAgo(29) },
-    { clinicianId: clinicianProfiles[1].id, elderlyId: 8,  status: DataAccessRequestStatus.PENDING,  notes: 'COPD monitoring request',             requestedAt: daysAgo(5),  respondedAt: null },
-    { clinicianId: clinicianProfiles[2].id, elderlyId: 11, status: DataAccessRequestStatus.APPROVED, notes: 'Dementia care coordination',           requestedAt: daysAgo(20), respondedAt: daysAgo(19) },
-    { clinicianId: clinicianProfiles[2].id, elderlyId: 13, status: DataAccessRequestStatus.DENIED,   notes: 'Consent withdrawn by family',          requestedAt: daysAgo(15), respondedAt: daysAgo(14) },
-  ];
-  for (const d of darData) {
-    await prisma.dataAccessRequest.upsert({
-      where: { clinicianId_elderlyId: { clinicianId: d.clinicianId, elderlyId: d.elderlyId } },
-      update: {},
-      create: d,
-    });
-  }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // EXTERNAL PROFESSIONALS (6)

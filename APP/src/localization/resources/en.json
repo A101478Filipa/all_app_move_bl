@@ -5,7 +5,6 @@
     "accountSettings": "Account",
     "institutionDetails": "Institution Details",
     "institutionTimeline": "Institution Timeline",
-    "dataAccessRequests": "Access Requests",
     "mySchedule": "My Schedule",
     "logout": "Logout"
   },
@@ -138,8 +137,6 @@
     "birthdayTomorrow": "Tomorrow",
     "birthdayInDays": "In {{days}} days",
     "birthdayAge": "{{age}} years old",
-    "pendingAccessRequests": "Pending Access Requests",
-    "pendingAccessRequestsSubtitle": "Requests awaiting your response",
     "mySchedule": "My Schedule",
     "myScheduleSubtitle": "View schedule and days off"
   },
@@ -454,25 +451,6 @@
     "failedToUpdateMedication": "Failed to update medication. Please try again.",
     "failedToLoadMedication": "Failed to load medication details. Please try again."
   },
-  "dataAccessRequest": {
-    "sectionTitle": "My Patients",
-    "pendingRequests": "Pending Access",
-    "approvedRequests": "Approved Patients",
-    "noPendingRequests": "No patients with pending access",
-    "noApprovedRequests": "No patients with approved access",
-    "searchPlaceholder": "Search by name or medical ID",
-    "noResultsFound": "No patients found matching your search",
-    "adminSectionTitle": "Access Management",
-    "adminPendingRequests": "Access Requests",
-    "adminPendingRequestsSubtitle": "Clinician requests awaiting response",
-    "noPendingForInstitution": "No pending access requests",
-    "clinicianRequesting": "Requesting clinician",
-    "requestedOn": "Requested on",
-    "approve": "Approve",
-    "deny": "Deny",
-    "approvedOnBehalf": "Access successfully approved",
-    "deniedOnBehalf": "Access denied"
-  },
   "fallOccurrence": {
     "title": "Fall Occurrence",
     "details": "Fall Details",
@@ -747,23 +725,6 @@
     "sosReported": "SOS Alert Sent",
     "sosReportedDescription": "Your caregivers have been notified",
     "failedToReportSos": "Failed to send SOS alert. Please try again.",
-    "pendingAccessRequests": "Pending Access Requests",
-    "pendingAccessRequestsDescription": "Clinicians requesting access to your data",
-    "request": "request",
-    "requests": "requests",
-    "requestedOn": "Requested on",
-    "notes": "Notes",
-    "approve": "Approve",
-    "deny": "Deny",
-    "accessApproved": "Access request approved",
-    "accessDenied": "Access request denied",
-    "failedToLoadRequests": "Failed to load access requests",
-    "failedToRespond": "Failed to respond to request. Please try again.",
-    "unknown": "Unknown",
-    "confirmDataAccess": "Confirm Data Access",
-    "confirmDataAccessMessage": "Are you sure you want to grant {{clinicianName}} access to your data?",
-    "dataAccessWarning": "This will allow the clinician to view your personal information and medical records.",
-    "grantAccess": "Grant Access",
     "sosOccurrences": "SOS Occurrences",
     "noSosOccurrences": "No SOS occurrences recorded",
     "editProfile": "Edit Profile",
@@ -787,11 +748,7 @@
     "gender": "Gender",
     "phone": "Phone",
     "email": "Email",
-    "years": "years",
-    "pendingAccessRequests": "Pending Access Requests for Your Elderly",
-    "forElderly": "For Elderly",
-    "accessApprovedOnBehalf": "Access request approved on behalf of elderly",
-    "accessDeniedOnBehalf": "Access request denied on behalf of elderly"
+    "years": "years"
   },
   "institution": {
     "title": "Institution",
@@ -919,19 +876,7 @@
     "verifyIdHint": "Please verify the ID and try again",
     "startSearch": "Start Your Search",
     "startSearchMessage": "Enter a medical ID above to find patient information",
-    "yearsOld": "years old",
-    "medicalDataPrivate": "Medical data is private",
-    "requestAccess": "Request Access",
-    "requestAgain": "Request Access Again",
-    "requesting": "Requesting...",
-    "accessRequested": "Access Requested",
-    "accessRequestedMessage": "Your request has been sent to the patient",
-    "requestFailed": "Request Failed",
-    "failedToRequestAccess": "Failed to request access",
-    "statusPending": "Pending Approval",
-    "statusApproved": "Access Granted",
-    "statusDenied": "Access Denied",
-    "statusRevoked": "Access Revoked"
+    "yearsOld": "years old"
   },
   "notifications": {
     "title": "Notifications",
@@ -958,10 +903,6 @@
     "inactivityAlert": {
       "title": "Inactivity Alert",
       "body": "{{elderlyName}} has been inactive for an extended period. Please check on them."
-    },
-    "dataAccessRequest": {
-      "title": "Data Access Request",
-      "body": "Dr. {{clinicianUsername}} has requested access to your health data. Please review and respond."
     },
     "sosAlert": {
       "title": "SOS Alert",

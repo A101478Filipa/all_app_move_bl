@@ -6,7 +6,5 @@
   "fallDetectionAlertTitle": "🚨 Queda Detetada",
   "fallDetectionAlertBody": "{elderlyName} pode ter sofrido uma queda (detetada pelo acelerómetro). Por favor, verifique imediatamente.",
   "sosAlertTitle": "🆘 Alerta SOS",
-  "sosAlertBody": "{elderlyName} está a pedir ajuda. Por favor, responda imediatamente.",
-  "dataAccessRequestTitle": "🔐 Pedido de Acesso a Dados",
-  "dataAccessRequestBody": "{clinicianUsername} solicitou acesso aos dados de saúde. Por favor, reveja e responda."
+  "sosAlertBody": "{elderlyName} está a pedir ajuda. Por favor, responda imediatamente."
 }

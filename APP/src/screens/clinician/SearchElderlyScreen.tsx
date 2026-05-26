@@ -61,10 +61,6 @@ const SearchElderlyScreen = () => {
     handleSearch(debouncedMedicalId);
   }, [debouncedMedicalId]);
 
-  const handleAccessRequested = () => {
-    handleSearch(medicalId);
-  };
-
   const handlePatientPress = () => {
     if (searchResult) {
       navigation.navigate('ElderlyDetails', { elderlyId: searchResult.id });
@@ -106,7 +102,6 @@ const SearchElderlyScreen = () => {
             <PatientResultCard
               patient={searchResult}
               fadeAnim={fadeAnim}
-              onAccessRequested={handleAccessRequested}
               onPatientPress={handlePatientPress}
             />
           )}

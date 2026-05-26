@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
 import { Color } from '@src/styles/colors';
 import { Spacing, spacingStyles } from '@src/styles/spacings';
@@ -9,7 +9,6 @@ import { VStack, HStack } from '@components/CoreComponents';
 import { useAuthStore } from '@src/stores';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
-import { dataAccessRequestApi } from '@src/api/endpoints/dataAccessRequest';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ClinicianDashboardNavigationStackParamList } from '@navigation/ClinicianDashboardNavigationStack';
@@ -72,21 +71,6 @@ const ClinicianDashboardScreen = () => {
   const { t } = useTranslation();
   const { user } = useAuthStore();
   const navigation = useNavigation<NavigationProp>();
-  const [pendingCount, setPendingCount] = useState(0);
-
-  useEffect(() => {
-    dataAccessRequestApi.getMyRequests().then(r => {
-      setPendingCount((r.data ?? []).filter(req => req.status === 'PENDING').length);
-    }).catch(() => {});
-  }, []);
-
-  const handleViewApprovedPatients = useCallback(() => {
-    navigation.push('DataAccessRequests', { filter: 'APPROVED' });
-  }, [navigation]);
-
-  const handleViewPendingRequests = useCallback(() => {
-    navigation.push('DataAccessRequests', { filter: 'PENDING' });
-  }, [navigation]);
 
   const handleViewMySchedule = useCallback(() => {
     const userId = user?.user?.id;
@@ -126,20 +110,6 @@ const ClinicianDashboardScreen = () => {
         <VStack spacing={Spacing.sm_8} style={styles.section}>
           <Text style={styles.sectionTitle}>{t('dashboard.quickActions')}</Text>
           <VStack style={{ alignSelf: 'stretch' }} spacing={Spacing.md_16}>
-            <DashboardWidget
-              title={t('dataAccessRequest.approvedRequests')}
-              subtitle={t('dashboard.viewYourPatients')}
-              icon={<MaterialIcons name="people" size={24} color={Color.primary} />}
-              onPress={handleViewApprovedPatients}
-              color={Color.primary}
-            />
-            <DashboardWidget
-              title={t('dashboard.pendingAccessRequests')}
-              subtitle={pendingCount > 0 ? `${pendingCount} ${t('dashboard.pendingAccessRequestsSubtitle')}` : t('dataAccessRequest.noPendingRequests')}
-              icon={<MaterialIcons name="pending-actions" size={24} color={Color.Orange.v300} />}
-              onPress={handleViewPendingRequests}
-              color={Color.Orange.v300}
-            />
             <DashboardWidget
               title={t('dashboard.myCalendar')}
               subtitle={t('dashboard.myCalendarSubtitle')}

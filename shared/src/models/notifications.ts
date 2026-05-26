@@ -50,17 +50,6 @@ export interface InactivityAlertNotificationData extends NotificationData {
 }
 
 /**
- * Data access request notification data
- */
-export interface DataAccessRequestNotificationData extends NotificationData {
-  type: 'data_access_request';
-  requestId: number;
-  params: {
-    clinicianUsername: string;
-  };
-}
-
-/**
  * SOS occurrence notification data
  */
 export interface SosOccurrenceNotificationData extends NotificationData {
@@ -93,7 +82,6 @@ export type AnyNotificationData =
   | FallOccurrenceNotificationData
   | FallDetectionAlertNotificationData
   | InactivityAlertNotificationData
-  | DataAccessRequestNotificationData
   | SosOccurrenceNotificationData
   | TimeOffRequestNotificationData;
 
@@ -122,14 +110,6 @@ export const InactivityAlertNotificationKeys = {
 } as const;
 
 /**
- * Notification translation keys for data access requests
- */
-export const DataAccessRequestNotificationKeys = {
-  titleKey: 'notifications.dataAccessRequest.title',
-  bodyKey: 'notifications.dataAccessRequest.body',
-} as const;
-
-/**
  * Notification translation keys for SOS alerts
  */
 export const SosAlertNotificationKeys = {
@@ -152,7 +132,6 @@ export const NotificationKeys = {
   fallAlert: FallAlertNotificationKeys,
   fallDetectionAlert: FallDetectionAlertNotificationKeys,
   inactivityAlert: InactivityAlertNotificationKeys,
-  dataAccessRequest: DataAccessRequestNotificationKeys,
   sosAlert: SosAlertNotificationKeys,
   timeOffRequest: TimeOffRequestNotificationKeys,
 } as const;
@@ -164,7 +143,6 @@ export const NotificationType = {
   FALL_OCCURRENCE: 'fall_occurrence',
   FALL_DETECTION_ALERT: 'fall_detection_alert',
   INACTIVITY_ALERT: 'inactivity_alert',
-  DATA_ACCESS_REQUEST: 'data_access_request',
   SOS_OCCURRENCE: 'sos_occurrence',
   TIME_OFF_REQUEST: 'time_off_request',
 } as const;

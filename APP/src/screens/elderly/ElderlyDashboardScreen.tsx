@@ -12,7 +12,6 @@ import { useTranslation } from '@src/localization/hooks/useTranslation';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ElderlyDashboardNavigationStackParamList } from '@navigation/ElderlyDashboardNavigationStack';
-import { PendingDataAccessRequestsWidget } from '@components/PendingDataAccessRequestsWidget';
 import Toast from 'react-native-toast-message';
 import { CalendarEvent, CalendarEventType } from 'moveplus-shared';
 import { calendarEventApi } from '@src/api/endpoints/calendarEvents';
@@ -79,10 +78,6 @@ const ElderlyDashboardScreen = () => {
   const { t } = useTranslation();
   const { user } = useAuthStore();
   const {
-    pendingAccessRequests,
-    state: dashboardState,
-    fetch,
-    removeRequest,
     reportFall,
     isReportingFall,
     reportSos,
@@ -103,10 +98,6 @@ const ElderlyDashboardScreen = () => {
   // Today's events
   const [todayEvents, setTodayEvents] = useState<CalendarEvent[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-
-  useEffect(() => {
-    fetch();
-  }, [fetch]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -314,14 +305,6 @@ const ElderlyDashboardScreen = () => {
 
         {/* Upcoming Birthdays */}
         <UpcomingBirthdaysWidget />
-
-        {/* Pending Data Access Requests */}
-        <PendingDataAccessRequestsWidget
-          requests={pendingAccessRequests}
-          state={dashboardState}
-          onRequestResponded={removeRequest}
-          userRole={user?.user?.role}
-        />
 
 
       </ScrollView>
