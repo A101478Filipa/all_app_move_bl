@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, Modal, TextInput, Switch,
+  Alert, Modal, TextInput, Switch, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -502,81 +502,91 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
       {/* ── Time-off Modal ── */}
       <Modal visible={showTimeOffModal} transparent animationType="slide" onRequestClose={() => setShowTimeOffModal(false)}>
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowTimeOffModal(false)} />
-        <View style={styles.modalSheet}>
-          <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>{editingTimeOff ? 'Editar pedido' : (isAdmin ? 'Nova ausência' : 'Pedir ausência')}</Text>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ justifyContent: 'flex-end' }}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <Text style={styles.modalTitle}>{editingTimeOff ? 'Editar pedido' : (isAdmin ? 'Nova ausência' : 'Pedir ausência')}</Text>
 
-          {/* Type selector */}
-          <Text style={styles.fieldLabel}>Tipo</Text>
-          <View style={styles.typeRow}>
-            {Object.values(TimeOffType).map(t => {
-              const active = toType === t;
-              const color = TIME_OFF_COLORS[t];
-              return (
-                <TouchableOpacity
-                  key={t}
-                  style={[styles.typeChip, active && { backgroundColor: color + '22', borderColor: color }]}
-                  onPress={() => setToType(t)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.typeChipText, active && { color }]}>{TIME_OFF_LABELS[t]}</Text>
-                </TouchableOpacity>
-              );
-            })}
+              {/* Type selector */}
+              <Text style={styles.fieldLabel}>Tipo</Text>
+              <View style={styles.typeRow}>
+                {Object.values(TimeOffType).map(t => {
+                  const active = toType === t;
+                  const color = TIME_OFF_COLORS[t];
+                  return (
+                    <TouchableOpacity
+                      key={t}
+                      style={[styles.typeChip, active && { backgroundColor: color + '22', borderColor: color }]}
+                      onPress={() => setToType(t)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.typeChipText, active && { color }]}>{TIME_OFF_LABELS[t]}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Date pickers */}
+              <Text style={[styles.fieldLabel, { marginTop: Spacing.sm_8 }]}>Data de início</Text>
+              <DatePickerInput
+                value={toStart}
+                onChange={d => setToStart(d)}
+                label=""
+              />
+              <Text style={[styles.fieldLabel, { marginTop: Spacing.sm_8 }]}>Data de fim</Text>
+              <DatePickerInput
+                value={toEnd}
+                onChange={d => setToEnd(d)}
+                label=""
+              />
+
+              {/* Note */}
+              <Text style={[styles.fieldLabel, { marginTop: Spacing.sm_8 }]}>Nota (opcional)</Text>
+              <TextInput
+                style={styles.noteInput}
+                value={toNote}
+                onChangeText={setToNote}
+                placeholder="Ex: Férias de Verão"
+                multiline
+                numberOfLines={3}
+                returnKeyType="done"
+                blurOnSubmit
+              />
+
+              <TouchableOpacity style={[styles.saveBtn, { marginTop: Spacing.sm_12, marginBottom: Spacing.sm_8 }]} onPress={saveTimeOff} disabled={saving} activeOpacity={0.85}>
+                <MaterialIcons name="save" size={18} color="#fff" />
+                <Text style={styles.saveBtnText}>{editingTimeOff ? 'Guardar alterações' : (isAdmin ? 'Criar ausência' : 'Enviar pedido')}</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
-
-          {/* Date pickers */}
-          <Text style={styles.fieldLabel}>Data de início</Text>
-          <DatePickerInput
-            value={toStart}
-            onChange={d => setToStart(d)}
-            label=""
-          />
-          <Text style={[styles.fieldLabel, { marginTop: Spacing.sm_8 }]}>Data de fim</Text>
-          <DatePickerInput
-            value={toEnd}
-            onChange={d => setToEnd(d)}
-            label=""
-          />
-
-          {/* Note */}
-          <Text style={[styles.fieldLabel, { marginTop: Spacing.sm_8 }]}>Nota (opcional)</Text>
-          <TextInput
-            style={styles.noteInput}
-            value={toNote}
-            onChangeText={setToNote}
-            placeholder="Ex: Férias de Verão"
-            multiline
-            numberOfLines={2}
-          />
-
-          <TouchableOpacity style={styles.saveBtn} onPress={saveTimeOff} disabled={saving} activeOpacity={0.85}>
-            <MaterialIcons name="save" size={18} color="#fff" />
-            <Text style={styles.saveBtnText}>{editingTimeOff ? 'Guardar alterações' : (isAdmin ? 'Criar ausência' : 'Enviar pedido')}</Text>
-          </TouchableOpacity>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Vacation Policy Modal ── */}
       <Modal visible={showPolicyModal} transparent animationType="slide" onRequestClose={() => setShowPolicyModal(false)}>
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowPolicyModal(false)} />
-        <View style={styles.modalSheet}>
-          <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>Política de Férias</Text>
-          <Text style={styles.fieldLabel}>Máximo de dias de férias por trabalhador por ano (1 – 365)</Text>
-          <TextInput
-            style={styles.timeInput}
-            value={policyDays}
-            onChangeText={setPolicyDays}
-            keyboardType="number-pad"
-            maxLength={3}
-            placeholder="22"
-          />
-          <TouchableOpacity style={styles.saveBtn} onPress={savePolicy} disabled={saving} activeOpacity={0.85}>
-            <MaterialIcons name="save" size={18} color="#fff" />
-            <Text style={styles.saveBtnText}>Guardar política</Text>
-          </TouchableOpacity>
-        </View>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ justifyContent: 'flex-end' }}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Política de Férias</Text>
+            <Text style={styles.fieldLabel}>Máximo de dias de férias por trabalhador por ano (1 – 365)</Text>
+            <TextInput
+              style={styles.timeInput}
+              value={policyDays}
+              onChangeText={setPolicyDays}
+              keyboardType="number-pad"
+              maxLength={3}
+              placeholder="22"
+              returnKeyType="done"
+              onSubmitEditing={savePolicy}
+            />
+            <TouchableOpacity style={[styles.saveBtn, { marginTop: Spacing.sm_8 }]} onPress={savePolicy} disabled={saving} activeOpacity={0.85}>
+              <MaterialIcons name="save" size={18} color="#fff" />
+              <Text style={styles.saveBtnText}>Guardar política</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {saving && <ActivityIndicatorOverlay />}

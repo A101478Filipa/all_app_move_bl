@@ -5,6 +5,14 @@ import { authenticate, authorizeRoles } from '../../middleware/authMiddleware';
 
 const staffScheduleRoutes = express.Router();
 
+// GET /staff-schedules/institution  — all staff schedules (Admin only, must be before /:userId)
+staffScheduleRoutes.get(
+  '/institution',
+  authenticate,
+  authorizeRoles([UserRole.INSTITUTION_ADMIN, UserRole.PROGRAMMER]),
+  controller.getInstitutionSchedules,
+);
+
 // GET /staff-schedules/:userId  — get work schedule for a user
 staffScheduleRoutes.get(
   '/:userId',

@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, Modal, TextInput,
+  Alert, Modal, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -13,6 +13,7 @@ import {
 } from 'moveplus-shared';
 import { timeOffApi, StaffTimeOffWithUser } from '@src/api/endpoints/timeOff';
 import { institutionApi } from '@src/api/endpoints/institution';
+import { staffScheduleApi, StaffScheduleSummary } from '@src/api/endpoints/staffSchedule';
 import { ActivityIndicatorOverlay } from '@components/ActivityIndicatorOverlay';
 import { Color } from '@src/styles/colors';
 import { FontFamily, FontSize } from '@src/styles/fonts';
@@ -56,6 +57,28 @@ function formatShortDate(d: string | Date): string {
   return new Date(d).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+function formatPresenceDate(d: Date): string {
+  return d.toLocaleDateString('pt-PT', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function isDateInRange(date: Date, startStr: string, endStr: string): boolean {
+  const d = date.getTime();
+  const start = new Date(startStr).setHours(0, 0, 0, 0);
+  const end = new Date(endStr).setHours(23, 59, 59, 999);
+  return d >= start && d <= end;
+}
+
+function isStaffPresent(s: StaffScheduleSummary, date: Date): 'present' | 'absent' | 'no-schedule' {
+  const hasTimeOff = s.timeOffs.some(t =>
+    isDateInRange(date, t.startDate as string, t.endDate as string)
+  );
+  if (hasTimeOff) return 'absent';
+  if (!s.schedule) return 'no-schedule';
+  const jsDay = date.getDay();
+  const isoDay = jsDay === 0 ? 7 : jsDay;
+  return s.schedule.workDays.includes(isoDay) ? 'present' : 'absent';
+}
+
 type StaffMember = { id: number; userId: number; name: string; role: string };
 
 const AdminTeamSchedulesScreen: React.FC<Props> = ({ navigation }) => {
@@ -71,13 +94,16 @@ const AdminTeamSchedulesScreen: React.FC<Props> = ({ navigation }) => {
   const [denyModalItem, setDenyModalItem] = useState<StaffTimeOffWithUser | null>(null);
   const [denyNote, setDenyNote] = useState('');
   const [filter, setFilter] = useState<'all' | 'pending'>('pending');
+  const [presenceDate, setPresenceDate] = useState<Date>(new Date());
+  const [institutionSchedules, setInstitutionSchedules] = useState<StaffScheduleSummary[]>([]);
 
   const fetchData = useCallback(async () => {
     try {
-      const [toRes, policyRes, membersRes] = await Promise.all([
+      const [toRes, policyRes, membersRes, schedRes] = await Promise.all([
         timeOffApi.getInstitutionTimeOffs().catch(() => ({ data: [] as StaffTimeOffWithUser[] })),
         timeOffApi.getVacationPolicy().catch(() => ({ data: null })),
         institutionApi.getInstitutionUsers().catch(() => ({ data: { caregivers: [], clinicians: [], admins: [], elderly: [] } })),
+        staffScheduleApi.getInstitutionSchedules().catch(() => ({ data: [] as StaffScheduleSummary[] })),
       ]);
       setTimeOffs(toRes.data ?? []);
       if (policyRes.data) {
@@ -91,6 +117,7 @@ const AdminTeamSchedulesScreen: React.FC<Props> = ({ navigation }) => {
         ...(members.admins ?? []).map(a => ({ id: a.id, userId: a.userId, name: a.name, role: 'INSTITUTION_ADMIN' })),
       ];
       setStaff(allStaff);
+      setInstitutionSchedules(schedRes.data ?? []);
     } catch (err) {
       handleError(err);
     } finally {
@@ -276,6 +303,54 @@ const AdminTeamSchedulesScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
 
+        {/* ── Daily Presence Calendar ── */}
+        {institutionSchedules.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <MaterialIcons name="today" size={20} color={Color.primary} />
+              <Text style={styles.sectionTitle}>Presença por Dia</Text>
+            </View>
+            <View style={styles.presenceNav}>
+              <TouchableOpacity
+                style={styles.presenceNavBtn}
+                onPress={() => setPresenceDate(d => { const n = new Date(d); n.setDate(n.getDate() - 1); return n; })}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <MaterialIcons name="chevron-left" size={24} color={Color.primary} />
+              </TouchableOpacity>
+              <Text style={styles.presenceDateText}>{formatPresenceDate(presenceDate)}</Text>
+              <TouchableOpacity
+                style={styles.presenceNavBtn}
+                onPress={() => setPresenceDate(d => { const n = new Date(d); n.setDate(n.getDate() + 1); return n; })}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <MaterialIcons name="chevron-right" size={24} color={Color.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.presenceTodayBtn}
+                onPress={() => setPresenceDate(new Date())}
+              >
+                <Text style={styles.presenceTodayText}>Hoje</Text>
+              </TouchableOpacity>
+            </View>
+            {institutionSchedules.map(s => {
+              const status = isStaffPresent(s, presenceDate);
+              const color = status === 'present' ? '#22C55E' : status === 'absent' ? '#EF4444' : '#94A3B8';
+              const icon = status === 'present' ? 'check-circle' : status === 'absent' ? 'cancel' : 'help-outline';
+              const label = status === 'present' ? 'Presente' : status === 'absent' ? 'Ausente' : 'Sem horário';
+              return (
+                <View key={s.userId} style={styles.presenceMemberRow}>
+                  <MaterialIcons name={icon as any} size={20} color={color} />
+                  <Text style={styles.presenceMemberName}>{s.name}</Text>
+                  <View style={[styles.presenceStatusBadge, { backgroundColor: color + '22' }]}>
+                    <Text style={[styles.presenceStatusText, { color }]}>{label}</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
         {/* ── Vacation Policy ── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -302,45 +377,53 @@ const AdminTeamSchedulesScreen: React.FC<Props> = ({ navigation }) => {
       {/* ── Deny Modal ── */}
       <Modal visible={!!denyModalItem} transparent animationType="slide" onRequestClose={() => setDenyModalItem(null)}>
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setDenyModalItem(null)} />
-        <View style={styles.modalSheet}>
-          <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>Recusar pedido</Text>
-          <Text style={styles.fieldLabel}>Motivo (opcional)</Text>
-          <TextInput
-            style={styles.textInput}
-            value={denyNote}
-            onChangeText={setDenyNote}
-            placeholder="Ex: Período já ocupado"
-            multiline
-            numberOfLines={3}
-          />
-          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: '#EF4444' }]} onPress={confirmDeny} disabled={saving}>
-            <MaterialIcons name="close" size={18} color="#fff" />
-            <Text style={styles.saveBtnText}>Recusar pedido</Text>
-          </TouchableOpacity>
-        </View>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ justifyContent: 'flex-end' }}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Recusar pedido</Text>
+            <Text style={styles.fieldLabel}>Motivo (opcional)</Text>
+            <TextInput
+              style={styles.textInput}
+              value={denyNote}
+              onChangeText={setDenyNote}
+              placeholder="Ex: Período já ocupado"
+              multiline
+              numberOfLines={3}
+              returnKeyType="done"
+              blurOnSubmit
+            />
+            <TouchableOpacity style={[styles.saveBtn, { backgroundColor: '#EF4444', marginTop: 4 }]} onPress={confirmDeny} disabled={saving}>
+              <MaterialIcons name="close" size={18} color="#fff" />
+              <Text style={styles.saveBtnText}>Recusar pedido</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Policy Modal ── */}
       <Modal visible={showPolicyModal} transparent animationType="slide" onRequestClose={() => setShowPolicyModal(false)}>
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowPolicyModal(false)} />
-        <View style={styles.modalSheet}>
-          <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>Política de Férias</Text>
-          <Text style={styles.fieldLabel}>Máximo de dias de férias por trabalhador por ano (1 – 365)</Text>
-          <TextInput
-            style={styles.timeInput}
-            value={policyDays}
-            onChangeText={setPolicyDays}
-            keyboardType="number-pad"
-            maxLength={3}
-            placeholder="22"
-          />
-          <TouchableOpacity style={styles.saveBtn} onPress={savePolicy} disabled={saving}>
-            <MaterialIcons name="save" size={18} color="#fff" />
-            <Text style={styles.saveBtnText}>Guardar política</Text>
-          </TouchableOpacity>
-        </View>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ justifyContent: 'flex-end' }}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Política de Férias</Text>
+            <Text style={styles.fieldLabel}>Máximo de dias de férias por trabalhador por ano (1 – 365)</Text>
+            <TextInput
+              style={styles.timeInput}
+              value={policyDays}
+              onChangeText={setPolicyDays}
+              keyboardType="number-pad"
+              maxLength={3}
+              placeholder="22"
+              returnKeyType="done"
+              onSubmitEditing={savePolicy}
+            />
+            <TouchableOpacity style={[styles.saveBtn, { marginTop: 4 }]} onPress={savePolicy} disabled={saving}>
+              <MaterialIcons name="save" size={18} color="#fff" />
+              <Text style={styles.saveBtnText}>Guardar política</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {saving && <ActivityIndicatorOverlay />}
@@ -439,4 +522,24 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm_12, marginTop: 4,
   },
   saveBtnText: { fontFamily: FontFamily.semi_bold, fontSize: FontSize.bodysmall_14, color: '#fff' },
+  presenceNav: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  presenceNavBtn: { padding: 4 },
+  presenceDateText: {
+    flex: 1, textAlign: 'center',
+    fontFamily: FontFamily.semi_bold, fontSize: FontSize.bodysmall_14, color: Color.dark,
+  },
+  presenceTodayBtn: {
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 8, backgroundColor: Color.primary + '18',
+  },
+  presenceTodayText: { fontFamily: FontFamily.medium, fontSize: FontSize.caption_12, color: Color.primary },
+  presenceMemberRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: Color.Gray.v100,
+  },
+  presenceMemberName: {
+    flex: 1, fontFamily: FontFamily.medium, fontSize: FontSize.bodysmall_14, color: Color.dark,
+  },
+  presenceStatusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  presenceStatusText: { fontFamily: FontFamily.semi_bold, fontSize: 11 },
 });

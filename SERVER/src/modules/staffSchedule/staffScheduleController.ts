@@ -2,6 +2,67 @@ import { UpsertWorkScheduleRequest, UserRole } from 'moveplus-shared';
 import { sendSuccess, sendError, sendInputValidationError } from '../../utils/apiResponse';
 import prisma from '../../prisma';
 
+// GET /staff-schedules/institution  — all staff schedules + approved time-offs (admin only)
+export const getInstitutionSchedules = async (req, res) => {
+  const { userId, role } = req.user;
+
+  if (role !== UserRole.INSTITUTION_ADMIN && role !== UserRole.PROGRAMMER) {
+    return sendError(res, 'Forbidden', 403);
+  }
+
+  try {
+    const admin = await prisma.institutionAdmin.findUnique({
+      where: { userId },
+      select: { institutionId: true },
+    });
+    if (!admin) return sendError(res, 'Admin not found', 404);
+
+    const [caregivers, clinicians, admins] = await Promise.all([
+      prisma.caregiver.findMany({ where: { institutionId: admin.institutionId }, select: { userId: true, name: true } }),
+      prisma.clinician.findMany({ where: { institutionId: admin.institutionId }, select: { userId: true, name: true } }),
+      prisma.institutionAdmin.findMany({ where: { institutionId: admin.institutionId }, select: { userId: true, name: true } }),
+    ]);
+
+    const staffList = [
+      ...caregivers.map(s => ({ ...s, role: 'CAREGIVER' })),
+      ...clinicians.map(s => ({ ...s, role: 'CLINICIAN' })),
+      ...admins.map(s => ({ ...s, role: 'INSTITUTION_ADMIN' })),
+    ];
+    const staffUserIds = staffList.map(s => s.userId);
+
+    const [schedules, timeOffs] = await Promise.all([
+      prisma.staffWorkSchedule.findMany({ where: { userId: { in: staffUserIds } } }),
+      prisma.staffTimeOff.findMany({
+        where: {
+          userId: { in: staffUserIds },
+          status: 'APPROVED',
+        },
+        select: { userId: true, type: true, startDate: true, endDate: true, status: true },
+      }),
+    ]);
+
+    const scheduleMap: Record<number, any> = {};
+    for (const s of schedules) scheduleMap[s.userId] = s;
+
+    const timeOffsByUser: Record<number, any[]> = {};
+    for (const t of timeOffs) {
+      if (!timeOffsByUser[t.userId]) timeOffsByUser[t.userId] = [];
+      timeOffsByUser[t.userId].push(t);
+    }
+
+    return sendSuccess(res, staffList.map(s => ({
+      userId: s.userId,
+      name: s.name,
+      role: s.role,
+      schedule: scheduleMap[s.userId] ?? null,
+      timeOffs: timeOffsByUser[s.userId] ?? [],
+    })));
+  } catch (error) {
+    console.error('Error fetching institution schedules:', error);
+    return sendError(res, 'Internal Server Error', 500);
+  }
+};
+
 // GET /staff-schedules/:userId
 export const getWorkSchedule = async (req, res) => {
   const { userId: requesterId, role } = req.user;

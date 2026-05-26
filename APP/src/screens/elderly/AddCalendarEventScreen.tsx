@@ -142,10 +142,14 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const tagTimeOff = (items: { label: string; value: number }[]) =>
-    items.map(item => isOnTimeOff(item.value)
-      ? { ...item, label: `${item.label} ${t('calendar.unavailableTimeOff')}` }
-      : item
-    );
+    items.filter(item => !isOnTimeOff(item.value));
+
+  useEffect(() => {
+    if (form.assignedToId && form.assignedToId !== EXTERNAL_VALUE && isOnTimeOff(form.assignedToId)) {
+      setForm(prev => ({ ...prev, assignedToId: null }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.date]);
 
   const externalOption = { label: `(${t('calendar.external')}) ${t('calendar.externalProfessional')}`, value: EXTERNAL_VALUE };
 

@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Modal, TextInput, Alert, RefreshControl,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -173,7 +174,11 @@ const ElderlyAbsencesScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {/* Add absence modal */}
       <Modal visible={showModal} transparent animationType="fade" onRequestClose={() => setShowModal(false)}>
-        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowModal(false)}>
+        <KeyboardAvoidingView
+          style={styles.overlayContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={() => setShowModal(false)} />
           <TouchableOpacity activeOpacity={1} style={styles.modalBox}>
             <Text style={styles.modalTitle}>Registar Ausência</Text>
 
@@ -204,6 +209,8 @@ const ElderlyAbsencesScreen: React.FC<Props> = ({ route, navigation }) => {
                 multiline
                 numberOfLines={3}
                 textAlignVertical="top"
+                returnKeyType="done"
+                blurOnSubmit
               />
             </View>
 
@@ -216,7 +223,7 @@ const ElderlyAbsencesScreen: React.FC<Props> = ({ route, navigation }) => {
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
-        </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -323,7 +330,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 6,
   },
-  overlay: {
+  overlayContainer: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'center',
