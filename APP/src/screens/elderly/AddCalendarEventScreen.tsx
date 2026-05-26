@@ -9,6 +9,7 @@ import { calendarEventApi } from '@src/api/endpoints/calendarEvents';
 import { institutionApi } from '@src/api/endpoints/institution';
 import { externalProfessionalApi } from '@src/api/endpoints/externalProfessionals';
 import { timeOffApi, StaffTimeOffWithUser } from '@src/api/endpoints/timeOff';
+import { staffScheduleApi, StaffScheduleSummary } from '@src/api/endpoints/staffSchedule';
 import { Color } from '@src/styles/colors';
 import { FontFamily, FontSize } from '@src/styles/fonts';
 import { Spacing, spacingStyles } from '@src/styles/spacings';
@@ -79,6 +80,7 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
   const [caregivers, setCaregivers] = useState<{ label: string; value: number }[]>([]);
   const [savedExternals, setSavedExternals] = useState<ExternalProfessional[]>([]);
   const [institutionTimeOffs, setInstitutionTimeOffs] = useState<StaffTimeOffWithUser[]>([]);
+  const [institutionSchedules, setInstitutionSchedules] = useState<StaffScheduleSummary[]>([]);
 
   const initISO = editEvent
     ? new Date(editEvent.startDate).toISOString()
@@ -124,6 +126,10 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
     timeOffApi.getInstitutionTimeOffs().then(res => {
       setInstitutionTimeOffs(res.data ?? []);
     }).catch(() => {});
+
+    staffScheduleApi.getInstitutionSchedules().then(res => {
+      setInstitutionSchedules(res.data ?? []);
+    }).catch(() => {});
   }, [t]);
 
   const isClinicalType = form.type ? CLINICAL_TYPES.includes(form.type) : false;
@@ -131,14 +137,47 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
   const isNewExternal = isExternal && form.externalProfessionalId === NEW_EXTERNAL_VALUE;
   const isExistingExternal = isExternal && form.externalProfessionalId !== null && form.externalProfessionalId !== NEW_EXTERNAL_VALUE && form.externalProfessionalId > 0;
 
+  // Returns true when the staff member is NOT available for the event date/time:
+  //  1. Has an approved time-off covering the event date
+  //  2. Their schedule doesn't include that weekday
+  //  3. If the event has a specific start time, it falls outside their work hours
   const isOnTimeOff = (userId: number): boolean => {
     if (!form.date) return false;
     const evDate = new Date(form.date);
-    return institutionTimeOffs.some(to =>
+
+    // Check 1: approved time-off
+    const onLeave = institutionTimeOffs.some(to =>
       to.user.id === userId &&
       new Date(to.startDate) <= evDate &&
       new Date(to.endDate) >= evDate
     );
+    if (onLeave) return true;
+
+    // Check 2 & 3: work schedule
+    const summary = institutionSchedules.find(s => s.userId === userId);
+    if (summary?.schedule) {
+      const { workDays, startTime, endTime } = summary.schedule;
+      const jsDay = evDate.getDay();
+      const isoDay = jsDay === 0 ? 7 : jsDay;
+      if (!workDays.includes(isoDay)) return true;  // doesn't work that weekday
+
+      // Check time only when event is not all-day and has a startTime
+      if (!form.allDay && form.startTime) {
+        const evH = form.startTime.getHours();
+        const evM = form.startTime.getMinutes();
+        const evMins = evH * 60 + evM;
+        const [sh, sm] = startTime.split(':').map(Number);
+        const [eh, em] = endTime.split(':').map(Number);
+        const startMins = sh * 60 + sm;
+        const endMins   = eh * 60 + em;
+        const inShift = startMins < endMins
+          ? evMins >= startMins && evMins < endMins          // normal shift
+          : evMins >= startMins || evMins < endMins;         // overnight shift
+        if (!inShift) return true;
+      }
+    }
+
+    return false;
   };
 
   const tagTimeOff = (items: { label: string; value: number }[]) =>
@@ -149,7 +188,7 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
       setForm(prev => ({ ...prev, assignedToId: null }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.date]);
+  }, [form.date, form.startTime, form.allDay]);
 
   const externalOption = { label: `(${t('calendar.external')}) ${t('calendar.externalProfessional')}`, value: EXTERNAL_VALUE };
 

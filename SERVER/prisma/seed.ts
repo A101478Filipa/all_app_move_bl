@@ -16,7 +16,6 @@ const timeOnDate = (d: Date, hh: number, mm: number) => new Date(d.getFullYear()
 async function main() {
   // ── wipe & reset ──────────────────────────────────────────────────────────
   await prisma.$executeRaw`TRUNCATE TABLE "User", "Institution", "Device", "Address" RESTART IDENTITY CASCADE`;
-
   const hp = (pw: string) => bcrypt.hash(pw, 10);
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -478,29 +477,60 @@ async function main() {
 
   // ═══════════════════════════════════════════════════════════════════════════
   // STAFF WORK SCHEDULES
+  // ─ Caregivers: flexible shifts – can include weekends, nights, public holidays
+  // ─ Clinicians: weekdays only, normal office hours
+  // ─ Admins:     weekdays only, office hours
   // ═══════════════════════════════════════════════════════════════════════════
-  const schedules = [
-    { workDays: [1,2,3,4,5], startTime: '07:00', endTime: '15:00' },
-    { workDays: [1,2,3,4,5], startTime: '15:00', endTime: '23:00' },
-    { workDays: [1,2,3,4,5], startTime: '07:00', endTime: '15:00' },
-    { workDays: [6,7],       startTime: '23:00', endTime: '07:00' },
-    { workDays: [1,2,3,4,5], startTime: '15:00', endTime: '23:00' },
-    { workDays: [6,7],       startTime: '08:00', endTime: '20:00' },
-    { workDays: [1,2,3,4,5], startTime: '07:00', endTime: '15:00' },
-    { workDays: [1,2,3,4,5], startTime: '15:00', endTime: '23:00' },
-    { workDays: [6,7],       startTime: '23:00', endTime: '07:00' },
+
+  // Caregivers – 9 entries, one per caregiverUsers[i]
+  // Shifts:  morning 07:00–15:00 | afternoon 15:00–23:00 | night 23:00–07:00
+  const caregiverSchedules = [
+    // caregiver1 – Alice Thompson (HCC): full week, morning shift
+    { workDays: [1,2,3,4,5,6,7], startTime: '07:00', endTime: '15:00' },
+    // caregiver2 – Mark Evans (HCC): Mon–Fri + weekends, afternoon shift
+    { workDays: [1,2,3,4,5,6,7], startTime: '15:00', endTime: '23:00' },
+    // caregiver3 – Nancy Lewis (HCC): weekdays only, morning shift
+    { workDays: [1,2,3,4,5],     startTime: '07:00', endTime: '15:00' },
+    // caregiver4 – Steven Martinez (LSB): full week, night shift (23:00–07:00)
+    { workDays: [1,2,3,4,5,6,7], startTime: '23:00', endTime: '07:00' },
+    // caregiver5 – Rachel Turner (LSB): weekdays, afternoon shift
+    { workDays: [1,2,3,4,5],     startTime: '15:00', endTime: '23:00' },
+    // caregiver6 – Thomas Scott (LSB): full week, morning shift
+    { workDays: [1,2,3,4,5,6,7], startTime: '07:00', endTime: '15:00' },
+    // caregiver7 – Laura Reis (CSG): full week, afternoon shift
+    { workDays: [1,2,3,4,5,6,7], startTime: '15:00', endTime: '23:00' },
+    // caregiver8 – Paulo Costa (CSG): weekends + Mon/Tue, night shift
+    { workDays: [1,2,6,7],       startTime: '23:00', endTime: '07:00' },
+    // caregiver9 – Inês Carvalho (CSG): weekdays, morning shift
+    { workDays: [1,2,3,4,5],     startTime: '07:00', endTime: '15:00' },
   ];
   for (let i = 0; i < caregiverUsers.length; i++) {
     await prisma.staffWorkSchedule.upsert({
-      where: { userId: caregiverUsers[i].id },
-      update: {},
-      create: { userId: caregiverUsers[i].id, ...schedules[i] },
+      where:  { userId: caregiverUsers[i].id },
+      update: caregiverSchedules[i],
+      create: { userId: caregiverUsers[i].id, ...caregiverSchedules[i] },
     });
   }
+
+  // Clinicians – 3 entries, weekdays only, normal office hours
+  const clinicianSchedules = [
+    { workDays: [1,2,3,4,5], startTime: '09:00', endTime: '17:00' }, // Dr. Maria Santos (HCC)
+    { workDays: [1,2,3,4,5], startTime: '08:00', endTime: '16:00' }, // Dr. Rui Monteiro (LSB)
+    { workDays: [1,2,3,4,5], startTime: '09:00', endTime: '17:00' }, // Dra. Sofia Andrade (CSG)
+  ];
+  for (let i = 0; i < clinicianProfiles.length; i++) {
+    await prisma.staffWorkSchedule.upsert({
+      where:  { userId: clinicianProfiles[i].userId },
+      update: clinicianSchedules[i],
+      create: { userId: clinicianProfiles[i].userId, ...clinicianSchedules[i] },
+    });
+  }
+
+  // Admins – weekdays, office hours
   for (const au of adminUsers) {
     await prisma.staffWorkSchedule.upsert({
-      where: { userId: au.id },
-      update: {},
+      where:  { userId: au.id },
+      update: { workDays: [1,2,3,4,5], startTime: '09:00', endTime: '17:00' },
       create: { userId: au.id, workDays: [1,2,3,4,5], startTime: '09:00', endTime: '17:00' },
     });
   }

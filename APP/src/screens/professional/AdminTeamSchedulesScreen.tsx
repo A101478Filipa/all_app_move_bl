@@ -68,15 +68,33 @@ function isDateInRange(date: Date, startStr: string, endStr: string): boolean {
   return d >= start && d <= end;
 }
 
-function isStaffPresent(s: StaffScheduleSummary, date: Date): 'present' | 'absent' | 'no-schedule' {
+type ShiftType = 'morning' | 'afternoon' | 'night';
+const SHIFT_LABELS: Record<ShiftType, string> = { morning: 'Manhã', afternoon: 'Tarde', night: 'Noite' };
+const SHIFT_COLORS: Record<ShiftType, string> = { morning: '#F59E0B', afternoon: '#3B82F6', night: '#7C3AED' };
+const SHIFT_ICONS: Record<ShiftType, string> = { morning: 'wb-sunny', afternoon: 'wb-twilight', night: 'nightlight-round' };
+
+function getShiftType(startTime: string): ShiftType {
+  const h = parseInt(startTime.split(':')[0], 10);
+  if (h >= 6 && h < 14) return 'morning';
+  if (h >= 14 && h < 22) return 'afternoon';
+  return 'night';
+}
+
+type PresenceInfo =
+  | { status: 'absent' | 'no-schedule' }
+  | { status: 'present'; shift: ShiftType; timeRange: string };
+
+function getPresenceInfo(s: StaffScheduleSummary, date: Date): PresenceInfo {
   const hasTimeOff = s.timeOffs.some(t =>
     isDateInRange(date, t.startDate as string, t.endDate as string)
   );
-  if (hasTimeOff) return 'absent';
-  if (!s.schedule) return 'no-schedule';
+  if (hasTimeOff) return { status: 'absent' };
+  if (!s.schedule) return { status: 'no-schedule' };
   const jsDay = date.getDay();
   const isoDay = jsDay === 0 ? 7 : jsDay;
-  return s.schedule.workDays.includes(isoDay) ? 'present' : 'absent';
+  if (!s.schedule.workDays.includes(isoDay)) return { status: 'absent' };
+  const shift = getShiftType(s.schedule.startTime);
+  return { status: 'present', shift, timeRange: `${s.schedule.startTime}–${s.schedule.endTime}` };
 }
 
 type StaffMember = { id: number; userId: number; name: string; role: string };
@@ -333,21 +351,64 @@ const AdminTeamSchedulesScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={styles.presenceTodayText}>Hoje</Text>
               </TouchableOpacity>
             </View>
-            {institutionSchedules.map(s => {
-              const status = isStaffPresent(s, presenceDate);
-              const color = status === 'present' ? '#22C55E' : status === 'absent' ? '#EF4444' : '#94A3B8';
-              const icon = status === 'present' ? 'check-circle' : status === 'absent' ? 'cancel' : 'help-outline';
-              const label = status === 'present' ? 'Presente' : status === 'absent' ? 'Ausente' : 'Sem horário';
+            {/* List: grouped by shift (present) then absent */}
+            {(() => {
+              const infos = institutionSchedules.map(s => ({ s, info: getPresenceInfo(s, presenceDate) }));
+              const shiftOrder: ShiftType[] = ['morning', 'afternoon', 'night'];
+              const present = infos.filter(x => x.info.status === 'present') as { s: StaffScheduleSummary; info: Extract<PresenceInfo, { status: 'present' }> }[];
+              const absent  = infos.filter(x => x.info.status !== 'present');
+
               return (
-                <View key={s.userId} style={styles.presenceMemberRow}>
-                  <MaterialIcons name={icon as any} size={20} color={color} />
-                  <Text style={styles.presenceMemberName}>{s.name}</Text>
-                  <View style={[styles.presenceStatusBadge, { backgroundColor: color + '22' }]}>
-                    <Text style={[styles.presenceStatusText, { color }]}>{label}</Text>
-                  </View>
-                </View>
+                <>
+                  {shiftOrder.map(shift => {
+                    const members = present.filter(x => x.info.shift === shift);
+                    if (members.length === 0) return null;
+                    const shiftColor = SHIFT_COLORS[shift];
+                    return (
+                      <View key={shift}>
+                        <View style={[styles.shiftHeader, { borderLeftColor: shiftColor }]}>
+                          <MaterialIcons name={SHIFT_ICONS[shift] as any} size={16} color={shiftColor} />
+                          <Text style={[styles.shiftHeaderText, { color: shiftColor }]}>
+                            {SHIFT_LABELS[shift]} · {members[0].info.timeRange}
+                          </Text>
+                        </View>
+                        {members.map(({ s }) => (
+                          <View key={s.userId} style={styles.presenceMemberRow}>
+                            <MaterialIcons name="check-circle" size={20} color="#22C55E" />
+                            <Text style={styles.presenceMemberName}>{s.name}</Text>
+                            <View style={[styles.presenceStatusBadge, { backgroundColor: '#22C55E22' }]}>
+                              <Text style={[styles.presenceStatusText, { color: '#22C55E' }]}>Presente</Text>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    );
+                  })}
+                  {absent.length > 0 && (
+                    <View>
+                      <View style={[styles.shiftHeader, { borderLeftColor: '#94A3B8' }]}>
+                        <MaterialIcons name="cancel" size={16} color="#94A3B8" />
+                        <Text style={[styles.shiftHeaderText, { color: '#94A3B8' }]}>Ausentes / Sem horário</Text>
+                      </View>
+                      {absent.map(({ s, info }) => {
+                        const color = info.status === 'absent' ? '#EF4444' : '#94A3B8';
+                        const icon  = info.status === 'absent' ? 'cancel' : 'help-outline';
+                        const label = info.status === 'absent' ? 'Ausente' : 'Sem horário';
+                        return (
+                          <View key={s.userId} style={styles.presenceMemberRow}>
+                            <MaterialIcons name={icon as any} size={20} color={color} />
+                            <Text style={styles.presenceMemberName}>{s.name}</Text>
+                            <View style={[styles.presenceStatusBadge, { backgroundColor: color + '22' }]}>
+                              <Text style={[styles.presenceStatusText, { color }]}>{label}</Text>
+                            </View>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  )}
+                </>
               );
-            })}
+            })()}
           </View>
         )}
 
@@ -542,4 +603,10 @@ const styles = StyleSheet.create({
   },
   presenceStatusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   presenceStatusText: { fontFamily: FontFamily.semi_bold, fontSize: 11 },
+  shiftHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    borderLeftWidth: 3, paddingLeft: 8, paddingVertical: 4,
+    marginTop: 8, marginBottom: 2,
+  },
+  shiftHeaderText: { fontFamily: FontFamily.semi_bold, fontSize: FontSize.caption_12 },
 });
