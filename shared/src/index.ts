@@ -77,6 +77,7 @@ export * from './rest/requests/CreateInstitutionRequest';
 export * from './rest/requests/CreateCalendarEventRequest';
 export * from './rest/requests/UpdateCalendarEventRequest';
 export * from './rest/requests/ScheduleRequests';
+export * from './rest/requests/PasswordResetRequests';
 
 /// Responses
 export * from './rest/responses/ApiResponse';

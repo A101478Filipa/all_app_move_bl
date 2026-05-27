@@ -172,7 +172,9 @@ const InstitutionInvitationsScreen: React.FC<InstitutionInvitationsScreenProps> 
             </View>
           </HStack>
 
-          <Text style={styles.email}>{item.email}</Text>
+          <Text style={styles.email}>
+            {item.email || item.phone || item.utenteId || '—'}
+          </Text>
 
           <HStack spacing={Spacing.md_16} style={{ alignSelf: 'stretch' }}>
             <VStack spacing={Spacing.xs_4} align="flex-start" style={{ flex: 1 }}>

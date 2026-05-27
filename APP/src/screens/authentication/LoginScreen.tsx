@@ -56,7 +56,9 @@ const LoginScreen = ({ navigation }) => {
   };
 
   // TODO: Implement
-  const onForgotPassword = () => {}
+  const onForgotPassword = () => {
+    navigation.navigate('ForgotPassword');
+  }
 
   const onRegisterNow = () => {
     navigation.replace('Register')

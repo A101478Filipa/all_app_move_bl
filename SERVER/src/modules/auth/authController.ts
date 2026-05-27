@@ -6,6 +6,7 @@ import { sendSuccess, sendError, sendEmptySuccess } from '../../utils/apiRespons
 import { Caregiver, Elderly, Clinician, Programmer, InstitutionAdmin } from 'moveplus-shared';
 import { RefreshTokenService } from '../../services/refreshTokenService';
 import { InvitationStatus } from '@prisma/client';
+import { sendPasswordResetEmail } from '../../services/emailService';
 
 // * Check username availability
 export const checkUsername = async (req, res) => {
@@ -410,5 +411,106 @@ export const completeProfile = async (req, res) => {
   } catch (error) {
     console.error('Complete profile error:', error);
     return sendError(res, 'An error occurred while completing the profile', 500);
+  }
+};
+
+// * Request password reset (sends OTP to email)
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return sendError(res, 'Email is required', 400);
+  }
+
+  const successMessage = 'Se o email existir na nossa base de dados, um código foi enviado.';
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: email.trim().toLowerCase() },
+    });
+
+    // Security: don't reveal whether the email exists
+    if (!user) {
+      return sendSuccess(res, {}, successMessage);
+    }
+
+    // Generate 6-digit OTP
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const hashedOtp = await bcrypt.hash(otp, 10);
+    const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetToken: hashedOtp,
+        passwordResetExpiry: expiry,
+      },
+    });
+
+    try {
+      await sendPasswordResetEmail(user.email, otp);
+    } catch (emailError) {
+      console.error('Failed to send password reset email:', emailError);
+      // Don't expose email sending errors to the client
+    }
+
+    return sendSuccess(res, {}, successMessage);
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return sendError(res, 'Server error', 500);
+  }
+};
+
+// * Reset password using OTP
+export const resetPassword = async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+
+  if (!email || !otp || !newPassword) {
+    return sendError(res, 'Email, código e nova palavra-passe são obrigatórios', 400);
+  }
+
+  if (newPassword.length < 6) {
+    return sendError(res, 'A palavra-passe deve ter pelo menos 6 caracteres', 400);
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: email.trim().toLowerCase() },
+      select: { id: true, passwordResetToken: true, passwordResetExpiry: true },
+    });
+
+    if (!user || !user.passwordResetToken || !user.passwordResetExpiry) {
+      return sendError(res, 'Código inválido ou expirado', 400);
+    }
+
+    if (new Date() > user.passwordResetExpiry) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordResetToken: null, passwordResetExpiry: null },
+      });
+      return sendError(res, 'O código expirou. Por favor solicite um novo.', 400);
+    }
+
+    const isValidOtp = await bcrypt.compare(otp, user.passwordResetToken);
+
+    if (!isValidOtp) {
+      return sendError(res, 'Código inválido', 400);
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        passwordResetToken: null,
+        passwordResetExpiry: null,
+      },
+    });
+
+    return sendSuccess(res, {}, 'Palavra-passe alterada com sucesso');
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return sendError(res, 'Server error', 500);
   }
 };

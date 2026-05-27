@@ -13,7 +13,9 @@ import { invitationsApi } from '@src/api/endpoints/invitations';
 import { authApi } from '@src/api/endpoints/auth';
 
 interface InvitationData {
-  email: string;
+  email?: string;
+  phone?: string;
+  utenteId?: string;
   role: string;
   institutionName?: string;
   invitationId: string;
@@ -24,6 +26,7 @@ const InvitationRegistrationScreen = ({ navigation }) => {
   const [validating, setValidating] = useState(false);
   const [invitationData, setInvitationData] = useState<InvitationData | null>(null);
   const [username, setUsername] = useState('');
+  const [emailInput, setEmailInput] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -47,6 +50,8 @@ const InvitationRegistrationScreen = ({ navigation }) => {
 
       setInvitationData({
         email: response.data.email,
+        phone: response.data.phone,
+        utenteId: response.data.utenteId,
         role: response.data.role,
         institutionName: response.data.institutionName,
         invitationId: response.data.id
@@ -83,9 +88,24 @@ const InvitationRegistrationScreen = ({ navigation }) => {
       return;
     }
 
+    // Require email from user when invitation doesn't have one
+    const needsEmail = !invitationData?.email;
+    const resolvedEmail = invitationData?.email || emailInput.trim().toLowerCase();
+
+    if (needsEmail) {
+      if (!emailInput.trim()) {
+        setErrorMessage(t('authentication.emailRequired'));
+        return;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(emailInput.trim())) {
+        setErrorMessage(t('authentication.invalidEmail'));
+        return;
+      }
+    }
+
     if (!password.trim()) {
       setErrorMessage(t('authentication.passwordRequired'));
-      return;
       return;
     }
 
@@ -113,7 +133,8 @@ const InvitationRegistrationScreen = ({ navigation }) => {
 
       const response = await invitationsApi.acceptInvitation(invitationCode, {
         username: normalizedUsername,
-        password
+        password,
+        email: needsEmail ? resolvedEmail : undefined,
       });
 
       navigation.navigate('CompleteProfile', {
@@ -176,10 +197,26 @@ const InvitationRegistrationScreen = ({ navigation }) => {
 
       {/* Read-only invitation details */}
       <VStack spacing={Spacing.sm_8} style={{ alignSelf: 'stretch' }}>
-        <View style={styles.infoCard}>
-          <Text style={styles.infoLabel}>{t('authentication.email')}</Text>
-          <Text style={styles.infoValue}>{invitationData?.email}</Text>
-        </View>
+        {invitationData?.email && (
+          <View style={styles.infoCard}>
+            <Text style={styles.infoLabel}>{t('authentication.email')}</Text>
+            <Text style={styles.infoValue}>{invitationData.email}</Text>
+          </View>
+        )}
+
+        {invitationData?.phone && (
+          <View style={styles.infoCard}>
+            <Text style={styles.infoLabel}>{t('invitation.phoneNumber')}</Text>
+            <Text style={styles.infoValue}>{invitationData.phone}</Text>
+          </View>
+        )}
+
+        {invitationData?.utenteId && (
+          <View style={styles.infoCard}>
+            <Text style={styles.infoLabel}>{t('invitation.utenteId')}</Text>
+            <Text style={styles.infoValue}>{invitationData.utenteId}</Text>
+          </View>
+        )}
 
         {invitationData?.institutionName && (
           <View style={styles.infoCard}>
@@ -198,6 +235,20 @@ const InvitationRegistrationScreen = ({ navigation }) => {
         autoCapitalize="none"
         hasError={!!errorMessage}
       />
+
+      {!invitationData?.email && (
+        <FloatingLabelInput
+          label={t('authentication.email')}
+          value={emailInput}
+          onChangeText={(text) => {
+            setEmailInput(text);
+            if (errorMessage) setErrorMessage('');
+          }}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          hasError={!!errorMessage}
+        />
+      )}
 
       <View style={styles.passwordContainer}>
         <FloatingLabelInput

@@ -12,6 +12,8 @@ authRoutes.post('/refresh-token', controller.refreshToken);
 authRoutes.post('/logout', controller.logout);
 authRoutes.post('/logout-all', controller.logoutAll);
 authRoutes.post('/complete-profile', controller.completeProfile);
+authRoutes.post('/forgot-password', controller.forgotPassword);
+authRoutes.post('/reset-password', controller.resetPassword);
 
 // Define nested routes
 authRoutes.use('/register', registerRoutes);

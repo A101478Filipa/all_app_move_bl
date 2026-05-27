@@ -7,7 +7,9 @@ import {
   RegisterCaregiverRequest,
   RegistrationResponse,
   ApiEmptyResponse,
-  CompleteProfileRequest
+  CompleteProfileRequest,
+  ForgotPasswordRequest,
+  ResetPasswordRequest
 } from 'moveplus-shared';
 import { ApiResponse } from '@src/types/api';
 
@@ -44,4 +46,10 @@ export const authApi = {
 
   completeProfile: (data: CompleteProfileRequest): Promise<ApiResponse<any>> =>
     api.post('/auth/complete-profile', data).then(response => response.data),
+
+  forgotPassword: (data: ForgotPasswordRequest): Promise<ApiResponse<{}>> =>
+    api.post('/auth/forgot-password', data).then(response => response.data),
+
+  resetPassword: (data: ResetPasswordRequest): Promise<ApiResponse<{}>> =>
+    api.post('/auth/reset-password', data).then(response => response.data),
 };

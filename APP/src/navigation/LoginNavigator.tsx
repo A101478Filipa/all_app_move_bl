@@ -6,6 +6,8 @@ import RegisterScreen from "@src/screens/authentication/RegisterScreen";
 import ClinicianRegistrationScreen from "@src/screens/authentication/ClinicianRegistrationScreen";
 import { InvitationRegistrationScreen } from "@src/screens/authentication/InvitationRegistrationScreen";
 import { CompleteProfileScreen } from "@src/screens/authentication/CompleteProfileScreen";
+import ForgotPasswordScreen from "@src/screens/authentication/ForgotPassword";
+import CreateNewPasswordScreen from "@src/screens/authentication/CreateNewPassword";
 import { UserRole } from 'moveplus-shared';
 
 export type LoginStackParamList = {
@@ -14,6 +16,8 @@ export type LoginStackParamList = {
   Register: undefined;
   ClinicianRegistration: undefined;
   InvitationRegistration: undefined;
+  ForgotPassword: undefined;
+  CreateNewPassword: { email: string };
   CompleteProfile: {
     userId: number;
     role: UserRole;
@@ -34,6 +38,8 @@ export const LoginNavigator: React.FC = () => {
       <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ClinicianRegistration" component={ClinicianRegistrationScreen} options={{ headerShown: false }} />
       <Stack.Screen name="InvitationRegistration" component={InvitationRegistrationScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="CreateNewPassword" component={CreateNewPasswordScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );

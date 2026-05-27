@@ -17,39 +17,57 @@ import {
  */
 export const createInvitation = async (req, res) => {
   try {
-    const { email, role, institutionId, invitedById, expiresInDays = 7 }: CreateInvitationRequest = req.body;
+    const { email, phone, utenteId, role, institutionId, invitedById, expiresInDays = 7 }: CreateInvitationRequest = req.body;
 
-    if (!email || !role || !invitedById) {
-      return sendError(res, 'Email, role, and invitedById are required', 400);
+    if (!role || !invitedById) {
+      return sendError(res, 'Role and invitedById are required', 400);
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
-
-    if (existingUser) {
-      return sendError(res, 'A user with this email already exists', 400);
+    if (!email && !phone && !utenteId) {
+      return sendError(res, 'At least one identifier is required: email, phone, or utenteId', 400);
     }
 
-    const existingInvitation = await prisma.invitation.findFirst({
-      where: {
-        email,
-        status: InvitationStatus.PENDING
+    // Check for existing user by email (only if email provided)
+    if (email) {
+      const existingUser = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
+      if (existingUser) {
+        return sendError(res, 'A user with this email already exists', 400);
       }
-    });
+      const existingInvitation = await prisma.invitation.findFirst({
+        where: { email: email.toLowerCase().trim(), status: InvitationStatus.PENDING }
+      });
+      if (existingInvitation) {
+        return sendError(res, 'A pending invitation already exists for this email', 400);
+      }
+    }
 
-    if (existingInvitation) {
-      return sendError(res, 'A pending invitation already exists for this email', 400);
+    if (phone) {
+      const existingInvitation = await prisma.invitation.findFirst({
+        where: { phone: phone.trim(), status: InvitationStatus.PENDING }
+      });
+      if (existingInvitation) {
+        return sendError(res, 'A pending invitation already exists for this phone number', 400);
+      }
+    }
+
+    if (utenteId) {
+      const existingInvitation = await prisma.invitation.findFirst({
+        where: { utenteId: utenteId.trim(), status: InvitationStatus.PENDING }
+      });
+      if (existingInvitation) {
+        return sendError(res, 'A pending invitation already exists for this nº utente', 400);
+      }
     }
 
     const token = crypto.randomBytes(8).toString('hex');
-
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + expiresInDays);
 
     const invitation = await prisma.invitation.create({
       data: {
-        email,
+        email: email ? email.toLowerCase().trim() : null,
+        phone: phone ? phone.trim() : null,
+        utenteId: utenteId ? utenteId.trim() : null,
         role: role as UserRole,
         institutionId: institutionId || null,
         invitedById,
@@ -59,26 +77,19 @@ export const createInvitation = async (req, res) => {
       },
       include: {
         invitedBy: {
-          select: {
-            id: true,
-            username: true,
-          }
+          select: { id: true, username: true }
         },
         institution: institutionId ? {
-          select: {
-            id: true,
-            name: true,
-          }
+          select: { id: true, name: true }
         } : false,
       }
     });
 
-    // TODO: Send invitation email to user
-    // sendInvitationEmail(email, token);
-
     const responseData: CreateInvitationResponse = {
       id: invitation.id.toString(),
-      email: invitation.email,
+      email: invitation.email || undefined,
+      phone: invitation.phone || undefined,
+      utenteId: invitation.utenteId || undefined,
       role: invitation.role,
       token: invitation.token,
       expiresAt: invitation.expiresAt.toISOString(),
@@ -154,7 +165,9 @@ export const validateInvitation = async (req, res) => {
 
     const responseData: ValidateInvitationResponse = {
       id: invitation.id.toString(),
-      email: invitation.email,
+      email: invitation.email || undefined,
+      phone: invitation.phone || undefined,
+      utenteId: invitation.utenteId || undefined,
       role: invitation.role,
       institutionId: invitation.institutionId || undefined,
       institutionName: invitation.institution?.name,
@@ -176,7 +189,7 @@ export const validateInvitation = async (req, res) => {
 export const acceptInvitation = async (req, res) => {
   try {
     const { token } = req.params;
-    const { username, password }: AcceptInvitationRequest = req.body;
+    const { username, password, email: emailFromBody }: AcceptInvitationRequest = req.body;
 
     if (!token || !username || !password) {
       return sendError(res, 'Token, username, and password are required', 400);
@@ -203,6 +216,13 @@ export const acceptInvitation = async (req, res) => {
       return sendError(res, 'This invitation has expired', 400);
     }
 
+    // Determine the email to use: from invitation or from the request body
+    const resolvedEmail = invitation.email || emailFromBody?.trim().toLowerCase();
+
+    if (!resolvedEmail) {
+      return sendError(res, 'Email is required to complete registration', 400);
+    }
+
     const existingUsername = await prisma.user.findUnique({
       where: { username: username.toLowerCase() }
     });
@@ -211,9 +231,8 @@ export const acceptInvitation = async (req, res) => {
       return sendError(res, 'Username is already taken', 400);
     }
 
-    // Check if email is already registered
     const existingEmail = await prisma.user.findUnique({
-      where: { email: invitation.email }
+      where: { email: resolvedEmail }
     });
 
     if (existingEmail) {
@@ -226,7 +245,7 @@ export const acceptInvitation = async (req, res) => {
       const user = await tx.user.create({
         data: {
           username: username.toLowerCase(),
-          email: invitation.email,
+          email: resolvedEmail,
           password: hashedPassword,
           role: invitation.role,
         },
@@ -246,7 +265,7 @@ export const acceptInvitation = async (req, res) => {
         }
       });
 
-      return { user, email: invitation.email, institutionId: invitation.institutionId };
+      return { user, email: resolvedEmail, institutionId: invitation.institutionId };
     });
 
     const responseData: AcceptInvitationResponse = {
@@ -353,7 +372,9 @@ export const getInvitations = async (req, res) => {
 
     const responseData = invitations.map(inv => ({
       id: inv.id,
-      email: inv.email,
+      email: inv.email || undefined,
+      phone: inv.phone || undefined,
+      utenteId: inv.utenteId || undefined,
       role: inv.role,
       status: inv.status,
       token: inv.token,

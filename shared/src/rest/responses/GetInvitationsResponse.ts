@@ -1,6 +1,8 @@
 export interface InvitationListItem {
   id: number;
-  email: string;
+  email?: string;
+  phone?: string;
+  utenteId?: string;
   role: string;
   status: string;
   token: string;

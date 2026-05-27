@@ -33,11 +33,15 @@ const GenerateInvitationScreen: React.FC<GenerateInvitationScreenProps> = ({ nav
   const { institutionId, institutionName, invitedRole } = route.params;
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
+  const [identifierType, setIdentifierType] = useState<'email' | 'phone' | 'utenteId'>('email');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [utenteId, setUtenteId] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [generatedInvitation, setGeneratedInvitation] = useState<{
     token: string;
-    email: string;
+    identifier: string;
+    identifierType: 'email' | 'phone' | 'utenteId';
     expiresAt: string;
   } | null>(null);
   const { user } = useAuthStore();
@@ -66,14 +70,25 @@ const GenerateInvitationScreen: React.FC<GenerateInvitationScreenProps> = ({ nav
   const handleGenerate = async () => {
     setErrorMessage('');
 
-    if (!email.trim()) {
-      setErrorMessage(t('authentication.emailRequired'));
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      setErrorMessage(t('authentication.invalidEmail'));
-      return;
+    if (identifierType === 'email') {
+      if (!email.trim()) {
+        setErrorMessage(t('authentication.emailRequired'));
+        return;
+      }
+      if (!validateEmail(email)) {
+        setErrorMessage(t('authentication.invalidEmail'));
+        return;
+      }
+    } else if (identifierType === 'phone') {
+      if (!phone.trim()) {
+        setErrorMessage(t('invitation.phoneRequired'));
+        return;
+      }
+    } else {
+      if (!utenteId.trim()) {
+        setErrorMessage(t('invitation.utenteIdRequired'));
+        return;
+      }
     }
 
     if (!user?.user?.id) {
@@ -85,7 +100,9 @@ const GenerateInvitationScreen: React.FC<GenerateInvitationScreenProps> = ({ nav
 
     try {
       const invitationData: CreateInvitationRequest = {
-        email: email.toLowerCase().trim(),
+        email: identifierType === 'email' ? email.toLowerCase().trim() : undefined,
+        phone: identifierType === 'phone' ? phone.trim() : undefined,
+        utenteId: identifierType === 'utenteId' ? utenteId.trim() : undefined,
         role: invitedRole,
         institutionId: institutionId,
         invitedById: user.user.id,
@@ -94,13 +111,22 @@ const GenerateInvitationScreen: React.FC<GenerateInvitationScreenProps> = ({ nav
 
       const response = await invitationsApi.createInvitation(invitationData);
 
+      const identifier =
+        response.data.email ||
+        response.data.phone ||
+        response.data.utenteId ||
+        '';
+
       setGeneratedInvitation({
         token: response.data.token,
-        email: response.data.email,
+        identifier,
+        identifierType,
         expiresAt: response.data.expiresAt,
       });
 
       setEmail('');
+      setPhone('');
+      setUtenteId('');
     } catch (error: any) {
       console.error('Generate invitation error:', error);
 
@@ -127,10 +153,10 @@ const GenerateInvitationScreen: React.FC<GenerateInvitationScreenProps> = ({ nav
     if (generatedInvitation) {
       try {
         const expiresDate = new Date(generatedInvitation.expiresAt).toLocaleDateString();
-        let message = `${t('invitation.shareMessage')}:\n\n${generatedInvitation.token}\n\n${t('invitation.expiresOn')}: ${expiresDate}\n\n${t('invitation.sentTo')}: ${generatedInvitation.email}`;
+        let message = `${t('invitation.shareMessage')}:\n\n${generatedInvitation.token}\n\n${t('invitation.expiresOn')}: ${expiresDate}\n\n${t('invitation.sentTo')}: ${generatedInvitation.identifier}`;
 
         if (institutionName) {
-          message = `${t('invitation.shareMessage', { institutionName, token: generatedInvitation.token })}\n\n${t('invitation.expiresOn')}: ${expiresDate}\n\n${t('invitation.sentTo')}: ${generatedInvitation.email}`;
+          message = `${t('invitation.shareMessage', { institutionName, token: generatedInvitation.token })}\n\n${t('invitation.expiresOn')}: ${expiresDate}\n\n${t('invitation.sentTo')}: ${generatedInvitation.identifier}`;
         }
 
         await Share.share({
@@ -169,23 +195,74 @@ const GenerateInvitationScreen: React.FC<GenerateInvitationScreenProps> = ({ nav
 
             {!generatedInvitation ? (
               <>
-                <FloatingLabelInput
-                  label={t('authentication.email')}
-                  value={email}
-                  onChangeText={(text) => {
-                    setEmail(text);
-                    if (errorMessage) setErrorMessage('');
-                  }}
-                  hasError={!!errorMessage}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  editable={!loading}
-                />
+                {/* Identifier type selector */}
+                <HStack spacing={Spacing.xs_6} style={{ alignSelf: 'stretch' }}>
+                  {(['email', 'phone', 'utenteId'] as const).map((type) => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[styles.typeTab, identifierType === type && styles.typeTabActive]}
+                      onPress={() => {
+                        setIdentifierType(type);
+                        setErrorMessage('');
+                      }}
+                    >
+                      <Text style={[styles.typeTabText, identifierType === type && styles.typeTabTextActive]}>
+                        {t(`invitation.identifierType_${type}`)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </HStack>
+
+                <Spaced height={Spacing.md_16} />
+
+                {identifierType === 'email' && (
+                  <FloatingLabelInput
+                    label={t('authentication.email')}
+                    value={email}
+                    onChangeText={(text) => {
+                      setEmail(text);
+                      if (errorMessage) setErrorMessage('');
+                    }}
+                    hasError={!!errorMessage}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    editable={!loading}
+                  />
+                )}
+
+                {identifierType === 'phone' && (
+                  <FloatingLabelInput
+                    label={t('invitation.phoneNumber')}
+                    value={phone}
+                    onChangeText={(text) => {
+                      setPhone(text);
+                      if (errorMessage) setErrorMessage('');
+                    }}
+                    hasError={!!errorMessage}
+                    keyboardType="phone-pad"
+                    editable={!loading}
+                  />
+                )}
+
+                {identifierType === 'utenteId' && (
+                  <FloatingLabelInput
+                    label={t('invitation.utenteId')}
+                    value={utenteId}
+                    onChangeText={(text) => {
+                      setUtenteId(text);
+                      if (errorMessage) setErrorMessage('');
+                    }}
+                    hasError={!!errorMessage}
+                    keyboardType="default"
+                    autoCapitalize="none"
+                    editable={!loading}
+                  />
+                )}
 
                 <Spaced height={Spacing.sm_8} />
 
                 <Text style={styles.helperText}>
-                  {t('invitation.emailHelper')}
+                  {t(`invitation.helperText_${identifierType}`)}
                 </Text>
 
                 {errorMessage ? (
@@ -222,7 +299,7 @@ const GenerateInvitationScreen: React.FC<GenerateInvitationScreenProps> = ({ nav
                   <Spaced height={Spacing.sm_8} />
 
                   <Text style={styles.successSubtitle}>
-                    {t('invitation.sentTo')}: {generatedInvitation.email}
+                    {t('invitation.sentTo')}: {generatedInvitation.identifier}
                   </Text>
 
                   <Spaced height={Spacing.lg_24} />
@@ -379,5 +456,29 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semi_bold,
     fontSize: FontSize.bodymedium_16,
     color: Color.primary,
+  },
+  typeTab: {
+    flex: 1,
+    paddingVertical: Spacing.sm_8,
+    paddingHorizontal: Spacing.xs_4,
+    borderRadius: Border.sm_8,
+    borderWidth: 1.5,
+    borderColor: Color.Gray.v300,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  typeTabActive: {
+    borderColor: Color.primary,
+    backgroundColor: Color.primary,
+  },
+  typeTabText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.bodysmall_14,
+    color: Color.Gray.v400,
+    textAlign: 'center',
+  },
+  typeTabTextActive: {
+    color: Color.white,
+    fontFamily: FontFamily.semi_bold,
   },
 });
