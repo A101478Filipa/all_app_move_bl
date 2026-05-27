@@ -415,7 +415,7 @@ const PersonnelGroupedList: React.FC<PersonnelGroupedListProps> = ({ users, stat
 
 // MARK: Screen
 const InstitutionMembersScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { users, state, sortOption, sortDirection, fetchUsers, refreshUsers, searchUsers, setSortOption, sortMembers } = useInstitutionMembersStore();
+  const { users, allUsers, state, sortOption, sortDirection, fetchUsers, refreshUsers, searchUsers, setSortOption, sortMembers } = useInstitutionMembersStore();
   const { user } = useAuthStore();
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -512,30 +512,25 @@ const InstitutionMembersScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const onRefresh = useCallback(async () => {
-    if (debouncedSearchQuery) {
-      await searchUsers(debouncedSearchQuery, institutionId);
-    } else {
-      await refreshUsers(institutionId);
-    }
-  }, [debouncedSearchQuery, refreshUsers, searchUsers, institutionId]);
+    await refreshUsers(institutionId);
+  }, [refreshUsers, institutionId]);
 
+  // Initial load and focus refresh (always load full list)
+  useFocusEffect(
+    useCallback(() => {
+      fetchUsers(institutionId);
+    }, [institutionId])
+  );
+
+  // Client-side search: filter from allUsers or restore full list
   useEffect(() => {
     if (debouncedSearchQuery) {
       searchUsers(debouncedSearchQuery, institutionId);
     } else {
-      fetchUsers(institutionId);
+      // Restore the full unfiltered list
+      useInstitutionMembersStore.setState({ users: allUsers });
     }
-  }, [debouncedSearchQuery, fetchUsers, searchUsers, institutionId]);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (debouncedSearchQuery) {
-        searchUsers(debouncedSearchQuery, institutionId);
-      } else {
-        fetchUsers(institutionId);
-      }
-    }, [debouncedSearchQuery, refreshUsers, institutionId])
-  );
+  }, [debouncedSearchQuery]);
 
   const renderAddOptions = () => {
     if (currentUserRole === UserRole.PROGRAMMER) {

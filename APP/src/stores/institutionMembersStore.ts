@@ -15,6 +15,7 @@ type Users = {
 
 type InstitutionMembersState = {
     users: Users;
+    allUsers: Users;
     state: ScreenState;
     sortOption: MemberSortOption;
     sortDirection: SortDirection;
@@ -25,11 +26,29 @@ type InstitutionMembersState = {
     sortMembers: (members: InstitutionMember[], option: MemberSortOption, direction: SortDirection) => InstitutionMember[];
 };
 
+const emptyUsers: Users = { elderly: [], caregivers: [], admins: [], clinicians: [] };
+
+function filterUsers(all: Users, query: string, sortMembers: InstitutionMembersState['sortMembers'], sortOption: MemberSortOption, sortDirection: SortDirection): Users {
+  const q = query.trim().toLowerCase();
+  const isNumeric = /^\d+$/.test(q);
+  const numericId = isNumeric ? parseInt(q) : undefined;
+
+  const matchName = (name: string) => name.toLowerCase().includes(q);
+
+  const elderly = sortMembers(
+    all.elderly.filter(e => matchName(e.name) || (numericId !== undefined && e.medicalId === numericId)),
+    sortOption, sortDirection
+  ) as Elderly[];
+  const caregivers = sortMembers(all.caregivers.filter(c => matchName(c.name)), sortOption, sortDirection) as Caregiver[];
+  const admins = sortMembers(all.admins.filter(a => matchName(a.name)), sortOption, sortDirection) as InstitutionAdmin[];
+  const clinicians = sortMembers(all.clinicians.filter(c => matchName(c.name)), sortOption, sortDirection) as Clinician[];
+
+  return { elderly, caregivers, admins, clinicians };
+}
+
 export const useInstitutionMembersStore = create<InstitutionMembersState>((set, get) => ({
-  users: {
-    elderly: [],
-    caregivers: [],
-    admins: [],    clinicians: [],  },
+  users: emptyUsers,
+  allUsers: emptyUsers,
   state: ScreenState.IDLE,
   sortOption: MemberSortOption.NAME,
   sortDirection: SortDirection.ASC,
@@ -74,25 +93,23 @@ export const useInstitutionMembersStore = create<InstitutionMembersState>((set, 
   },
 
   setSortOption: (option: MemberSortOption) => {
-    const { users, sortOption, sortDirection, sortMembers } = get();
+    const { allUsers, sortOption, sortDirection, sortMembers } = get();
     const newDirection = option === sortOption
       ? (sortDirection === SortDirection.ASC ? SortDirection.DESC : SortDirection.ASC)
       : SortDirection.ASC;
 
-    const sortedElderly = sortMembers(users.elderly, option, newDirection) as Elderly[];
-    const sortedCaregivers = sortMembers(users.caregivers, option, newDirection) as Caregiver[];
-    const sortedAdmins = sortMembers(users.admins, option, newDirection) as InstitutionAdmin[];
-    const sortedClinicians = sortMembers(users.clinicians, option, newDirection) as Clinician[];
+    const sortedAll = {
+      elderly: sortMembers(allUsers.elderly, option, newDirection) as Elderly[],
+      caregivers: sortMembers(allUsers.caregivers, option, newDirection) as Caregiver[],
+      admins: sortMembers(allUsers.admins, option, newDirection) as InstitutionAdmin[],
+      clinicians: sortMembers(allUsers.clinicians, option, newDirection) as Clinician[],
+    };
 
     set({
       sortOption: option,
       sortDirection: newDirection,
-      users: {
-        elderly: sortedElderly,
-        caregivers: sortedCaregivers,
-        admins: sortedAdmins,
-        clinicians: sortedClinicians,
-      }
+      allUsers: sortedAll,
+      users: sortedAll,
     });
   },
 
@@ -103,14 +120,14 @@ export const useInstitutionMembersStore = create<InstitutionMembersState>((set, 
       const data = response.data;
       const { sortOption, sortDirection, sortMembers } = get();
 
-      const sortedData = {
+      const sortedData: Users = {
         elderly: sortMembers(data.elderly, sortOption, sortDirection) as Elderly[],
         caregivers: sortMembers(data.caregivers, sortOption, sortDirection) as Caregiver[],
         admins: sortMembers(data.admins, sortOption, sortDirection) as InstitutionAdmin[],
         clinicians: sortMembers(data.clinicians ?? [], sortOption, sortDirection) as Clinician[],
       };
 
-      set({ users: sortedData, state: ScreenState.IDLE });
+      set({ users: sortedData, allUsers: sortedData, state: ScreenState.IDLE });
     } catch (error) {
       console.error('Error fetching institution members:', error);
       set({ state: ScreenState.ERROR });
@@ -124,38 +141,23 @@ export const useInstitutionMembersStore = create<InstitutionMembersState>((set, 
       const data = response.data;
       const { sortOption, sortDirection, sortMembers } = get();
 
-      const sortedData = {
+      const sortedData: Users = {
         elderly: sortMembers(data.elderly, sortOption, sortDirection) as Elderly[],
         caregivers: sortMembers(data.caregivers, sortOption, sortDirection) as Caregiver[],
         admins: sortMembers(data.admins, sortOption, sortDirection) as InstitutionAdmin[],
         clinicians: sortMembers(data.clinicians ?? [], sortOption, sortDirection) as Clinician[],
       };
 
-      set({ users: sortedData, state: ScreenState.IDLE });
+      set({ users: sortedData, allUsers: sortedData, state: ScreenState.IDLE });
     } catch (error) {
       console.error('Error fetching institution members:', error);
       set({ state: ScreenState.ERROR });
     }
   },
 
-  searchUsers: async (query: string, institutionId?: number) => {
-    set({ state: ScreenState.LOADING });
-    try {
-      const response = await institutionApi.searchInstitutionUsers(query, institutionId);
-      const data = response.data;
-      const { sortOption, sortDirection, sortMembers } = get();
-
-      const sortedData = {
-        elderly: sortMembers(data.elderly, sortOption, sortDirection) as Elderly[],
-        caregivers: sortMembers(data.caregivers, sortOption, sortDirection) as Caregiver[],
-        admins: sortMembers(data.admins, sortOption, sortDirection) as InstitutionAdmin[],
-        clinicians: sortMembers(data.clinicians ?? [], sortOption, sortDirection) as Clinician[],
-      };
-
-      set({ users: sortedData, state: ScreenState.IDLE });
-    } catch (error) {
-      console.error('Error fetching institution members:', error);
-      set({ state: ScreenState.ERROR });
-    }
+  searchUsers: async (query: string, _institutionId?: number) => {
+    const { allUsers, sortOption, sortDirection, sortMembers } = get();
+    if (!query.trim()) return;
+    set({ users: filterUsers(allUsers, query, sortMembers, sortOption, sortDirection) });
   },
 }));
