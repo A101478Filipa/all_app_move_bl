@@ -12,7 +12,15 @@ export const fallOccurrenceApi = {
   createFallOccurrence: (elderlyId: number, data: {
     date: Date;
     description?: string;
+    recovery?: string;
+    preActivity?: string;
+    postActivity?: string;
+    direction?: string;
+    environment?: string;
     injured: boolean;
+    injuryDescription?: string;
+    injuryBodyLocations?: string[];
+    measuresTaken?: string;
   }): Promise<ApiResponse<FallOccurrence>> =>
     api.post(`/elderly/${elderlyId}/fall-occurrences`, data).then(response => response.data),
 

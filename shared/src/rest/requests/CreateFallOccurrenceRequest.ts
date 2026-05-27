@@ -11,6 +11,7 @@ export const CreateFallOccurrenceRequest = z.object({
   environment: z.string().optional(),
   injured: z.boolean(),
   injuryDescription: z.string().optional(),
+  injuryBodyLocations: z.array(z.string()).optional(),
   measuresTaken: z.string().optional(),
 });
 

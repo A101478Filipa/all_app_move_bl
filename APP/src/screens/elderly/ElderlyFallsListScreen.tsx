@@ -17,7 +17,6 @@ import ScreenState from '@src/constants/screenState';
 import { useAuthStore } from '@src/stores/authStore';
 import { UserRole } from 'moveplus-shared';
 import { fallOccurrenceApi } from '@src/api/endpoints/fallOccurrences';
-import { woundTrackingApi } from '@src/api/endpoints/woundTracking';
 import { DatePickerInput } from '@components/DatePickerInput';
 import BodyLocationPicker from '@components/BodyLocationPicker';
 import { Border } from '@src/styles/borders';
@@ -51,19 +50,34 @@ const ElderlyFallsListScreen: React.FC<Props> = ({ route, navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [date, setDate] = useState(new Date());
   const [description, setDescription] = useState('');
+  const [recovery, setRecovery] = useState('');
+  const [preActivity, setPreActivity] = useState('');
+  const [postActivity, setPostActivity] = useState('');
+  const [direction, setDirection] = useState('');
+  const [environment, setEnvironment] = useState('');
   const [injured, setInjured] = useState(false);
-  const [woundNotes, setWoundNotes] = useState('');
-  const [woundBodyLocations, setWoundBodyLocations] = useState<string[]>([]);
-  const [woundPhoto, setWoundPhoto] = useState<{ uri: string; name: string; type: string } | null>(null);
+  const [injuryDescription, setInjuryDescription] = useState('');
+  const [injuryBodyLocations, setInjuryBodyLocations] = useState<string[]>([]);
+  const [injuryPhoto, setInjuryPhoto] = useState<{ uri: string; name: string; type: string } | null>(null);
+  const [measuresTaken, setMeasuresTaken] = useState('');
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const openModal = () => {
     setDate(new Date());
     setDescription('');
+    setRecovery('');
+    setPreActivity('');
+    setPostActivity('');
+    setDirection('');
+    setEnvironment('');
     setInjured(false);
-    setWoundNotes('');
-    setWoundBodyLocations([]);
-    setWoundPhoto(null);
+    setInjuryDescription('');
+    setInjuryBodyLocations([]);
+    setInjuryPhoto(null);
+    setMeasuresTaken('');
+    setValidationError(null);
     setModalVisible(true);
   };
 
@@ -75,7 +89,7 @@ const ElderlyFallsListScreen: React.FC<Props> = ({ route, navigation }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const showWoundPhotoPicker = () => {
+  const showInjuryPhotoPicker = () => {
     const pickFrom = async (fromCamera: boolean) => {
       let result: ImagePicker.ImagePickerResult;
       if (fromCamera) {
@@ -89,47 +103,59 @@ const ElderlyFallsListScreen: React.FC<Props> = ({ route, navigation }) => {
       }
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        const name = asset.uri.split('/').pop() || 'wound.jpg';
+        const name = asset.uri.split('/').pop() || 'injury.jpg';
         const ext = name.match(/\.([a-zA-Z]+)$/);
-        setWoundPhoto({ uri: asset.uri, name, type: ext ? `image/${ext[1]}` : 'image/jpeg' });
+        setInjuryPhoto({ uri: asset.uri, name, type: ext ? `image/${ext[1]}` : 'image/jpeg' });
       }
     };
     Alert.alert(
-      t('woundTracking.photo'),
+      t('fallOccurrence.injuryPhoto'),
       undefined,
       [
         { text: t('fallOccurrence.takePhoto'), onPress: () => pickFrom(true) },
         { text: t('fallOccurrence.chooseFromGallery'), onPress: () => pickFrom(false) },
-        ...(woundPhoto ? [{ text: t('woundTracking.removePhoto'), style: 'destructive' as const, onPress: () => setWoundPhoto(null) }] : []),
+        ...(injuryPhoto ? [{ text: t('fallOccurrence.removePhoto'), style: 'destructive' as const, onPress: () => setInjuryPhoto(null) }] : []),
         { text: t('common.cancel'), style: 'cancel' },
       ]
     );
   };
 
   const handleAddFall = async () => {
-    if (injured && woundBodyLocations.length === 0) {
-      Alert.alert(t('woundTracking.bodyLocationRequired'));
+    const missing =
+      !description.trim() ||
+      !measuresTaken.trim() ||
+      (injured && !injuryDescription.trim()) ||
+      (injured && injuryBodyLocations.length === 0);
+    if (missing) {
+      setValidationError(t('fallOccurrence.fillRequiredFields'));
       return;
     }
+    setValidationError(null);
     setSubmitting(true);
     try {
       const res = await fallOccurrenceApi.createFallOccurrence(elderlyId, {
         date,
         description: description.trim() || undefined,
+        recovery: recovery.trim() || undefined,
+        preActivity: preActivity.trim() || undefined,
+        postActivity: postActivity.trim() || undefined,
+        direction: direction.trim() || undefined,
+        environment: environment.trim() || undefined,
         injured,
+        injuryDescription: injured ? (injuryDescription.trim() || undefined) : undefined,
+        injuryBodyLocations: injured ? injuryBodyLocations : [],
+        measuresTaken: measuresTaken.trim() || undefined,
       });
-      if (injured && (woundNotes.trim() || woundPhoto || woundBodyLocations.length > 0) && res.data?.id) {
+      if (injured && injuryPhoto && res.data?.id) {
         try {
+          setUploadingPhoto(true);
           const formData = new FormData();
-          if (woundNotes.trim()) formData.append('notes', woundNotes.trim());
-          formData.append('isResolved', 'false');
-          if (woundBodyLocations.length > 0) formData.append('bodyLocations', JSON.stringify(woundBodyLocations));
-          if (woundPhoto) {
-            formData.append('photo', { uri: woundPhoto.uri, name: woundPhoto.name, type: woundPhoto.type } as any);
-          }
-          await woundTrackingApi.addFallWoundTracking(res.data.id, formData);
-        } catch (woundError) {
-          console.error('Error creating wound tracking:', woundError);
+          formData.append('photo', { uri: injuryPhoto.uri, name: injuryPhoto.name, type: injuryPhoto.type } as any);
+          await fallOccurrenceApi.uploadFallOccurrencePhoto(res.data.id, formData);
+        } catch (photoError) {
+          console.error('Error uploading injury photo:', photoError);
+        } finally {
+          setUploadingPhoto(false);
         }
       }
       setModalVisible(false);
@@ -212,7 +238,7 @@ const ElderlyFallsListScreen: React.FC<Props> = ({ route, navigation }) => {
                 onChange={setDate}
               />
 
-              <Text style={styles.fieldLabel}>{t('fallOccurrence.description')}</Text>
+              <Text style={styles.fieldLabel}>{t('fallOccurrence.description')}<Text style={{ color: 'red' }}> *</Text></Text>
               <TextInput
                 style={styles.textInput}
                 multiline
@@ -224,13 +250,83 @@ const ElderlyFallsListScreen: React.FC<Props> = ({ route, navigation }) => {
                 textAlignVertical="top"
               />
 
+              <Text style={styles.fieldLabel}>{t('fallOccurrence.recoveryProcess')}</Text>
+              <TextInput
+                style={styles.textInput}
+                multiline
+                numberOfLines={3}
+                placeholder={t('fallOccurrence.howWasPersonHelped')}
+                placeholderTextColor={Color.Gray.v300}
+                value={recovery}
+                onChangeText={setRecovery}
+                textAlignVertical="top"
+              />
+
+              <View style={styles.rowInputs}>
+                <View style={styles.halfInput}>
+                  <Text style={styles.fieldLabel}>{t('fallOccurrence.preActivity')}</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    multiline
+                    numberOfLines={3}
+                    placeholder={t('fallOccurrence.whatWasPersonDoing')}
+                    placeholderTextColor={Color.Gray.v300}
+                    value={preActivity}
+                    onChangeText={setPreActivity}
+                    textAlignVertical="top"
+                  />
+                </View>
+                <View style={styles.halfInput}>
+                  <Text style={styles.fieldLabel}>{t('fallOccurrence.postActivity')}</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    multiline
+                    numberOfLines={3}
+                    placeholder={t('fallOccurrence.whatHappenedAfter')}
+                    placeholderTextColor={Color.Gray.v300}
+                    value={postActivity}
+                    onChangeText={setPostActivity}
+                    textAlignVertical="top"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.rowInputs}>
+                <View style={styles.halfInput}>
+                  <Text style={styles.fieldLabel}>{t('fallOccurrence.fallDirection')}</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    multiline
+                    numberOfLines={3}
+                    placeholder={t('fallOccurrence.fallDirectionPlaceholder')}
+                    placeholderTextColor={Color.Gray.v300}
+                    value={direction}
+                    onChangeText={setDirection}
+                    textAlignVertical="top"
+                  />
+                </View>
+                <View style={styles.halfInput}>
+                  <Text style={styles.fieldLabel}>{t('fallOccurrence.environment')}</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    multiline
+                    numberOfLines={3}
+                    placeholder={t('fallOccurrence.environmentPlaceholder')}
+                    placeholderTextColor={Color.Gray.v300}
+                    value={environment}
+                    onChangeText={setEnvironment}
+                    textAlignVertical="top"
+                  />
+                </View>
+              </View>
+
               <View style={styles.switchRow}>
                 <Text style={styles.switchLabel}>{t('fallOccurrence.wasPersonInjured')}</Text>
                 <Switch
                   value={injured}
                   onValueChange={(val) => {
                     setInjured(val);
-                    if (!val) { setWoundNotes(''); setWoundPhoto(null); }
+                    if (!val) { setInjuryDescription(''); setInjuryBodyLocations([]); setInjuryPhoto(null); }
                   }}
                   trackColor={{ false: Color.Gray.v200, true: Color.primary + '55' }}
                   thumbColor={injured ? Color.primary : Color.white}
@@ -238,55 +334,72 @@ const ElderlyFallsListScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
 
               {injured && (
-                <View style={styles.woundSection}>
-                  <Text style={styles.fieldLabel}>{t('woundTracking.bodyLocation')}<Text style={{ color: 'red' }}> *</Text></Text>
-                  <BodyLocationPicker
-                    selected={woundBodyLocations}
-                    onChange={setWoundBodyLocations}
-                  />
-                  <Text style={styles.fieldLabel}>{t('woundTracking.notes')}</Text>
+                <View style={styles.injurySection}>
+                  <Text style={styles.fieldLabel}>{t('fallOccurrence.injuryDescription')}<Text style={{ color: 'red' }}> *</Text></Text>
                   <TextInput
                     style={styles.textInput}
                     multiline
                     numberOfLines={3}
-                    placeholder={t('woundTracking.notesPlaceholder')}
+                    placeholder={t('fallOccurrence.describeInjuries')}
                     placeholderTextColor={Color.Gray.v300}
-                    value={woundNotes}
-                    onChangeText={setWoundNotes}
+                    value={injuryDescription}
+                    onChangeText={setInjuryDescription}
                     textAlignVertical="top"
                   />
-                  <TouchableOpacity style={styles.photoPickerBtn} onPress={showWoundPhotoPicker}>
-                    {woundPhoto ? (
-                      <Image source={{ uri: woundPhoto.uri }} style={styles.woundPhotoPreview} resizeMode="cover" />
+                  <Text style={styles.fieldLabel}>{t('woundTracking.bodyLocation')}<Text style={{ color: 'red' }}> *</Text></Text>
+                  <BodyLocationPicker
+                    selected={injuryBodyLocations}
+                    onChange={setInjuryBodyLocations}
+                  />
+                  <TouchableOpacity style={styles.photoPickerBtn} onPress={showInjuryPhotoPicker}>
+                    {injuryPhoto ? (
+                      <Image source={{ uri: injuryPhoto.uri }} style={styles.injuryPhotoPreview} resizeMode="cover" />
                     ) : (
                       <>
                         <MaterialIcons name="add-a-photo" size={20} color={Color.primary} />
-                        <Text style={styles.photoPickerText}>{t('woundTracking.addPhoto')}</Text>
+                        <Text style={styles.photoPickerText}>{t('fallOccurrence.addInjuryPhoto')}</Text>
                       </>
                     )}
                   </TouchableOpacity>
                 </View>
               )}
+
+              <Text style={styles.fieldLabel}>{t('fallOccurrence.measuresTaken')}<Text style={{ color: 'red' }}> *</Text></Text>
+              <TextInput
+                style={styles.textInput}
+                multiline
+                numberOfLines={3}
+                placeholder={t('fallOccurrence.whatActionsTaken')}
+                placeholderTextColor={Color.Gray.v300}
+                value={measuresTaken}
+                onChangeText={setMeasuresTaken}
+                textAlignVertical="top"
+              />
             </ScrollView>
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => setModalVisible(false)}
-                disabled={submitting}
-              >
-                <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.submitBtn}
-                onPress={handleAddFall}
-                disabled={submitting}
-              >
-                {submitting
-                  ? <ActivityIndicator size="small" color={Color.white} />
-                  : <Text style={styles.submitBtnText}>{t('common.save')}</Text>
-                }
-              </TouchableOpacity>
+              {validationError && (
+                <Text style={styles.validationError}>{validationError}</Text>
+              )}
+              <View style={styles.footerButtons}>
+                <TouchableOpacity
+                  style={styles.cancelBtn}
+                  onPress={() => setModalVisible(false)}
+                  disabled={submitting || uploadingPhoto}
+                >
+                  <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.submitBtn}
+                  onPress={handleAddFall}
+                  disabled={submitting || uploadingPhoto}
+                >
+                  {(submitting || uploadingPhoto)
+                    ? <ActivityIndicator size="small" color={Color.white} />
+                    : <Text style={styles.submitBtnText}>{t('common.save')}</Text>
+                  }
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -385,11 +498,35 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalFooter: {
-    flexDirection: 'row',
-    gap: Spacing.sm_12,
     padding: Spacing.md_16,
     borderTopWidth: 1,
     borderTopColor: Color.Gray.v100,
+    gap: Spacing.xs_4,
+  },
+  footerButtons: {
+    flexDirection: 'row',
+    gap: Spacing.sm_12,
+  },
+  validationError: {
+    fontSize: FontSize.bodysmall_14,
+    fontFamily: FontFamily.medium,
+    color: 'red',
+    textAlign: 'center',
+    paddingBottom: Spacing.xs_4,
+  },
+  rowInputs: {
+    flexDirection: 'row',
+    gap: Spacing.sm_8,
+  },
+  halfInput: {
+    flex: 1,
+  },
+  injurySection: {
+    borderTopWidth: 1,
+    borderTopColor: Color.Gray.v100,
+    paddingTop: Spacing.sm_12,
+    marginTop: Spacing.xs_4,
+    gap: Spacing.xs_4,
   },
   cancelBtn: {
     flex: 1,
@@ -441,6 +578,11 @@ const styles = StyleSheet.create({
     color: Color.primary,
   },
   woundPhotoPreview: {
+    width: '100%',
+    height: 120,
+    borderRadius: Border.sm_8,
+  },
+  injuryPhotoPreview: {
     width: '100%',
     height: 120,
     borderRadius: Border.sm_8,
