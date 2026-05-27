@@ -199,6 +199,36 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     return d >= start && d <= end;
   });
 
+  // ── Group overlapping timed events for side-by-side rendering ─────────────
+  const eventRows: CalendarEvent[][] = (() => {
+    const allDay = selectedDayEvents.filter(e => e.allDay);
+    const timed = [...selectedDayEvents.filter(e => !e.allDay)].sort(
+      (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+    );
+
+    const groups: CalendarEvent[][] = [];
+    let cluster: CalendarEvent[] = [];
+    let clusterEnd: number | null = null;
+
+    for (const ev of timed) {
+      const s = new Date(ev.startDate).getTime();
+      const e = ev.endDate
+        ? new Date(ev.endDate).getTime()
+        : s + 60 * 60 * 1000;
+      if (clusterEnd !== null && s < clusterEnd) {
+        cluster.push(ev);
+        if (e > clusterEnd) clusterEnd = e;
+      } else {
+        if (cluster.length) groups.push(cluster);
+        cluster = [ev];
+        clusterEnd = e;
+      }
+    }
+    if (cluster.length) groups.push(cluster);
+
+    return [...allDay.map(e => [e]), ...groups];
+  })();
+
   // ── Absence modal handlers ───────────────────────────────────────────────
   const openAddAbsence = () => {
     const initial = new Date(year, month, selectedDay);
@@ -446,61 +476,26 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           ) : (
             <View style={styles.eventList}>
-              {(() => {
-                const sorted = [...selectedDayEvents].sort(
-                  (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-                );
-                const allDay = sorted.filter(e => e.allDay);
-                const timed = sorted.filter(e => !e.allDay);
-                // Group overlapping timed events for side-by-side display
-                const groups: CalendarEvent[][] = [];
-                let groupMaxEnd = -Infinity;
-                for (const e of timed) {
-                  const start = new Date(e.startDate).getTime();
-                  const end = e.endDate ? new Date(e.endDate).getTime() : start + 3_600_000;
-                  if (groups.length > 0 && start < groupMaxEnd) {
-                    groups[groups.length - 1].push(e);
-                    groupMaxEnd = Math.max(groupMaxEnd, end);
-                  } else {
-                    groups.push([e]);
-                    groupMaxEnd = end;
-                  }
-                }
-                return (
-                  <>
-                    {allDay.map(event => (
+              {eventRows.map(group =>
+                group.length === 1 ? (
+                  <CalendarEventCard
+                    key={group[0].id}
+                    event={group[0]}
+                    onPress={() => handleEventPress(group[0])}
+                  />
+                ) : (
+                  <View key={group.map(e => e.id).join('-')} style={styles.eventGroupRow}>
+                    {group.map(ev => (
                       <CalendarEventCard
-                        key={event.id}
-                        event={event}
-                        onPress={(canEditEvent(event) || canDeleteEvent(event)) ? handleEventPress : undefined}
-                        onLongPress={canDeleteEvent(event) ? handleDeleteEvent : undefined}
+                        key={ev.id}
+                        event={ev}
+                        onPress={() => handleEventPress(ev)}
+                        style={styles.eventGroupItem}
                       />
                     ))}
-                    {groups.map((group, idx) =>
-                      group.length === 1 ? (
-                        <CalendarEventCard
-                          key={group[0].id}
-                          event={group[0]}
-                          onPress={(canEditEvent(group[0]) || canDeleteEvent(group[0])) ? handleEventPress : undefined}
-                          onLongPress={canDeleteEvent(group[0]) ? handleDeleteEvent : undefined}
-                        />
-                      ) : (
-                        <View key={`group-${idx}`} style={styles.eventGroupRow}>
-                          {group.map(event => (
-                            <CalendarEventCard
-                              key={event.id}
-                              event={event}
-                              style={styles.eventGroupItem}
-                              onPress={(canEditEvent(event) || canDeleteEvent(event)) ? handleEventPress : undefined}
-                              onLongPress={canDeleteEvent(event) ? handleDeleteEvent : undefined}
-                            />
-                          ))}
-                        </View>
-                      )
-                    )}
-                  </>
-                );
-              })()}
+                  </View>
+                )
+              )}
               {selectedDayFalls.map(fall => (
                 <View key={`fall-${fall.id}`} style={styles.occurrenceCard}>
                   <View style={[styles.occurrenceIcon, { backgroundColor: '#7B1FA215' }]}>
