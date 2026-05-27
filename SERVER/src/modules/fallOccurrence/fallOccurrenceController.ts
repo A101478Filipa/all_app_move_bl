@@ -8,6 +8,8 @@ import { sendSuccess, sendError, sendInputValidationError } from "../../utils/ap
 import { TimelineService } from "../../services/timelineService";
 import { sendFallOccurrenceNotifications } from "../../utils/notificationHelpers";
 
+const STAFF_ROLES = [UserRole.CAREGIVER, UserRole.INSTITUTION_ADMIN, UserRole.CLINICIAN];
+
 export const createFallOccurrence = async (req, res) => {
   const elderlyId = Number(req.params.elderlyId);
   const request = CreateFallOccurrenceRequest.safeParse(req.body);
@@ -27,10 +29,13 @@ export const createFallOccurrence = async (req, res) => {
       id: detectionId
     }});
 
+    const isStaffCreator = req.user?.role && STAFF_ROLES.includes(req.user.role);
+
     const data = {
       elderlyId: elderly.id,
       ...rest,
       ...(detectionExists ? { detectionId } : {}),
+      ...(isStaffCreator ? { handlerUserId: req.user.userId } : {}),
     };
 
     const occurrence = await prisma.fallOccurrence.create({
@@ -52,10 +57,12 @@ export const createFallOccurrence = async (req, res) => {
       console.error('Error creating timeline activity:', timelineError);
     }
 
-    try {
-      await sendFallOccurrenceNotifications(elderly.id, elderly.name, occurrence.id);
-    } catch (notificationError) {
-      console.error('Error sending fall occurrence notifications:', notificationError);
+    if (!isStaffCreator) {
+      try {
+        await sendFallOccurrenceNotifications(elderly.id, elderly.name, occurrence.id);
+      } catch (notificationError) {
+        console.error('Error sending fall occurrence notifications:', notificationError);
+      }
     }
 
     return sendSuccess(res, occurrence, 'Occurrence created with success', 201);
