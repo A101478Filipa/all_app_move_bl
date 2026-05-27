@@ -245,6 +245,7 @@ const ElderlyGroupedList: React.FC<ElderlyGroupedListProps> = ({ elderly, state,
           <VStack spacing={Spacing.xs_4} align={'flex-start'}>
             <Text style={styles.name}>{item.name}</Text>
             <Text style={styles.details}>{t('common.age')}: {calculateAge(item.birthDate)}, {getGenderTitle(item.gender, t)}</Text>
+            <Text style={styles.details}>{t('elderly.medicalId')}: {(item as Elderly).medicalId}</Text>
             <View style={[styles.fallRiskBadge, { backgroundColor: riskColor }]}>
               <MaterialIcons name="warning" size={12} color={Color.white} />
               <Text style={styles.fallRiskText}>{riskLabel}</Text>
@@ -277,6 +278,114 @@ const ElderlyGroupedList: React.FC<ElderlyGroupedListProps> = ({ elderly, state,
       <SectionList
         sections={sections}
         keyExtractor={(item) => `elderly-${item.id}`}
+        renderItem={renderItem}
+        renderSectionHeader={renderSectionHeader}
+        onScroll={onScroll}
+        scrollEventThrottle={Spacing.md_16}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={state === ScreenState.IDLE ? <Text style={styles.emptyText}>{emptyState}</Text> : null}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets={true}
+        keyboardDismissMode='on-drag'
+        stickySectionHeadersEnabled={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={state === ScreenState.REFRESHING}
+            onRefresh={onRefresh}
+          />
+        }
+      />
+      {state === ScreenState.LOADING && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" />
+        </View>
+      )}
+    </SafeAreaView>
+  );
+};
+
+// MARK: Personnel Grouped List (by role)
+interface PersonnelGroupedListProps {
+  users: InstitutionMember[];
+  state: ScreenState;
+  onRefresh: () => Promise<void>;
+  onPress: (user: InstitutionMember) => void;
+  emptyState: string;
+  setShadowVisible: (visible: boolean) => void;
+  sortOption: MemberSortOption;
+  sortDirection: SortDirection;
+}
+
+const PersonnelGroupedList: React.FC<PersonnelGroupedListProps> = ({ users, state, onRefresh, onPress, emptyState, setShadowVisible, sortOption, sortDirection }) => {
+  const { t } = useTranslation();
+  const { sortMembers } = useInstitutionMembersStore();
+  const scrollY = useRef(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      setShadowVisible(scrollY.current > Spacing.md_16);
+      return () => setShadowVisible(false);
+    }, [setShadowVisible])
+  );
+
+  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    scrollY.current = offsetY;
+    setShadowVisible(offsetY > Spacing.md_16);
+  };
+
+  const sections = useMemo(() => {
+    const caregivers = users.filter(u => initUserRole(u.user.role) === UserRole.CAREGIVER);
+    const clinicians = users.filter(u => initUserRole(u.user.role) === UserRole.CLINICIAN);
+    const admins = users.filter(u => initUserRole(u.user.role) === UserRole.INSTITUTION_ADMIN);
+    const result = [];
+    if (caregivers.length > 0) result.push({ title: t('members.caregivers'), data: sortMembers(caregivers, sortOption, sortDirection) });
+    if (clinicians.length > 0) result.push({ title: t('members.clinicians'), data: sortMembers(clinicians, sortOption, sortDirection) });
+    if (admins.length > 0) result.push({ title: t('members.admins'), data: sortMembers(admins, sortOption, sortDirection) });
+    return result;
+  }, [users, t, sortOption, sortDirection]);
+
+  const renderItem = ({ item }: { item: InstitutionMember }) => {
+    const role = initUserRole(item.user.role);
+    return (
+      <TouchableOpacity style={{ flex: 1, ...shadowStyles.cardShadow }} onPress={() => onPress(item)}>
+        <HStack spacing={Spacing.md_16} style={styles.itemContainer}>
+          <VStack spacing={Spacing.sm_8}>
+            <Text style={styles.role}>{getRoleTitle(role, t)}</Text>
+            <Image source={{ uri: buildAvatarUrl(item.user.avatarUrl) }} style={styles.avatar} />
+          </VStack>
+          <VStack spacing={Spacing.xs_4} align={'flex-start'}>
+            <Text style={styles.name}>{item.name}</Text>
+            <Text style={styles.details}>{t('common.age')}: {calculateAge(item.birthDate)}, {getGenderTitle(item.gender, t)}</Text>
+          </VStack>
+          <Spacer />
+          <ArrowForward width={24} height={24} fill={Color.Gray.v300} />
+        </HStack>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderSectionHeader = ({ section }: { section: { title: string } }) => (
+    <HStack align="center" spacing={Spacing.sm_8} style={styles.sectionHeader}>
+      <MaterialIcons name="people" size={18} color={Color.primary} />
+      <Text style={styles.sectionHeaderText}>{section.title}</Text>
+    </HStack>
+  );
+
+  if (state === ScreenState.ERROR) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <Text style={styles.errorText}>{t('errors.serverError')}</Text>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <SectionList
+        sections={sections}
+        keyExtractor={(item) => `personnel-${item.user.role}-${item.id}`}
         renderItem={renderItem}
         renderSectionHeader={renderSectionHeader}
         onScroll={onScroll}
@@ -575,14 +684,15 @@ const InstitutionMembersScreen: React.FC<Props> = ({ navigation, route }) => {
           options={{ title: t('members.caregivers') }}
           listeners={{ focus: () => setActiveTab('Personnel') }}
           children={() => (
-            <UserListPage
-              users={sortMembers([...users.admins, ...users.caregivers, ...users.clinicians], sortOption, sortDirection) as Personnel[]}
+            <PersonnelGroupedList
+              users={[...users.caregivers, ...users.clinicians, ...users.admins]}
               state={state}
               onPress={onSelectUser}
               onRefresh={onRefresh}
               emptyState={debouncedSearchQuery ? `${t('members.noMembersFound')} ${debouncedSearchQuery}` : t('members.noMembersFound')}
-              keyExtractor={(item: Personnel) => `${item.user.role}-${item.id}`}
               setShadowVisible={setShadowVisible}
+              sortOption={sortOption}
+              sortDirection={sortDirection}
             />
           )}
         />

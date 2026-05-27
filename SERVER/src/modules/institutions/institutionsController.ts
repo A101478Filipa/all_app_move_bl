@@ -33,8 +33,23 @@ export const indexInstitutionUsers = async (req, res) => {
 
     if (name) searchParameters.where.name = { contains: name, mode: 'insensitive' }
 
+    // For elderly, also search by medicalId when query is numeric
+    const medicalIdQuery = name && /^\d+$/.test(name.trim()) ? parseInt(name.trim()) : undefined;
+    const elderlySearch: Prisma.ElderlyFindManyArgs = {
+      where: name
+        ? {
+            institutionId,
+            OR: [
+              { name: { contains: name, mode: 'insensitive' } },
+              ...(medicalIdQuery !== undefined ? [{ medicalId: medicalIdQuery }] : []),
+            ],
+          }
+        : { institutionId },
+      include: { user: true, institution: true },
+    };
+
     const [elderly, admins, caregivers, clinicians] = await Promise.all([
-      prisma.elderly.findMany(searchParameters as Prisma.ElderlyFindManyArgs),
+      prisma.elderly.findMany(elderlySearch),
       prisma.institutionAdmin.findMany(searchParameters as Prisma.InstitutionAdminFindManyArgs),
       prisma.caregiver.findMany(searchParameters as Prisma.CaregiverFindManyArgs),
       prisma.clinician.findMany(searchParameters as Prisma.ClinicianFindManyArgs),
