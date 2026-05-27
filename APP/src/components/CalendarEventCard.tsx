@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { CalendarEvent, CalendarEventType } from 'moveplus-shared';
 import { Color } from '@src/styles/colors';
@@ -32,15 +32,16 @@ interface CalendarEventCardProps {
   event: CalendarEvent;
   onPress?: (event: CalendarEvent) => void;
   onLongPress?: (event: CalendarEvent) => void;
+  style?: StyleProp<ViewStyle>;
 }
 
-export const CalendarEventCard: React.FC<CalendarEventCardProps> = ({ event, onPress, onLongPress }) => {
+export const CalendarEventCard: React.FC<CalendarEventCardProps> = ({ event, onPress, onLongPress, style }) => {
   const { t } = useTranslation();
   const config = EVENT_TYPE_CONFIG[event.type] ?? EVENT_TYPE_CONFIG[CalendarEventType.OTHER];
 
   return (
     <TouchableOpacity
-      style={[styles.card, { borderLeftColor: config.color }]}
+      style={[styles.card, { borderLeftColor: config.color }, style]}
       onPress={() => onPress?.(event)}
       onLongPress={() => onLongPress?.(event)}
       activeOpacity={0.75}

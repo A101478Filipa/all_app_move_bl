@@ -9,7 +9,7 @@ import { VStack, HStack } from '@components/CoreComponents';
 import { useAuthStore, useElderlyDashboardStore } from '@src/stores';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ElderlyDashboardNavigationStackParamList } from '@navigation/ElderlyDashboardNavigationStack';
 import Toast from 'react-native-toast-message';
@@ -99,20 +99,22 @@ const ElderlyDashboardScreen = () => {
   const [todayEvents, setTodayEvents] = useState<CalendarEvent[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
-  useEffect(() => {
-    if (!user?.id) return;
-    calendarEventApi.getEvents(user.id).then(res => {
-      const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-      const filtered = (res.data ?? []).filter(e => {
-        const d = new Date(e.startDate as any);
-        return d >= startOfToday && d < endOfToday;
-      });
-      filtered.sort((a, b) => new Date(a.startDate as any).getTime() - new Date(b.startDate as any).getTime());
-      setTodayEvents(filtered);
-    }).catch(err => console.warn('[Dashboard] Failed to load today events:', err));
-  }, [user?.id]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.id) return;
+      calendarEventApi.getEvents(user.id).then(res => {
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        const filtered = (res.data ?? []).filter(e => {
+          const d = new Date(e.startDate as any);
+          return d >= startOfToday && d < endOfToday;
+        });
+        filtered.sort((a, b) => new Date(a.startDate as any).getTime() - new Date(b.startDate as any).getTime());
+        setTodayEvents(filtered);
+      }).catch(err => console.warn('[Dashboard] Failed to load today events:', err));
+    }, [user?.id])
+  );
 
   // ── Fall report logic ──────────────────────────────────
   const submitFallReport = useCallback(async () => {
@@ -328,6 +330,7 @@ const ElderlyDashboardScreen = () => {
             animationType="slide"
             onRequestClose={() => setSelectedEvent(null)}
           >
+            <View style={{ flex: 1, justifyContent: 'flex-end' }}>
             <TouchableOpacity
               style={styles.modalOverlay}
               activeOpacity={1}
@@ -385,6 +388,7 @@ const ElderlyDashboardScreen = () => {
               <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setSelectedEvent(null)}>
                 <Text style={styles.modalCloseBtnText}>{t('common.close')}</Text>
               </TouchableOpacity>
+            </View>
             </View>
           </Modal>
         );
@@ -733,7 +737,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   modalOverlay: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
   modalSheet: {

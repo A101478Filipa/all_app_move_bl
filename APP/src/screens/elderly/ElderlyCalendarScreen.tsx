@@ -84,6 +84,11 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
   const [absences, setAbsences] = useState<ElderlyAbsence[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Filter states
+  const [filterCaregivers, setFilterCaregivers] = useState(true);
+  const [filterClinicians, setFilterClinicians] = useState(true);
+  const [filterExternal, setFilterExternal] = useState(true);
+
   // Absence modal state
   const [showAbsenceModal, setShowAbsenceModal] = useState(false);
   const [absenceStart, setAbsenceStart] = useState<Date>(new Date());
@@ -112,7 +117,17 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
   useFocusEffect(useCallback(() => { fetchEvents(); }, [fetchEvents]));
 
   // ── Derived data ──────────────────────────────────────────────────────────
-  const monthEvents = events.filter(e => {
+  const passesFilters = (e: CalendarEvent) => {
+    const role = (e as any).assignedTo?.role;
+    if (role === 'CAREGIVER' && !filterCaregivers) return false;
+    if (role === 'CLINICIAN' && !filterClinicians) return false;
+    if (!e.assignedToId && (!!e.externalProfessionalId || !!e.externalProfessionalName) && !filterExternal) return false;
+    return true;
+  };
+
+  const filteredEvents = events.filter(passesFilters);
+
+  const monthEvents = filteredEvents.filter(e => {
     const d = new Date(e.startDate);
     return d.getFullYear() === year && d.getMonth() === month;
   });
@@ -161,7 +176,7 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     });
   };
 
-  const selectedDayEvents = events.filter(e => {
+  const selectedDayEvents = filteredEvents.filter(e => {
     const d = new Date(e.startDate);
     return d.getFullYear() === year && d.getMonth() === month && d.getDate() === selectedDay;
   });
@@ -324,6 +339,35 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
 
+        {/* Filter chips */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterChipsRow}
+        >
+          <TouchableOpacity
+            style={[styles.filterChip, filterCaregivers && styles.filterChipActive]}
+            onPress={() => setFilterCaregivers(v => !v)}
+          >
+            <View style={[styles.filterDot, { backgroundColor: '#3B82F6' }]} />
+            <Text style={[styles.filterChipText, filterCaregivers && styles.filterChipTextActive]}>Cuidadores</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, filterClinicians && styles.filterChipActive]}
+            onPress={() => setFilterClinicians(v => !v)}
+          >
+            <View style={[styles.filterDot, { backgroundColor: '#8B5CF6' }]} />
+            <Text style={[styles.filterChipText, filterClinicians && styles.filterChipTextActive]}>Clínicos</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, filterExternal && styles.filterChipActive]}
+            onPress={() => setFilterExternal(v => !v)}
+          >
+            <View style={[styles.filterDot, { backgroundColor: '#F59E0B' }]} />
+            <Text style={[styles.filterChipText, filterExternal && styles.filterChipTextActive]}>Rep. Externa</Text>
+          </TouchableOpacity>
+        </ScrollView>
+
         {/* Day-of-week header */}
         <View style={styles.dowRow}>
           {DOW_LABELS.map(d => (
@@ -402,16 +446,61 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           ) : (
             <View style={styles.eventList}>
-              {selectedDayEvents
-                .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
-                .map(event => (
-                  <CalendarEventCard
-                    key={event.id}
-                    event={event}
-                    onPress={(canEditEvent(event) || canDeleteEvent(event)) ? handleEventPress : undefined}
-                    onLongPress={canDeleteEvent(event) ? handleDeleteEvent : undefined}
-                  />
-                ))}
+              {(() => {
+                const sorted = [...selectedDayEvents].sort(
+                  (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+                );
+                const allDay = sorted.filter(e => e.allDay);
+                const timed = sorted.filter(e => !e.allDay);
+                // Group overlapping timed events for side-by-side display
+                const groups: CalendarEvent[][] = [];
+                let groupMaxEnd = -Infinity;
+                for (const e of timed) {
+                  const start = new Date(e.startDate).getTime();
+                  const end = e.endDate ? new Date(e.endDate).getTime() : start + 3_600_000;
+                  if (groups.length > 0 && start < groupMaxEnd) {
+                    groups[groups.length - 1].push(e);
+                    groupMaxEnd = Math.max(groupMaxEnd, end);
+                  } else {
+                    groups.push([e]);
+                    groupMaxEnd = end;
+                  }
+                }
+                return (
+                  <>
+                    {allDay.map(event => (
+                      <CalendarEventCard
+                        key={event.id}
+                        event={event}
+                        onPress={(canEditEvent(event) || canDeleteEvent(event)) ? handleEventPress : undefined}
+                        onLongPress={canDeleteEvent(event) ? handleDeleteEvent : undefined}
+                      />
+                    ))}
+                    {groups.map((group, idx) =>
+                      group.length === 1 ? (
+                        <CalendarEventCard
+                          key={group[0].id}
+                          event={group[0]}
+                          onPress={(canEditEvent(group[0]) || canDeleteEvent(group[0])) ? handleEventPress : undefined}
+                          onLongPress={canDeleteEvent(group[0]) ? handleDeleteEvent : undefined}
+                        />
+                      ) : (
+                        <View key={`group-${idx}`} style={styles.eventGroupRow}>
+                          {group.map(event => (
+                            <CalendarEventCard
+                              key={event.id}
+                              event={event}
+                              style={styles.eventGroupItem}
+                              onPress={(canEditEvent(event) || canDeleteEvent(event)) ? handleEventPress : undefined}
+                              onLongPress={canDeleteEvent(event) ? handleDeleteEvent : undefined}
+                            />
+                          ))}
+                        </View>
+                      )
+                    )}
+                  </>
+                );
+              })()}
               {selectedDayFalls.map(fall => (
                 <View key={`fall-${fall.id}`} style={styles.occurrenceCard}>
                   <View style={[styles.occurrenceIcon, { backgroundColor: '#7B1FA215' }]}>
@@ -723,5 +812,47 @@ const styles = StyleSheet.create({
     fontSize: FontSize.caption_12,
     color: Color.Gray.v400,
     marginTop: 2,
+  },
+  eventGroupRow: {
+    flexDirection: 'row',
+    gap: Spacing.xs_6,
+    alignSelf: 'stretch',
+  },
+  eventGroupItem: {
+    flex: 1,
+  },
+  filterChipsRow: {
+    paddingVertical: Spacing.xs_6,
+    paddingBottom: Spacing.sm_8,
+    flexDirection: 'row',
+    gap: Spacing.xs_6,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: Border.full,
+    borderWidth: 1,
+    borderColor: Color.Gray.v200,
+    backgroundColor: Color.Background.white,
+    gap: 4,
+  },
+  filterChipActive: {
+    borderColor: Color.primary,
+    backgroundColor: Color.primary + '15',
+  },
+  filterChipText: {
+    fontSize: FontSize.caption_12,
+    fontFamily: FontFamily.medium,
+    color: Color.Gray.v500,
+  },
+  filterChipTextActive: {
+    color: Color.primary,
+  },
+  filterDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });

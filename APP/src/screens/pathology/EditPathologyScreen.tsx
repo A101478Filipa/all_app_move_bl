@@ -50,7 +50,7 @@ const EditPathologyScreen: React.FC<EditPathologyScreenProps> = ({ route, naviga
     { label: t('pathology.statusOptions.inactive'), value: PathologyStatus.INACTIVE },
     { label: t('pathology.statusOptions.chronic'), value: PathologyStatus.CHRONIC },
     { label: t('pathology.statusOptions.resolved'), value: PathologyStatus.RESOLVED },
-    { label: t('pathology.statusOptions.underTreatment'), value: PathologyStatus.UNDER_TREATMENT },
+    { label: t('pathology.statusOptions.under_treatment'), value: PathologyStatus.UNDER_TREATMENT },
     { label: t('pathology.statusOptions.monitoring'), value: PathologyStatus.MONITORING },
   ];
 
