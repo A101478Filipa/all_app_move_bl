@@ -162,6 +162,10 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     return ev.createdById === currentUserId || ev.assignedToId === currentUserId;
   }, [userRole, currentUserId]);
 
+  // Non-admin professionals (CLINICIAN/CAREGIVER) viewing their OWN calendar should see
+  // all institution events (same data as admin), but cannot edit/delete others' events.
+  const useInstitutionView = isAdmin || userRole === UserRole.CLINICIAN || userRole === UserRole.CAREGIVER;
+
   const todayMemo = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -190,6 +194,8 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
   const [filterClinicians, setFilterClinicians] = useState(true);
   // External filter — visible to all users
   const [filterExternal, setFilterExternal] = useState(true);
+  // Non-admin: show only events where user is creator or assigned
+  const [filterOnlyMine, setFilterOnlyMine] = useState(false);
 
   const openModal = (ev: ProfessionalCalendarEvent) => {
     slideAnim.setValue(500);
@@ -225,7 +231,7 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
   const fetchEvents = useCallback(async () => {
     try {
       const [evRes] = await Promise.all([
-        isAdmin
+        useInstitutionView
           ? calendarEventApi.getInstitutionEvents()
           : calendarEventApi.getProfessionalEvents(userId),
       ]);
@@ -255,7 +261,7 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     } finally {
       setLoading(false);
     }
-  }, [userId, isAdmin]);
+  }, [userId, isAdmin, useInstitutionView]);
   useFocusEffect(useCallback(() => { fetchEvents(); }, [fetchEvents]));
 
   // ── Week view derived ─────────────────────────────────────────────────────
@@ -274,17 +280,20 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     return s.charAt(0).toUpperCase() + s.slice(1);
   }, [selectedDate]);
 
-  // Events filtered by role (admin only) – used everywhere instead of raw `events`
+  // Events filtered by role – used everywhere instead of raw `events`
   const displayedEvents = useMemo(() => {
     return events.filter(e => {
-      const role = (e as any).assignedTo?.role;
-      if (isAdmin && role === 'CAREGIVER' && !filterCaregivers) return false;
-      if (isAdmin && role === 'CLINICIAN' && !filterClinicians) return false;
+      const assignedRole = (e as any).assignedTo?.role;
+      if (useInstitutionView && assignedRole === 'CAREGIVER' && !filterCaregivers) return false;
+      if (useInstitutionView && assignedRole === 'CLINICIAN' && !filterClinicians) return false;
       const isExternal = !e.assignedToId && (!!e.externalProfessionalId || !!(e as any).externalProfessionalName);
       if (isExternal && !filterExternal) return false;
+      if (!isAdmin && filterOnlyMine && currentUserId) {
+        if (e.createdById !== currentUserId && e.assignedToId !== currentUserId) return false;
+      }
       return true;
     });
-  }, [events, isAdmin, filterCaregivers, filterClinicians, filterExternal]);
+  }, [events, useInstitutionView, isAdmin, filterCaregivers, filterClinicians, filterExternal, filterOnlyMine, currentUserId]);
 
   const selectedDayEvents = useMemo(
     () =>
@@ -468,9 +477,11 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleDeleteEvent = (ev: ProfessionalCalendarEvent) => {
     closeModal();
     setTimeout(() => {
+      const evDate = new Date(ev.startDate);
+      const dateStr = evDate.toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' });
       Alert.alert(
         t('calendar.deleteEvent'),
-        t('calendar.confirmDelete'),
+        `Tem a certeza que quer eliminar o evento "${ev.title}" do dia ${dateStr}?`,
         [
           { text: t('common.cancel'), style: 'cancel' },
           {
@@ -1007,7 +1018,7 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Admin filter chips */}
+        {/* Filter chips */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -1021,6 +1032,37 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
             <View style={[styles.filterDot, { backgroundColor: '#F59E0B' }]} />
             <Text style={[styles.filterChipText, filterExternal && styles.filterChipTextActive]}>Rep. Externa</Text>
           </TouchableOpacity>
+          {/* "Only mine" filter — visible to non-admin professionals in institution view */}
+          {!isAdmin && useInstitutionView && (
+            <TouchableOpacity
+              style={[styles.filterChip, filterOnlyMine && styles.filterChipActive]}
+              onPress={() => setFilterOnlyMine(v => !v)}
+            >
+              <View style={[styles.filterDot, { backgroundColor: '#22C55E' }]} />
+              <Text style={[styles.filterChipText, filterOnlyMine && styles.filterChipTextActive]}>Só os meus</Text>
+            </TouchableOpacity>
+          )}
+          {/* Role filters — visible to all users in institution view */}
+          {useInstitutionView && (
+            <>
+              <View style={styles.filterSeparator} />
+              <TouchableOpacity
+                style={[styles.filterChip, filterCaregivers && styles.filterChipActive]}
+                onPress={() => setFilterCaregivers(v => !v)}
+              >
+                <View style={[styles.filterDot, { backgroundColor: '#3B82F6' }]} />
+                <Text style={[styles.filterChipText, filterCaregivers && styles.filterChipTextActive]}>Cuidadores</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterChip, filterClinicians && styles.filterChipActive]}
+                onPress={() => setFilterClinicians(v => !v)}
+              >
+                <View style={[styles.filterDot, { backgroundColor: '#8B5CF6' }]} />
+                <Text style={[styles.filterChipText, filterClinicians && styles.filterChipTextActive]}>Clínicos</Text>
+              </TouchableOpacity>
+            </>
+          )}
+          {/* Admin-only extras: holidays, staff vacations, elderly absences */}
           {isAdmin && (
             <>
               <View style={styles.filterSeparator} />
@@ -1044,22 +1086,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
               >
                 <View style={[styles.filterDot, { backgroundColor: Color.Gray.v400 }]} />
                 <Text style={[styles.filterChipText, filterElderlyAbsences && styles.filterChipTextActive]}>Ausências Idosos</Text>
-              </TouchableOpacity>
-              {/* Separator */}
-              <View style={styles.filterSeparator} />
-              <TouchableOpacity
-                style={[styles.filterChip, filterCaregivers && styles.filterChipActive]}
-                onPress={() => setFilterCaregivers(v => !v)}
-              >
-                <View style={[styles.filterDot, { backgroundColor: '#3B82F6' }]} />
-                <Text style={[styles.filterChipText, filterCaregivers && styles.filterChipTextActive]}>Cuidadores</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.filterChip, filterClinicians && styles.filterChipActive]}
-                onPress={() => setFilterClinicians(v => !v)}
-              >
-                <View style={[styles.filterDot, { backgroundColor: '#8B5CF6' }]} />
-                <Text style={[styles.filterChipText, filterClinicians && styles.filterChipTextActive]}>Clínicos</Text>
               </TouchableOpacity>
             </>
           )}

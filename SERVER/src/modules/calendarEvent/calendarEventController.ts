@@ -270,6 +270,13 @@ export const getInstitutionCalendarEvents = async (req, res) => {
       });
       if (!caregiver) return sendError(res, 'Caregiver profile not found', 404);
       institutionId = caregiver.institutionId;
+    } else if (role === UserRole.CLINICIAN) {
+      const clinician = await prisma.clinician.findUnique({
+        where: { userId },
+        select: { institutionId: true },
+      });
+      if (!clinician) return sendError(res, 'Clinician profile not found', 404);
+      institutionId = clinician.institutionId;
     } else if (role === UserRole.PROGRAMMER) {
       // Programmers may pass ?institutionId=N for debug; otherwise return empty
       institutionId = req.query.institutionId ? Number(req.query.institutionId) : undefined;

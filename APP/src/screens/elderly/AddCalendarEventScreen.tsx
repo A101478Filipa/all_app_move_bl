@@ -4,12 +4,14 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { CalendarEventType, CreateCalendarEventRequest, ExternalProfessional } from 'moveplus-shared';
+import { CalendarEventType, CreateCalendarEventRequest, ExternalProfessional, UserRole } from 'moveplus-shared';
 import { calendarEventApi } from '@src/api/endpoints/calendarEvents';
 import { institutionApi } from '@src/api/endpoints/institution';
 import { externalProfessionalApi } from '@src/api/endpoints/externalProfessionals';
 import { timeOffApi, StaffTimeOffWithUser } from '@src/api/endpoints/timeOff';
 import { staffScheduleApi, StaffScheduleSummary } from '@src/api/endpoints/staffSchedule';
+import { useAuthStore } from '@src/stores/authStore';
+import { api } from '@src/services/ApiService';
 import { Color } from '@src/styles/colors';
 import { FontFamily, FontSize } from '@src/styles/fonts';
 import { Spacing, spacingStyles } from '@src/styles/spacings';
@@ -74,6 +76,9 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
   const { t } = useTranslation();
   const { elderlyId, editEvent, selectedDate, prefillType } = route.params ?? {};
   const { handleError, handleSuccess, handleValidationError } = useErrorHandler();
+  const { user } = useAuthStore();
+  const userRole = user?.user?.role;
+  const isAdminOrProgrammer = userRole === UserRole.INSTITUTION_ADMIN || userRole === UserRole.PROGRAMMER;
   const isEditing = !!editEvent;
   const [loading, setLoading] = useState(false);
   const [clinicians, setClinicians] = useState<{ label: string; value: number }[]>([]);
@@ -123,14 +128,16 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
       setSavedExternals(res.data ?? []);
     }).catch(() => {});
 
-    timeOffApi.getInstitutionTimeOffs().then(res => {
-      setInstitutionTimeOffs(res.data ?? []);
-    }).catch(() => {});
+    if (isAdminOrProgrammer) {
+      api.get('time-off/institution', { _silentError: true } as any)
+        .then((r: any) => setInstitutionTimeOffs(r.data?.data ?? []))
+        .catch(() => {});
 
-    staffScheduleApi.getInstitutionSchedules().then(res => {
-      setInstitutionSchedules(res.data ?? []);
-    }).catch(() => {});
-  }, [t]);
+      api.get('staff-schedules/institution', { _silentError: true } as any)
+        .then((r: any) => setInstitutionSchedules(r.data?.data ?? []))
+        .catch(() => {});
+    }
+  }, [t, isAdminOrProgrammer]);
 
   const isClinicalType = form.type ? CLINICAL_TYPES.includes(form.type) : false;
   const isExternal = form.assignedToId === EXTERNAL_VALUE;
