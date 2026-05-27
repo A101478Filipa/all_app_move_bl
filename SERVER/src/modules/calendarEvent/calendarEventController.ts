@@ -150,9 +150,10 @@ export const updateCalendarEvent = async (req, res) => {
       return sendError(res, 'Calendar event not found', 404);
     }
 
-    // Only the creator or an admin can update.
-    // Clinicians can only update events they created.
-    if (existing.createdById !== userId && (role === UserRole.ELDERLY || role === UserRole.CLINICIAN)) {
+    // Only admin/programmer can update any event.
+    // Clinicians and Caregivers can only update events they created or are assigned to.
+    const isOwnerOrAssigned = existing.createdById === userId || existing.assignedToId === userId;
+    if (role === UserRole.ELDERLY || (!isOwnerOrAssigned && (role === UserRole.CLINICIAN || role === UserRole.CAREGIVER))) {
       return sendError(res, 'Forbidden', 403);
     }
 
@@ -314,9 +315,10 @@ export const deleteCalendarEvent = async (req, res) => {
       return sendError(res, 'Calendar event not found', 404);
     }
 
-    // Only the creator or admin/caregiver roles can delete.
-    // Clinicians can only delete events they created.
-    if (existing.createdById !== userId && (role === UserRole.ELDERLY || role === UserRole.CLINICIAN)) {
+    // Only admin/programmer can delete any event.
+    // Clinicians and Caregivers can only delete events they created or are assigned to.
+    const isOwnerOrAssigned = existing.createdById === userId || existing.assignedToId === userId;
+    if (role === UserRole.ELDERLY || (!isOwnerOrAssigned && (role === UserRole.CLINICIAN || role === UserRole.CAREGIVER))) {
       return sendError(res, 'Forbidden', 403);
     }
 

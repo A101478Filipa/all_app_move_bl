@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  Modal, Animated, Dimensions,
+  Modal, Animated, Dimensions, Alert,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
@@ -147,13 +147,20 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
   const { handleError } = useErrorHandler();
   const { user } = useAuthStore();
   const userRole = user?.user?.role;
+  const currentUserId = user?.user?.id;
 
   const canEditEvent = useCallback((ev: ProfessionalCalendarEvent): boolean => {
-    if (!userRole) return false;
-    if (userRole === UserRole.ELDERLY) return false;
+    if (!userRole || userRole === UserRole.ELDERLY) return false;
     if (userRole === UserRole.INSTITUTION_ADMIN || userRole === UserRole.PROGRAMMER) return true;
-    return new Date(ev.startDate) >= new Date();
-  }, [userRole]);
+    // Clinician / Caregiver: only if they created it or are assigned to it
+    return ev.createdById === currentUserId || ev.assignedToId === currentUserId;
+  }, [userRole, currentUserId]);
+
+  const canDeleteEvent = useCallback((ev: ProfessionalCalendarEvent): boolean => {
+    if (!userRole || userRole === UserRole.ELDERLY) return false;
+    if (userRole === UserRole.INSTITUTION_ADMIN || userRole === UserRole.PROGRAMMER) return true;
+    return ev.createdById === currentUserId || ev.assignedToId === currentUserId;
+  }, [userRole, currentUserId]);
 
   const todayMemo = useMemo(() => {
     const d = new Date();
@@ -458,6 +465,31 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     setTimeout(() => navigation.push('AddCalendarEvent', { elderlyId: ev.elderlyId, editEvent: ev }), 250);
   };
 
+  const handleDeleteEvent = (ev: ProfessionalCalendarEvent) => {
+    closeModal();
+    setTimeout(() => {
+      Alert.alert(
+        t('calendar.deleteEvent'),
+        t('calendar.confirmDelete'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('common.delete'),
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await calendarEventApi.deleteEvent(ev.id);
+                setEvents(prev => prev.filter(e => e.id !== ev.id));
+              } catch (err) {
+                handleError(err);
+              }
+            },
+          },
+        ]
+      );
+    }, 250);
+  };
+
   const handleAddEvent = useCallback(() => {
     const d = selectedDate;
     const localISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T12:00:00`;
@@ -477,6 +509,7 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     const config = EVENT_TYPE_CONFIG[ev.type] ?? EVENT_TYPE_CONFIG[CalendarEventType.OTHER];
     const typeName = (t as any)(`calendar.types.${ev.type}`) ?? ev.type;
     const canEdit = canEditEvent(ev);
+    const canDelete = canDeleteEvent(ev);
 
     return (
       <Modal transparent animationType="none" visible onRequestClose={closeModal}>
@@ -578,14 +611,32 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
             )}
           </ScrollView>
 
-          {/* Edit button */}
-          {canEdit && (
+          {/* Edit / Delete buttons */}
+          {(canEdit || canDelete) && (
             <>
               <View style={styles.modalDivider} />
-              <TouchableOpacity style={styles.editBtn} onPress={() => handleEditEvent(ev)} activeOpacity={0.85}>
-                <MaterialIcons name="edit" size={18} color="#FFFFFF" />
-                <Text style={styles.editBtnText}>{t('calendar.editEvent')}</Text>
-              </TouchableOpacity>
+              <View style={styles.modalActionRow}>
+                {canEdit && (
+                  <TouchableOpacity
+                    style={[styles.editBtn, { flex: 1 }]}
+                    onPress={() => handleEditEvent(ev)}
+                    activeOpacity={0.85}
+                  >
+                    <MaterialIcons name="edit" size={18} color="#FFFFFF" />
+                    <Text style={styles.editBtnText}>{t('calendar.editEvent')}</Text>
+                  </TouchableOpacity>
+                )}
+                {canDelete && (
+                  <TouchableOpacity
+                    style={[styles.deleteBtn, { flex: 1 }]}
+                    onPress={() => handleDeleteEvent(ev)}
+                    activeOpacity={0.85}
+                  >
+                    <MaterialIcons name="delete-outline" size={18} color="#FFFFFF" />
+                    <Text style={styles.editBtnText}>{t('calendar.deleteEvent')}</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </>
           )}
         </Animated.View>
@@ -1490,6 +1541,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: Spacing.sm_12,
     marginTop: Spacing.xs_4,
+  },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs_6,
+    backgroundColor: Color.Error.default,
+    borderRadius: 12,
+    paddingVertical: Spacing.sm_12,
+    marginTop: Spacing.xs_4,
+  },
+  modalActionRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm_8,
   },
   editBtnText: {
     fontFamily: FontFamily.semi_bold,
