@@ -12,6 +12,7 @@ const writeOccurrenceRoles = [
   UserRole.PROGRAMMER,
   UserRole.INSTITUTION_ADMIN,
   UserRole.CAREGIVER,
+  UserRole.CLINICIAN,
 ];
 
 const handleMulterError = (error, req, res, next) => {

@@ -73,8 +73,7 @@ const FallOccurrenceScreen: React.FC<Props> = ({ route, navigation }) => {
   const shouldShowDetailsOnly = React.useMemo(() => {
     if (!user?.user?.role) return false;
     const role = user.user.role;
-    return role === UserRole.CLINICIAN ||
-           role === UserRole.PROGRAMMER ||
+    return role === UserRole.PROGRAMMER ||
            role === UserRole.ELDERLY;
   }, [user]);
 

@@ -78,7 +78,6 @@ const SosOccurrenceScreen: React.FC<Props> = ({ route }) => {
     if (!user?.user?.role) return false;
     const role = user.user.role;
     return (
-      role === UserRole.CLINICIAN ||
       role === UserRole.PROGRAMMER ||
       role === UserRole.ELDERLY
     );
