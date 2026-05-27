@@ -2,7 +2,7 @@ import { CreateMedicationRequest, UpdateMedicationRequest, UserRole } from "move
 import { sendSuccess, sendInputValidationError, sendError } from "../../utils/apiResponse";
 import prisma from "../../prisma";
 import { TimelineService } from "../../services/timelineService";
-import { DataAccessRequestStatus } from "@prisma/client";
+
 
 export const createMedication = async (req, res) => {
   const { userId } = req.user;
@@ -201,27 +201,6 @@ export const getMedication = async (req, res) => {
 
     if (institutionId === medication.elderly.institutionId) {
       return sendSuccess(res, medication, 'Medication retrieved successfully');
-    }
-
-    if (role === UserRole.CLINICIAN) {
-      const clinician = await prisma.clinician.findUnique({
-        where: { userId },
-      });
-
-      if (clinician) {
-        const accessRequest = await prisma.dataAccessRequest.findUnique({
-          where: {
-            clinicianId_elderlyId: {
-              clinicianId: clinician.id,
-              elderlyId: medication.elderly.id,
-            },
-          },
-        });
-
-        if (accessRequest?.status === DataAccessRequestStatus.APPROVED) {
-          return sendSuccess(res, medication, 'Medication retrieved successfully');
-        }
-      }
     }
 
     return sendError(res, 'Forbidden: You do not have access to this medication', 403);

@@ -2,7 +2,7 @@ import { CreatePathologyRequest, UpdatePathologyRequest, UserRole, PathologyStat
 import { sendSuccess, sendInputValidationError, sendError } from "../../utils/apiResponse";
 import prisma from "../../prisma";
 import { TimelineService } from "../../services/timelineService";
-import { DataAccessRequestStatus } from "@prisma/client";
+
 
 export const createPathology = async (req, res) => {
   const { userId } = req.user;
@@ -105,27 +105,6 @@ export const getPathology = async (req, res) => {
 
     if (institutionId === pathology.elderly.institutionId) {
       return sendSuccess(res, pathology, 'Pathology retrieved successfully');
-    }
-
-    if (role === UserRole.CLINICIAN) {
-      const clinician = await prisma.clinician.findUnique({
-        where: { userId },
-      });
-
-      if (clinician) {
-        const accessRequest = await prisma.dataAccessRequest.findUnique({
-          where: {
-            clinicianId_elderlyId: {
-              clinicianId: clinician.id,
-              elderlyId: pathology.elderly.id,
-            },
-          },
-        });
-
-        if (accessRequest?.status === DataAccessRequestStatus.APPROVED) {
-          return sendSuccess(res, pathology, 'Pathology retrieved successfully');
-        }
-      }
     }
 
     return sendError(res, 'Forbidden: You do not have access to this pathology', 403);

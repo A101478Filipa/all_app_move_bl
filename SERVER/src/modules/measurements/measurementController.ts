@@ -2,7 +2,7 @@ import { CreateMeasurementRequest, UserRole, MeasurementType } from "moveplus-sh
 import { sendSuccess, sendInputValidationError, sendError } from "../../utils/apiResponse";
 import prisma from "../../prisma";
 import { TimelineService } from "../../services/timelineService";
-import { DataAccessRequestStatus } from "@prisma/client";
+
 
 export const createMeasurement = async (req, res) => {
   const elderlyId = Number(req.params.elderlyId);
@@ -97,27 +97,6 @@ export const getMeasurement = async (req, res) => {
       return sendSuccess(res, measurement, 'Measurement retrieved successfully');
     }
 
-    if (role === UserRole.CLINICIAN) {
-      const clinician = await prisma.clinician.findUnique({
-        where: { userId },
-      });
-
-      if (clinician) {
-        const accessRequest = await prisma.dataAccessRequest.findUnique({
-          where: {
-            clinicianId_elderlyId: {
-              clinicianId: clinician.id,
-              elderlyId: measurement.elderly.id,
-            },
-          },
-        });
-
-        if (accessRequest?.status === DataAccessRequestStatus.APPROVED) {
-          return sendSuccess(res, measurement, 'Measurement retrieved successfully');
-        }
-      }
-    }
-
     return sendError(res, 'Forbidden: You do not have access to this measurement', 403);
   } catch (error) {
     console.error('Error retrieving measurement:', error);
@@ -150,25 +129,6 @@ export const getElderlyMeasurementsByType = async (req, res) => {
       hasAccess = true;
     } else if (institutionId === elderly.institutionId) {
       hasAccess = true;
-    } else if (role === UserRole.CLINICIAN) {
-      const clinician = await prisma.clinician.findUnique({
-        where: { userId },
-      });
-
-      if (clinician) {
-        const accessRequest = await prisma.dataAccessRequest.findUnique({
-          where: {
-            clinicianId_elderlyId: {
-              clinicianId: clinician.id,
-              elderlyId: elderly.id,
-            },
-          },
-        });
-
-        if (accessRequest?.status === DataAccessRequestStatus.APPROVED) {
-          hasAccess = true;
-        }
-      }
     }
 
     if (!hasAccess) {
