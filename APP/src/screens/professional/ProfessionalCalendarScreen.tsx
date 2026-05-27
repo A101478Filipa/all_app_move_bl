@@ -39,6 +39,12 @@ const MIN_EVENT_HEIGHT = 28;
 const DAY_SHORT = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const DOW_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const MONTH_CELL_W = Math.floor(Dimensions.get('window').width / 7);
+const SCREEN_W = Dimensions.get('window').width;
+// Left edge where event blocks start (time column + padding)
+const EVENT_AREA_LEFT = TIME_COL_WIDTH + 4;
+// Total width available for event blocks (subtract dayGrid marginRight=8)
+const EVENT_AREA_W = SCREEN_W - EVENT_AREA_LEFT - 8;
+const COL_GAP = 2;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function isSameDay(a: Date, b: Date): boolean {
@@ -87,6 +93,51 @@ function formatModalDate(d: Date): string {
   } catch {
     return d.toDateString();
   }
+}
+
+/** Assigns { col, totalCols } to each timed event for side-by-side overlap rendering. */
+function assignColumns(events: ProfessionalCalendarEvent[]): Map<number, { col: number; totalCols: number }> {
+  const timed = [...events]
+    .filter(e => !e.allDay)
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+
+  const colEnds: number[] = [];
+  const eventCol = new Map<number, number>();
+
+  for (const ev of timed) {
+    const start = new Date(ev.startDate).getTime();
+    const end = ev.endDate ? new Date(ev.endDate).getTime() : start + 3_600_000;
+    let col = 0;
+    while (col < colEnds.length && colEnds[col] > start) col++;
+    eventCol.set(ev.id, col);
+    colEnds[col] = end;
+  }
+
+  // Group into overlap clusters to determine totalCols per cluster
+  const result = new Map<number, { col: number; totalCols: number }>();
+  const clusters: number[][] = [];
+  let cEnd = 0;
+  let cluster: number[] = [];
+
+  for (const ev of timed) {
+    const start = new Date(ev.startDate).getTime();
+    const end = ev.endDate ? new Date(ev.endDate).getTime() : start + 3_600_000;
+    if (start < cEnd) {
+      cluster.push(ev.id);
+      cEnd = Math.max(cEnd, end);
+    } else {
+      if (cluster.length) clusters.push(cluster);
+      cluster = [ev.id];
+      cEnd = end;
+    }
+  }
+  if (cluster.length) clusters.push(cluster);
+
+  for (const cl of clusters) {
+    const totalCols = Math.max(...cl.map(id => (eventCol.get(id) ?? 0) + 1));
+    for (const id of cl) result.set(id, { col: eventCol.get(id) ?? 0, totalCols });
+  }
+  return result;
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -232,6 +283,8 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
         .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()),
     [displayedEvents, selectedDate]
   );
+
+  const columnMap = useMemo(() => assignColumns(selectedDayEvents), [selectedDayEvents]);
 
   const dayDotMap = useMemo(() => {
     const map = new Map<string, string[]>();
@@ -818,6 +871,12 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
             const durationH = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
             const height = Math.max(durationH * HOUR_HEIGHT, MIN_EVENT_HEIGHT);
             const config = EVENT_TYPE_CONFIG[ev.type] ?? EVENT_TYPE_CONFIG[CalendarEventType.OTHER];
+            const colInfo = columnMap.get(ev.id);
+            const col = colInfo?.col ?? 0;
+            const totalCols = colInfo?.totalCols ?? 1;
+            const colW = (EVENT_AREA_W - (totalCols - 1) * COL_GAP) / totalCols;
+            const evLeft = EVENT_AREA_LEFT + col * (colW + COL_GAP);
+            const evRight = SCREEN_W - evLeft - colW - 8;
             return (
               <TouchableOpacity
                 key={ev.id}
@@ -830,6 +889,8 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
                     height,
                     backgroundColor: config.color + '22',
                     borderLeftColor: config.color,
+                    left: evLeft,
+                    right: evRight,
                   },
                 ]}
               >
