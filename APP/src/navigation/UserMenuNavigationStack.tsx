@@ -2,7 +2,6 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import UserMenuScreen from '@screens/user/UserMenuScreen';
 import UserSettingsScreen from '@screens/user/UserSettingsScreen';
-import InstitutionTimelineScreen from '@screens/institution/InstitutionTimelineScreen';
 import InstitutionDetailsScreen from '@screens/institution/InstitutionDetailsScreen';
 import { FallOccurrenceScreen } from "@src/screens/fallOccurrence/FallOccurrenceScreen";
 import ElderlyDetailsScreen from "@src/screens/elderly/ElderlyDetailsScreen";
@@ -21,7 +20,6 @@ export type UserMenuStackParamList = {
   UserMenu: undefined;
   UserSettings: undefined;
   NotificationCenter: undefined;
-  InstitutionTimeline: undefined;
   InstitutionDetails: undefined;
   UserAdditionalInfo: undefined;
   FallOccurrenceScreen: {
@@ -86,13 +84,6 @@ export const UserMenuNavigationStack = () => {
         name="NotificationCenter"
         component={NotificationCenterStack}
         options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="InstitutionTimeline"
-        component={InstitutionTimelineScreen}
-        options={{
-          title: t('menu.institutionTimeline'),
-        }}
       />
       <Stack.Screen
         name="InstitutionDetails"

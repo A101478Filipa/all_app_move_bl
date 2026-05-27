@@ -143,10 +143,6 @@ const UserMenuScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('UserSettings');
   }
 
-  const onInstitutionTimeline = () => {
-    navigation.navigate('InstitutionTimeline');
-  }
-
   const onInstitutionDetails = () => {
     navigation.navigate('InstitutionDetails');
   }
@@ -167,7 +163,6 @@ const UserMenuScreen: React.FC<Props> = ({ navigation }) => {
   const isElderly = user?.user.role === UserRole.ELDERLY;
   const isClinician = user?.user.role === UserRole.CLINICIAN;
 
-  const shouldShowInstitutionTimeline = isCaregiver || isAdmin || isClinician;
   const shouldShowInstitutionDetails = isCaregiver || isAdmin || isElderly || isClinician;
 
   return (
@@ -187,7 +182,7 @@ const UserMenuScreen: React.FC<Props> = ({ navigation }) => {
           <HeaderComponent user={user} onSettingsPress={onSettings}/>
 
           {/* Institution Section */}
-          {(shouldShowInstitutionTimeline || shouldShowInstitutionDetails) && (
+          {shouldShowInstitutionDetails && (
             <MenuSection title={t('menu.institution')}>
               {shouldShowInstitutionDetails && (
                 <MenuOption
@@ -196,17 +191,7 @@ const UserMenuScreen: React.FC<Props> = ({ navigation }) => {
                   title={t('menu.institutionDetails')}
                   onPress={onInstitutionDetails}
                   hasNavigation={true}
-                  isLast={!shouldShowInstitutionTimeline && !isAdmin}
-                />
-              )}
-              {shouldShowInstitutionTimeline && (
-                <MenuOption
-                  iconName="timeline"
-                  iconColor={Color.secondary}
-                  title={t('menu.institutionTimeline')}
-                  onPress={onInstitutionTimeline}
-                  hasNavigation={true}
-                  isLast={!isAdmin && !isClinician}
+                  isLast={!isAdmin && !(isClinician || isCaregiver)}
                 />
               )}
               {isAdmin && (

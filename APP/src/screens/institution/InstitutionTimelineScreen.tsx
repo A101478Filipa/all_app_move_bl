@@ -11,7 +11,7 @@ import { formatFriendlyDate } from '@src/utils/Date';
 import { shadowStyles } from '@src/styles/shadow';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { InstitutionDashboardNavigationStackParamList } from '../../navigation/InstitutionDashboardNavigationStack';
-import { UserMenuStackParamList } from '@navigation/UserMenuNavigationStack';
+import { ClinicianDashboardNavigationStackParamList } from '@navigation/ClinicianDashboardNavigationStack';
 import { useInstitutionTimelineStore } from '@src/stores';
 import { useFocusEffect } from '@react-navigation/core';
 import { useCallback } from 'react';
@@ -22,7 +22,7 @@ import { useTranslation } from '@src/localization/hooks/useTranslation';
 
 // MARK: Types
 type Props = NativeStackScreenProps<InstitutionDashboardNavigationStackParamList, 'InstitutionDashboardScreen'> |
-             NativeStackScreenProps<UserMenuStackParamList, 'InstitutionTimeline'>;
+             NativeStackScreenProps<ClinicianDashboardNavigationStackParamList, 'InstitutionTimelineScreen'>;
 
 type NavigationProp = {
   push: (screen: string, params?: any) => void;

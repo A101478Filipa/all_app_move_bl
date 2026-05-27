@@ -12,8 +12,13 @@ type InstitutionTimelineState = {
 };
 
 const buildTimelineSections = (activities: TimelineActivity[]): TimelineSection[] => {
+  const todayStr = formatDate(new Date(), 'YYYY-MM-DD');
+  const pastOrToday = activities.filter(item => {
+    const day = formatDate(item.createdAt, 'YYYY-MM-DD');
+    return day <= todayStr;
+  });
   return Object.values(
-    activities.reduce<Record<string, { title: string, data: TimelineActivity[] }>>((acc, item) => {
+    pastOrToday.reduce<Record<string, { title: string, data: TimelineActivity[] }>>((acc, item) => {
       const day = formatDate(item.createdAt, 'YYYY-MM-DD');
       if (!acc[day]) acc[day] = { title: day, data: [] };
       acc[day].data.push(item);
