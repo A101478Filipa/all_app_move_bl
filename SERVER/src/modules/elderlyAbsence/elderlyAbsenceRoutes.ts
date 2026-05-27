@@ -7,13 +7,14 @@ const elderlyAbsenceRoutes = express.Router();
 
 const ADMIN_AND_CAREGIVER = [UserRole.CAREGIVER, UserRole.INSTITUTION_ADMIN, UserRole.PROGRAMMER];
 const ADMIN_ONLY = [UserRole.INSTITUTION_ADMIN, UserRole.PROGRAMMER];
+const ALL_STAFF = [UserRole.CAREGIVER, UserRole.INSTITUTION_ADMIN, UserRole.CLINICIAN, UserRole.PROGRAMMER];
 const STAFF_OR_ELDERLY = [UserRole.CAREGIVER, UserRole.INSTITUTION_ADMIN, UserRole.CLINICIAN, UserRole.PROGRAMMER, UserRole.ELDERLY];
 
 // GET /elderly-absences/institution — all absences for admin's institution (must be before /:elderlyId)
 elderlyAbsenceRoutes.get(
   '/institution',
   authenticate,
-  authorizeRoles(ADMIN_ONLY),
+  authorizeRoles(ALL_STAFF),
   controller.getInstitutionAbsences,
 );
 

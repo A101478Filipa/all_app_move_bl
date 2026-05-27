@@ -126,20 +126,30 @@ export const deleteAbsence = async (req, res) => {
 export const getInstitutionAbsences = async (req, res) => {
   const { userId, role } = req.user;
 
-  if (role !== UserRole.INSTITUTION_ADMIN && role !== UserRole.PROGRAMMER) {
-    return sendError(res, 'Forbidden', 403);
-  }
-
   try {
-    const admin = await prisma.institutionAdmin.findUnique({
-      where: { userId },
-      select: { institutionId: true },
-    });
+    let institutionId: number | undefined;
 
-    if (!admin) return sendError(res, 'Admin not found', 404);
+    if (role === UserRole.INSTITUTION_ADMIN) {
+      const admin = await prisma.institutionAdmin.findUnique({ where: { userId }, select: { institutionId: true } });
+      if (!admin) return sendError(res, 'Admin not found', 404);
+      institutionId = admin.institutionId;
+    } else if (role === UserRole.CAREGIVER) {
+      const caregiver = await prisma.caregiver.findUnique({ where: { userId }, select: { institutionId: true } });
+      if (!caregiver) return sendError(res, 'Caregiver profile not found', 404);
+      institutionId = caregiver.institutionId;
+    } else if (role === UserRole.CLINICIAN) {
+      const clinician = await prisma.clinician.findUnique({ where: { userId }, select: { institutionId: true } });
+      if (!clinician) return sendError(res, 'Clinician profile not found', 404);
+      institutionId = clinician.institutionId;
+    } else if (role === UserRole.PROGRAMMER) {
+      institutionId = req.query.institutionId ? Number(req.query.institutionId) : undefined;
+      if (!institutionId) return sendSuccess(res, []);
+    } else {
+      return sendError(res, 'Forbidden', 403);
+    }
 
     const absences = await prisma.elderlyAbsence.findMany({
-      where: { elderly: { institutionId: admin.institutionId } },
+      where: { elderly: { institutionId } },
       orderBy: { startDate: 'asc' },
       include: {
         createdBy: { select: creatorSelect },

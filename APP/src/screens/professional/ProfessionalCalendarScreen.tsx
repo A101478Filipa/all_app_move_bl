@@ -247,7 +247,13 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
         setTimeOffs(timeOffRes.data ?? []);
       }
 
-      // Fetch institution-wide time-offs and absences for admin
+      // Fetch institution-wide time-offs and absences
+      if (useInstitutionView) {
+        const absencesRes = await api.get('elderly-absences/institution', { _silentError: true } as any).then((r: any) => r.data).catch(() => ({ data: [] }));
+        setAdminAbsences(absencesRes.data ?? []);
+      }
+
+      // Fetch institution-wide time-offs (admin only)
       if (isAdmin) {
         const [instTimeOffRes, instAbsencesRes] = await Promise.all([
           api.get('time-off/institution', { _silentError: true } as any).then((r: any) => r.data).catch(() => ({ data: [] })),
@@ -393,9 +399,9 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     return null;
   }, [isAdmin, getHolidayForDay, getTimeOffForDay, isWorkDay]);
 
-  /** For admin view: category dots to show on each day (filtered by toggles) */
+  /** For institution view: category dots to show on each day (filtered by toggles) */
   const getAdminDayDots = useCallback((d: Date): { color: string; key: string }[] => {
-    if (!isAdmin) return [];
+    if (!useInstitutionView) return [];
     const dots: { color: string; key: string }[] = [];
 
     if (filterHolidays) {
@@ -429,11 +435,11 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     }
 
     return dots.slice(0, 5);
-  }, [isAdmin, filterHolidays, filterStaffVacations, filterElderlyAbsences, getHolidayForDay, adminTimeOffs, adminAbsences]);
+  }, [useInstitutionView, filterHolidays, filterStaffVacations, filterElderlyAbsences, getHolidayForDay, adminTimeOffs, adminAbsences]);
 
-  /** For admin view: get time-offs and absences for a specific day (for banner in week view) */
+  /** For institution view: get time-offs and absences for a specific day (for banner in week view) */
   const getAdminDayInfo = useCallback((d: Date): { timeOffs: StaffTimeOffWithUser[]; absences: ElderlyAbsenceWithElderly[]; holiday?: string } | null => {
-    if (!isAdmin) return null;
+    if (!useInstitutionView) return null;
     const holiday = filterHolidays ? getHolidayForDay(d) : undefined;
     const dayTimeOffs = filterStaffVacations ? adminTimeOffs.filter(t => {
       const start = new Date(t.startDate); start.setHours(0, 0, 0, 0);
@@ -447,7 +453,7 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     }) : [];
     if (!holiday && dayTimeOffs.length === 0 && dayAbsences.length === 0) return null;
     return { timeOffs: dayTimeOffs, absences: dayAbsences, holiday };
-  }, [isAdmin, filterHolidays, filterStaffVacations, filterElderlyAbsences, getHolidayForDay, adminTimeOffs, adminAbsences]);
+  }, [useInstitutionView, filterHolidays, filterStaffVacations, filterElderlyAbsences, getHolidayForDay, adminTimeOffs, adminAbsences]);
 
   // ── Navigation ────────────────────────────────────────────────────────────
   const navigateWeek = (delta: number) =>
@@ -862,13 +868,14 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
         return null;
       })()}
 
-      {/* Admin overlays: time-offs and elderly absences for selected day */}
+      {/* Institution overlays: holidays (admin), elderly absences+staff time-offs (all institution view) */}
       {(() => {
         const adminInfo = getAdminDayInfo(selectedDate);
         if (!adminInfo) return null;
         return (
           <>
-            {adminInfo.holiday && (
+            {/* Holiday banner — only for admins (professionals get it from the personal banner above) */}
+            {isAdmin && adminInfo.holiday && (
               <View style={[styles.dayBanner, { backgroundColor: '#FF4C4C18', borderColor: '#FF4C4C' }]}>
                 <MaterialIcons name="event-busy" size={15} color="#FF4C4C" />
                 <Text style={[styles.dayBannerText, { color: '#FF4C4C' }]}>Feriado: {adminInfo.holiday}</Text>
@@ -1042,7 +1049,7 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
               <Text style={[styles.filterChipText, filterOnlyMine && styles.filterChipTextActive]}>Só os meus</Text>
             </TouchableOpacity>
           )}
-          {/* Role filters — visible to all users in institution view */}
+          {/* Role filters + Feriados + Ausências — visible to all users in institution view */}
           {useInstitutionView && (
             <>
               <View style={styles.filterSeparator} />
@@ -1060,11 +1067,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
                 <View style={[styles.filterDot, { backgroundColor: '#8B5CF6' }]} />
                 <Text style={[styles.filterChipText, filterClinicians && styles.filterChipTextActive]}>Clínicos</Text>
               </TouchableOpacity>
-            </>
-          )}
-          {/* Admin-only extras: holidays, staff vacations, elderly absences */}
-          {isAdmin && (
-            <>
               <View style={styles.filterSeparator} />
               <TouchableOpacity
                 style={[styles.filterChip, filterHolidays && styles.filterChipActive]}
@@ -1074,18 +1076,23 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
                 <Text style={[styles.filterChipText, filterHolidays && styles.filterChipTextActive]}>Feriados</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.filterChip, filterStaffVacations && styles.filterChipActive]}
-                onPress={() => setFilterStaffVacations(v => !v)}
-              >
-                <View style={[styles.filterDot, { backgroundColor: '#22C55E' }]} />
-                <Text style={[styles.filterChipText, filterStaffVacations && styles.filterChipTextActive]}>Férias Pessoal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
                 style={[styles.filterChip, filterElderlyAbsences && styles.filterChipActive]}
                 onPress={() => setFilterElderlyAbsences(v => !v)}
               >
                 <View style={[styles.filterDot, { backgroundColor: Color.Gray.v400 }]} />
                 <Text style={[styles.filterChipText, filterElderlyAbsences && styles.filterChipTextActive]}>Ausências Idosos</Text>
+              </TouchableOpacity>
+            </>
+          )}
+          {/* Admin-only extras: staff vacations */}
+          {isAdmin && (
+            <>
+              <TouchableOpacity
+                style={[styles.filterChip, filterStaffVacations && styles.filterChipActive]}
+                onPress={() => setFilterStaffVacations(v => !v)}
+              >
+                <View style={[styles.filterDot, { backgroundColor: '#22C55E' }]} />
+                <Text style={[styles.filterChipText, filterStaffVacations && styles.filterChipTextActive]}>Férias Pessoal</Text>
               </TouchableOpacity>
             </>
           )}
