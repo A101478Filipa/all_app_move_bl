@@ -24,10 +24,18 @@ export const formatDate = (dateString: string | Date, format = 'DD/MM'): string 
 
 export const formatFriendlyDate = (
   dateStr: string | Date, 
-  t: (key: string) => string 
+  t: (key: string) => string,
+  showTime = true
 ): string => {
   const date = dayjs(dateStr);
   const now = dayjs();
+
+  if (!showTime) {
+    if (date.isSame(now, 'day')) return t('common.today');
+    if (date.isSame(now.subtract(1, 'day'), 'day')) return t('common.yesterday');
+    return date.format('DD/MM/YYYY');
+  }
+
   const timeStr = date.format('HH:mm');
 
   if (date.isSame(now, 'day')) {

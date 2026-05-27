@@ -832,6 +832,8 @@
     "unknownRole": "Função Desconhecida",
     "noTimelineActivities": "Nenhuma atividade da cronologia para mostrar",
     "errorLoadingData": "Erro ao carregar dados. Tente novamente mais tarde.",
+    "filterByDay": "Por Dia",
+    "filterByMonth": "Por Mês",
     "by": "Por",
     "sosOccurrence": "Alerta SOS",
     "sosHandled": "Alerta SOS Tratado",

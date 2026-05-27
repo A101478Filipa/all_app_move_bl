@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, RefreshControl, SectionList, SafeAreaView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, RefreshControl, SectionList, SafeAreaView, TouchableOpacity, Modal } from 'react-native';
 import { TimelineActivity, TimelineActivityType } from 'moveplus-shared';
 import { ActivityIndicatorOverlay } from '@components/ActivityIndicatorOverlay';
 import { Color } from '@src/styles/colors';
@@ -19,6 +19,9 @@ import TimelineActivityCard from '@src/components/TimelineActivityCard';
 import { fallOccurrenceApi } from '@src/api/endpoints/fallOccurrences';
 import { useErrorHandler } from '@src/hooks/useErrorHandler';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
+import { MaterialIcons } from '@expo/vector-icons';
+import DateTimePicker, { useDefaultStyles } from 'react-native-ui-datepicker';
+import dayjs from 'dayjs';
 
 // MARK: Types
 type Props = NativeStackScreenProps<InstitutionDashboardNavigationStackParamList, 'InstitutionDashboardScreen'> |
@@ -30,9 +33,36 @@ type NavigationProp = {
 
 // MARK: Screen
 const InstitutionTimelineScreen: React.FC<Props> = ({ navigation }) => {
-  const { sections, fetch, refresh, state } = useInstitutionTimelineStore();
+  const { sections, fetch, refresh, state, filterMode, filterDate, setFilter, clearFilter } = useInstitutionTimelineStore();
   const { handleError } = useErrorHandler();
   const { t } = useTranslation();
+  const defaultStyles = useDefaultStyles();
+
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState<'day' | 'month'>('day');
+  const [tempDate, setTempDate] = useState(dayjs());
+
+  const openPicker = (mode: 'day' | 'month') => {
+    setPickerMode(mode);
+    const existing = filterMode === mode && filterDate ? dayjs(filterDate) : dayjs();
+    setTempDate(existing);
+    setShowPicker(true);
+  };
+
+  const confirmPicker = () => {
+    if (pickerMode === 'day') {
+      setFilter(tempDate.format('YYYY-MM-DD'), 'day');
+    } else {
+      setFilter(tempDate.format('YYYY-MM'), 'month');
+    }
+    setShowPicker(false);
+  };
+
+  const formatFilterLabel = () => {
+    if (!filterDate || !filterMode) return '';
+    if (filterMode === 'day') return dayjs(filterDate).format('DD/MM/YYYY');
+    return dayjs(filterDate + '-01').format('MM/YYYY');
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -144,7 +174,7 @@ const InstitutionTimelineScreen: React.FC<Props> = ({ navigation }) => {
   const renderSectionHeader = useCallback(
     ({ section }: { section: { title: string } }) => (
       <Text style={styles.sectionHeader}>
-        {formatFriendlyDate(section.title, t)}
+        {formatFriendlyDate(section.title, t, false)}
       </Text>
     ), [t]
   );
@@ -169,6 +199,35 @@ const InstitutionTimelineScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {/* Filter bar */}
+      <View style={styles.filterBar}>
+        <TouchableOpacity
+          style={[styles.filterChip, filterMode === 'day' && styles.filterChipActive]}
+          onPress={() => openPicker('day')}
+        >
+          <MaterialIcons name="calendar-today" size={14} color={filterMode === 'day' ? Color.white : Color.Gray.v500} />
+          <Text style={[styles.filterChipText, filterMode === 'day' && styles.filterChipTextActive]}>
+            {filterMode === 'day' ? formatFilterLabel() : t('timeline.filterByDay')}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.filterChip, filterMode === 'month' && styles.filterChipActive]}
+          onPress={() => openPicker('month')}
+        >
+          <MaterialIcons name="date-range" size={14} color={filterMode === 'month' ? Color.white : Color.Gray.v500} />
+          <Text style={[styles.filterChipText, filterMode === 'month' && styles.filterChipTextActive]}>
+            {filterMode === 'month' ? formatFilterLabel() : t('timeline.filterByMonth')}
+          </Text>
+        </TouchableOpacity>
+
+        {filterMode && (
+          <TouchableOpacity style={styles.clearButton} onPress={clearFilter}>
+            <MaterialIcons name="close" size={18} color={Color.Gray.v500} />
+          </TouchableOpacity>
+        )}
+      </View>
+
       <SectionList
         style={{ flex: 1 }}
         contentInsetAdjustmentBehavior='automatic'
@@ -185,6 +244,34 @@ const InstitutionTimelineScreen: React.FC<Props> = ({ navigation }) => {
           state === ScreenState.IDLE ? <Text style={styles.emptyText}>{t('timeline.noTimelineActivities')}</Text> : null
         }
       />
+
+      {/* Date Picker Modal */}
+      <Modal transparent visible={showPicker} animationType="fade" onRequestClose={() => setShowPicker(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowPicker(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.calendarContainer}>
+            <DateTimePicker
+              mode="single"
+              date={tempDate.toDate()}
+              maxDate={new Date()}
+              onChange={(params) => setTempDate(dayjs(params.date))}
+              styles={{
+                ...defaultStyles,
+                selected: { backgroundColor: Color.primary, borderRadius: 100 },
+                selected_label: { color: '#fff', fontWeight: 'bold' },
+                today: { borderColor: Color.primary, borderWidth: 1, borderRadius: 100 },
+              }}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity onPress={() => setShowPicker(false)} style={styles.modalBtn}>
+                <Text style={styles.cancelText}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={confirmPicker} style={styles.modalBtn}>
+                <Text style={styles.confirmText}>{t('common.confirm')}</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -194,6 +281,41 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Color.Background.subtle,
+  },
+  filterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md_16,
+    paddingVertical: Spacing.sm_8,
+    gap: Spacing.sm_8,
+    backgroundColor: Color.Background.subtle,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm_12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Color.Gray.v300,
+    backgroundColor: Color.white,
+  },
+  filterChipActive: {
+    backgroundColor: Color.primary,
+    borderColor: Color.primary,
+  },
+  filterChipText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.bodysmall_14,
+    color: Color.Gray.v500,
+  },
+  filterChipTextActive: {
+    color: Color.white,
+  },
+  clearButton: {
+    marginLeft: 'auto',
+    padding: 4,
   },
   list: {
     flexGrow: 1,
@@ -224,6 +346,39 @@ const styles = StyleSheet.create({
     fontSize: FontSize.bodylarge_18,
     color: Color.Gray.v500,
     marginVertical: Spacing.md_16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calendarContainer: {
+    backgroundColor: Color.white,
+    borderRadius: Border.md_12,
+    padding: Spacing.md_16,
+    width: '90%',
+    alignItems: 'center',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    width: '100%',
+    marginTop: Spacing.sm_8,
+    gap: Spacing.md_16,
+  },
+  modalBtn: {
+    padding: Spacing.sm_8,
+  },
+  cancelText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.bodymedium_16,
+    color: Color.Gray.v500,
+  },
+  confirmText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.bodymedium_16,
+    color: Color.primary,
   },
 });
 

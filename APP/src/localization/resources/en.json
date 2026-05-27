@@ -831,6 +831,8 @@
     "unknownRole": "Unknown Role",
     "noTimelineActivities": "No timeline activities to show",
     "errorLoadingData": "Error loading data. Please try again later.",
+    "filterByDay": "By Day",
+    "filterByMonth": "By Month",
     "by": "By",
     "sosOccurrence": "SOS Alert",
     "sosHandled": "SOS Alert Handled",
