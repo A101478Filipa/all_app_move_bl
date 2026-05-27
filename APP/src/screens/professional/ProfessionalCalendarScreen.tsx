@@ -181,6 +181,8 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
   // Role-based event filters (admin only) — true = show that role's events
   const [filterCaregivers, setFilterCaregivers] = useState(true);
   const [filterClinicians, setFilterClinicians] = useState(true);
+  // External filter — visible to all users
+  const [filterExternal, setFilterExternal] = useState(true);
 
   const openModal = (ev: ProfessionalCalendarEvent) => {
     slideAnim.setValue(500);
@@ -267,14 +269,15 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Events filtered by role (admin only) – used everywhere instead of raw `events`
   const displayedEvents = useMemo(() => {
-    if (!isAdmin || (filterCaregivers && filterClinicians)) return events;
     return events.filter(e => {
       const role = (e as any).assignedTo?.role;
-      if (role === 'CAREGIVER' && !filterCaregivers) return false;
-      if (role === 'CLINICIAN' && !filterClinicians) return false;
+      if (isAdmin && role === 'CAREGIVER' && !filterCaregivers) return false;
+      if (isAdmin && role === 'CLINICIAN' && !filterClinicians) return false;
+      const isExternal = !e.assignedToId && (!!e.externalProfessionalId || !!(e as any).externalProfessionalName);
+      if (isExternal && !filterExternal) return false;
       return true;
     });
-  }, [events, isAdmin, filterCaregivers, filterClinicians]);
+  }, [events, isAdmin, filterCaregivers, filterClinicians, filterExternal]);
 
   const selectedDayEvents = useMemo(
     () =>
@@ -456,8 +459,9 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleAddEvent = useCallback(() => {
-    const dateStr = selectedDate.toISOString();
-    navigation.push('SelectElderlyScreen', { calendarMode: true, selectedDate: dateStr } as any);
+    const d = selectedDate;
+    const localISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T12:00:00`;
+    navigation.push('SelectElderlyScreen', { calendarMode: true, selectedDate: localISO } as any);
   }, [navigation, selectedDate]);
 
   const currentTimeY = (currentTime.getHours() + currentTime.getMinutes() / 60) * HOUR_HEIGHT;
@@ -953,51 +957,62 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
 
         {/* Admin filter chips */}
-        {isAdmin && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterChipsRow}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterChipsRow}
+        >
+          {/* External filter — visible to all users */}
+          <TouchableOpacity
+            style={[styles.filterChip, filterExternal && styles.filterChipActive]}
+            onPress={() => setFilterExternal(v => !v)}
           >
-            <TouchableOpacity
-              style={[styles.filterChip, filterHolidays && styles.filterChipActive]}
-              onPress={() => setFilterHolidays(v => !v)}
-            >
-              <View style={[styles.filterDot, { backgroundColor: '#FF4C4C' }]} />
-              <Text style={[styles.filterChipText, filterHolidays && styles.filterChipTextActive]}>Feriados</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.filterChip, filterStaffVacations && styles.filterChipActive]}
-              onPress={() => setFilterStaffVacations(v => !v)}
-            >
-              <View style={[styles.filterDot, { backgroundColor: '#22C55E' }]} />
-              <Text style={[styles.filterChipText, filterStaffVacations && styles.filterChipTextActive]}>Férias Pessoal</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.filterChip, filterElderlyAbsences && styles.filterChipActive]}
-              onPress={() => setFilterElderlyAbsences(v => !v)}
-            >
-              <View style={[styles.filterDot, { backgroundColor: Color.Gray.v400 }]} />
-              <Text style={[styles.filterChipText, filterElderlyAbsences && styles.filterChipTextActive]}>Ausências Idosos</Text>
-            </TouchableOpacity>
-            {/* Separator */}
-            <View style={styles.filterSeparator} />
-            <TouchableOpacity
-              style={[styles.filterChip, filterCaregivers && styles.filterChipActive]}
-              onPress={() => setFilterCaregivers(v => !v)}
-            >
-              <View style={[styles.filterDot, { backgroundColor: '#3B82F6' }]} />
-              <Text style={[styles.filterChipText, filterCaregivers && styles.filterChipTextActive]}>Cuidadores</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.filterChip, filterClinicians && styles.filterChipActive]}
-              onPress={() => setFilterClinicians(v => !v)}
-            >
-              <View style={[styles.filterDot, { backgroundColor: '#8B5CF6' }]} />
-              <Text style={[styles.filterChipText, filterClinicians && styles.filterChipTextActive]}>Clínicos</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        )}
+            <View style={[styles.filterDot, { backgroundColor: '#F59E0B' }]} />
+            <Text style={[styles.filterChipText, filterExternal && styles.filterChipTextActive]}>Rep. Externa</Text>
+          </TouchableOpacity>
+          {isAdmin && (
+            <>
+              <View style={styles.filterSeparator} />
+              <TouchableOpacity
+                style={[styles.filterChip, filterHolidays && styles.filterChipActive]}
+                onPress={() => setFilterHolidays(v => !v)}
+              >
+                <View style={[styles.filterDot, { backgroundColor: '#FF4C4C' }]} />
+                <Text style={[styles.filterChipText, filterHolidays && styles.filterChipTextActive]}>Feriados</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterChip, filterStaffVacations && styles.filterChipActive]}
+                onPress={() => setFilterStaffVacations(v => !v)}
+              >
+                <View style={[styles.filterDot, { backgroundColor: '#22C55E' }]} />
+                <Text style={[styles.filterChipText, filterStaffVacations && styles.filterChipTextActive]}>Férias Pessoal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterChip, filterElderlyAbsences && styles.filterChipActive]}
+                onPress={() => setFilterElderlyAbsences(v => !v)}
+              >
+                <View style={[styles.filterDot, { backgroundColor: Color.Gray.v400 }]} />
+                <Text style={[styles.filterChipText, filterElderlyAbsences && styles.filterChipTextActive]}>Ausências Idosos</Text>
+              </TouchableOpacity>
+              {/* Separator */}
+              <View style={styles.filterSeparator} />
+              <TouchableOpacity
+                style={[styles.filterChip, filterCaregivers && styles.filterChipActive]}
+                onPress={() => setFilterCaregivers(v => !v)}
+              >
+                <View style={[styles.filterDot, { backgroundColor: '#3B82F6' }]} />
+                <Text style={[styles.filterChipText, filterCaregivers && styles.filterChipTextActive]}>Cuidadores</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterChip, filterClinicians && styles.filterChipActive]}
+                onPress={() => setFilterClinicians(v => !v)}
+              >
+                <View style={[styles.filterDot, { backgroundColor: '#8B5CF6' }]} />
+                <Text style={[styles.filterChipText, filterClinicians && styles.filterChipTextActive]}>Clínicos</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </ScrollView>
       </View>
 
       {viewMode === 'week' ? renderWeekView() : renderMonthView()}

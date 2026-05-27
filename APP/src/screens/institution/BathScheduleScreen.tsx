@@ -217,9 +217,11 @@ const BathScheduleScreen: React.FC<Props> = ({ navigation }) => {
   const handleSelectElderly = (elderly: Elderly) => {
     setPickVisible(false);
     if (!pickTargetDate) return;
+    const d = pickTargetDate;
+    const localISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T12:00:00`;
     navigation.push('AddCalendarEvent', {
       elderlyId: elderly.id,
-      selectedDate: pickTargetDate.toISOString(),
+      selectedDate: localISO,
       prefillType: CalendarEventType.BATH,
     });
   };
