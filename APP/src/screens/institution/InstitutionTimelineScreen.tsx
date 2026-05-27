@@ -41,20 +41,28 @@ const InstitutionTimelineScreen: React.FC<Props> = ({ navigation }) => {
   const [showPicker, setShowPicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<'day' | 'month'>('day');
   const [tempDate, setTempDate] = useState(dayjs());
+  const [monthPickerYear, setMonthPickerYear] = useState(dayjs().year());
+
+  const PT_MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  const currentYear = dayjs().year();
+  const currentMonth = dayjs().month(); // 0-indexed
 
   const openPicker = (mode: 'day' | 'month') => {
     setPickerMode(mode);
     const existing = filterMode === mode && filterDate ? dayjs(filterDate) : dayjs();
     setTempDate(existing);
+    setMonthPickerYear(existing.year());
     setShowPicker(true);
   };
 
-  const confirmPicker = () => {
-    if (pickerMode === 'day') {
-      setFilter(tempDate.format('YYYY-MM-DD'), 'day');
-    } else {
-      setFilter(tempDate.format('YYYY-MM'), 'month');
-    }
+  const confirmDayPicker = () => {
+    setFilter(tempDate.format('YYYY-MM-DD'), 'day');
+    setShowPicker(false);
+  };
+
+  const selectMonth = (monthIndex: number) => {
+    const value = `${monthPickerYear}-${String(monthIndex + 1).padStart(2, '0')}`;
+    setFilter(value, 'month');
     setShowPicker(false);
   };
 
@@ -245,33 +253,85 @@ const InstitutionTimelineScreen: React.FC<Props> = ({ navigation }) => {
         }
       />
 
-      {/* Date Picker Modal */}
-      <Modal transparent visible={showPicker} animationType="fade" onRequestClose={() => setShowPicker(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowPicker(false)}>
-          <TouchableOpacity activeOpacity={1} style={styles.calendarContainer}>
-            <DateTimePicker
-              mode="single"
-              date={tempDate.toDate()}
-              maxDate={new Date()}
-              onChange={(params) => setTempDate(dayjs(params.date))}
-              styles={{
-                ...defaultStyles,
-                selected: { backgroundColor: Color.primary, borderRadius: 100 },
-                selected_label: { color: '#fff', fontWeight: 'bold' },
-                today: { borderColor: Color.primary, borderWidth: 1, borderRadius: 100 },
-              }}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity onPress={() => setShowPicker(false)} style={styles.modalBtn}>
-                <Text style={styles.cancelText}>{t('common.cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={confirmPicker} style={styles.modalBtn}>
-                <Text style={styles.confirmText}>{t('common.confirm')}</Text>
-              </TouchableOpacity>
-            </View>
+      {/* Day Picker Modal */}
+      {pickerMode === 'day' && (
+        <Modal transparent visible={showPicker} animationType="fade" onRequestClose={() => setShowPicker(false)}>
+          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowPicker(false)}>
+            <TouchableOpacity activeOpacity={1} style={styles.calendarContainer}>
+              <DateTimePicker
+                mode="single"
+                date={tempDate.toDate()}
+                maxDate={new Date()}
+                onChange={(params) => setTempDate(dayjs(params.date))}
+                styles={{
+                  ...defaultStyles,
+                  selected: { backgroundColor: Color.primary, borderRadius: 100 },
+                  selected_label: { color: '#fff', fontWeight: 'bold' },
+                  today: { borderColor: Color.primary, borderWidth: 1, borderRadius: 100 },
+                }}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity onPress={() => setShowPicker(false)} style={styles.modalBtn}>
+                  <Text style={styles.cancelText}>{t('common.cancel')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={confirmDayPicker} style={styles.modalBtn}>
+                  <Text style={styles.confirmText}>{t('common.confirm')}</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
           </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+        </Modal>
+      )}
+
+      {/* Month Picker Modal */}
+      {pickerMode === 'month' && (
+        <Modal transparent visible={showPicker} animationType="fade" onRequestClose={() => setShowPicker(false)}>
+          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowPicker(false)}>
+            <TouchableOpacity activeOpacity={1} style={styles.monthPickerContainer}>
+              {/* Year selector */}
+              <View style={styles.yearRow}>
+                <TouchableOpacity onPress={() => setMonthPickerYear(y => y - 1)} style={styles.yearArrow}>
+                  <MaterialIcons name="chevron-left" size={28} color={Color.Gray.v500} />
+                </TouchableOpacity>
+                <Text style={styles.yearLabel}>{monthPickerYear}</Text>
+                <TouchableOpacity
+                  onPress={() => setMonthPickerYear(y => y + 1)}
+                  style={styles.yearArrow}
+                  disabled={monthPickerYear >= currentYear}
+                >
+                  <MaterialIcons name="chevron-right" size={28} color={monthPickerYear >= currentYear ? Color.Gray.v200 : Color.Gray.v500} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Month grid */}
+              <View style={styles.monthGrid}>
+                {PT_MONTHS.map((name, index) => {
+                  const isFuture = monthPickerYear === currentYear && index > currentMonth;
+                  const isActive = filterMode === 'month' && filterDate === `${monthPickerYear}-${String(index + 1).padStart(2, '0')}`;
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      style={[styles.monthCell, isActive && styles.monthCellActive, isFuture && styles.monthCellDisabled]}
+                      onPress={() => !isFuture && selectMonth(index)}
+                      disabled={isFuture}
+                    >
+                      <Text style={[styles.monthCellText, isActive && styles.monthCellTextActive, isFuture && styles.monthCellTextDisabled]}>
+                        {name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity onPress={() => setShowPicker(false)} style={styles.modalBtn}>
+                  <Text style={styles.cancelText}>{t('common.cancel')}</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </View>
   );
 };
@@ -359,6 +419,64 @@ const styles = StyleSheet.create({
     padding: Spacing.md_16,
     width: '90%',
     alignItems: 'center',
+  },
+  monthPickerContainer: {
+    backgroundColor: Color.white,
+    borderRadius: Border.md_12,
+    padding: Spacing.md_16,
+    width: '85%',
+    alignItems: 'center',
+  },
+  yearRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: Spacing.md_16,
+  },
+  yearArrow: {
+    padding: Spacing.sm_8,
+  },
+  yearLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.xl_20,
+    color: Color.black,
+  },
+  monthGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: Spacing.sm_8,
+  },
+  monthCell: {
+    width: '30%',
+    paddingVertical: Spacing.sm_12,
+    borderRadius: Border.sm_8,
+    borderWidth: 1,
+    borderColor: Color.Gray.v200,
+    alignItems: 'center',
+    backgroundColor: Color.white,
+  },
+  monthCellActive: {
+    backgroundColor: Color.primary,
+    borderColor: Color.primary,
+  },
+  monthCellDisabled: {
+    backgroundColor: Color.Background.subtle,
+    borderColor: Color.Gray.v200,
+  },
+  monthCellText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.bodysmall_14,
+    color: Color.Gray.v500,
+  },
+  monthCellTextActive: {
+    color: Color.white,
+    fontFamily: FontFamily.bold,
+  },
+  monthCellTextDisabled: {
+    color: Color.Gray.v300,
   },
   modalButtons: {
     flexDirection: 'row',
