@@ -44,8 +44,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
-      await authApi.forgotPassword({ email: trimmedEmail });
-      navigation.navigate('CreateNewPassword', { email: trimmedEmail });
+      const response = await authApi.forgotPassword({ email: trimmedEmail });
+      navigation.navigate('CreateNewPassword', { email: trimmedEmail, otp: response.data?.otp });
     } catch (error: any) {
       console.error('Forgot password error:', error);
       setErrorMessage(t('authentication.connectionError'));

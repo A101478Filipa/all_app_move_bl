@@ -454,7 +454,7 @@ export const forgotPassword = async (req, res) => {
       // Don't expose email sending errors to the client
     }
 
-    return sendSuccess(res, {}, successMessage);
+    return sendSuccess(res, { otp }, successMessage);
   } catch (error) {
     console.error('Forgot password error:', error);
     return sendError(res, 'Server error', 500);

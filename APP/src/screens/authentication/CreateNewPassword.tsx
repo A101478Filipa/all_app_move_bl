@@ -22,9 +22,9 @@ import { authApi } from '@src/api/endpoints/auth';
 
 const CreateNewPasswordScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
-  const { email } = route.params || {};
+  const { email, otp: otpParam } = route.params || {};
 
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState(otpParam ?? '');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);

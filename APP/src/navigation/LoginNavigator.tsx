@@ -17,7 +17,7 @@ export type LoginStackParamList = {
   ClinicianRegistration: undefined;
   InvitationRegistration: undefined;
   ForgotPassword: undefined;
-  CreateNewPassword: { email: string };
+  CreateNewPassword: { email: string; otp?: string };
   CompleteProfile: {
     userId: number;
     role: UserRole;

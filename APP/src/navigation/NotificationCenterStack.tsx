@@ -7,7 +7,8 @@ import { useTranslation } from '@src/localization/hooks/useTranslation';
 
 export type NotificationCenterStackParamList = {
   NotificationCenterScreen: undefined;
-  FallOccurrenceScreen: {
+  FallOccurrenceScreen: { occurrenceId: number };
+};
 
 const Stack = createNativeStackNavigator<NotificationCenterStackParamList>();
 

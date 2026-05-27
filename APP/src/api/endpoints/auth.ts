@@ -47,7 +47,7 @@ export const authApi = {
   completeProfile: (data: CompleteProfileRequest): Promise<ApiResponse<any>> =>
     api.post('/auth/complete-profile', data).then(response => response.data),
 
-  forgotPassword: (data: ForgotPasswordRequest): Promise<ApiResponse<{}>> =>
+  forgotPassword: (data: ForgotPasswordRequest): Promise<ApiResponse<{ otp?: string }>> =>
     api.post('/auth/forgot-password', data).then(response => response.data),
 
   resetPassword: (data: ResetPasswordRequest): Promise<ApiResponse<{}>> =>
