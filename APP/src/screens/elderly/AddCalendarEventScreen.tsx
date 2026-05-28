@@ -79,6 +79,7 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuthStore();
   const userRole = user?.user?.role;
   const isAdminOrProgrammer = userRole === UserRole.INSTITUTION_ADMIN || userRole === UserRole.PROGRAMMER;
+  const isStaff = isAdminOrProgrammer || userRole === UserRole.CLINICIAN || userRole === UserRole.CAREGIVER;
   const isEditing = !!editEvent;
   const [loading, setLoading] = useState(false);
   const [clinicians, setClinicians] = useState<{ label: string; value: number }[]>([]);
@@ -128,7 +129,7 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
       setSavedExternals(res.data ?? []);
     }).catch(() => {});
 
-    if (isAdminOrProgrammer) {
+    if (isStaff) {
       api.get('time-off/institution', { _silentError: true } as any)
         .then((r: any) => setInstitutionTimeOffs(r.data?.data ?? []))
         .catch(() => {});
@@ -236,6 +237,11 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!form.title.trim()) return handleValidationError(t('calendar.titleRequired'));
     if (!form.date) return handleValidationError(t('calendar.startDateRequired'));
     if (!form.allDay && !form.endTime) return handleValidationError(t('calendar.endTimeRequired'));
+    if (!form.allDay && form.startTime && form.endTime) {
+      const startMins = form.startTime.getHours() * 60 + form.startTime.getMinutes();
+      const endMins = form.endTime.getHours() * 60 + form.endTime.getMinutes();
+      if (endMins <= startMins) return handleValidationError(t('calendar.endTimeBeforeStart'));
+    }
 
     // Professional is required for all event types
     if (!form.assignedToId) return handleValidationError(t('calendar.professionalRequired'));

@@ -975,6 +975,7 @@
     "endTime": "End Time",
     "endTimePlaceholder": "No end time",
     "endTimeRequired": "End time is required",
+    "endTimeBeforeStart": "End time cannot be before or equal to start time",
     "scheduleActivity": "Schedule a new activity",
     "allDay": "All Day",
     "location": "Location",

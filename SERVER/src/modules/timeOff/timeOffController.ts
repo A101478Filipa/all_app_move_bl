@@ -265,17 +265,26 @@ export const deleteTimeOff = async (req, res) => {
 export const getInstitutionTimeOffs = async (req, res) => {
   const { userId, role } = req.user;
 
-  if (role !== UserRole.INSTITUTION_ADMIN && role !== UserRole.PROGRAMMER) {
-    return sendError(res, 'Forbidden', 403);
-  }
-
   try {
-    const admin = await prisma.institutionAdmin.findUnique({
-      where: { userId },
-      select: { institutionId: true },
-    });
+    let institutionId: number | null = null;
+    if (role === UserRole.INSTITUTION_ADMIN || role === UserRole.PROGRAMMER) {
+      const admin = await prisma.institutionAdmin.findUnique({ where: { userId }, select: { institutionId: true } });
+      if (!admin) return sendError(res, 'Admin not found', 404);
+      institutionId = admin.institutionId;
+    } else if (role === UserRole.CAREGIVER) {
+      const caregiver = await prisma.caregiver.findUnique({ where: { userId }, select: { institutionId: true } });
+      if (!caregiver) return sendError(res, 'Caregiver not found', 404);
+      institutionId = caregiver.institutionId;
+    } else if (role === UserRole.CLINICIAN) {
+      const clinician = await prisma.clinician.findUnique({ where: { userId }, select: { institutionId: true } });
+      if (!clinician) return sendError(res, 'Clinician not found', 404);
+      institutionId = clinician.institutionId;
+    } else {
+      return sendError(res, 'Forbidden', 403);
+    }
 
-    if (!admin) return sendError(res, 'Admin not found', 404);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const admin = { institutionId: institutionId! };
 
     const [caregivers, clinicians, admins] = await Promise.all([
       prisma.caregiver.findMany({ where: { institutionId: admin.institutionId }, select: { userId: true } }),

@@ -12,7 +12,7 @@ const ADMIN_ONLY = [UserRole.INSTITUTION_ADMIN, UserRole.PROGRAMMER];
 timeOffRoutes.get(
   '/institution',
   authenticate,
-  authorizeRoles(ADMIN_ONLY),
+  authorizeRoles(ALL_STAFF),
   controller.getInstitutionTimeOffs,
 );
 

@@ -5,11 +5,13 @@ import { authenticate, authorizeRoles } from '../../middleware/authMiddleware';
 
 const staffScheduleRoutes = express.Router();
 
-// GET /staff-schedules/institution  — all staff schedules (Admin only, must be before /:userId)
+const ALL_STAFF = [UserRole.CAREGIVER, UserRole.INSTITUTION_ADMIN, UserRole.CLINICIAN, UserRole.PROGRAMMER];
+
+// GET /staff-schedules/institution  — all staff schedules (must be before /:userId)
 staffScheduleRoutes.get(
   '/institution',
   authenticate,
-  authorizeRoles([UserRole.INSTITUTION_ADMIN, UserRole.PROGRAMMER]),
+  authorizeRoles(ALL_STAFF),
   controller.getInstitutionSchedules,
 );
 

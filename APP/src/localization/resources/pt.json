@@ -961,6 +961,7 @@
     "endTime": "Hora de Fim",
     "endTimePlaceholder": "Sem hora de fim",
     "endTimeRequired": "Hora de fim é obrigatória",
+    "endTimeBeforeStart": "A hora de fim não pode ser antes ou igual à hora de início",
     "scheduleActivity": "Agendar uma nova atividade",
     "allDay": "Dia Inteiro",
     "location": "Localização",
