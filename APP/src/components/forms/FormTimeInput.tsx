@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Modal,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { MaterialIcons } from '@expo/vector-icons';
 import { Color } from '@src/styles/colors';
 import { FontFamily, FontSize } from '@src/styles/fonts';
 import { Spacing } from '@src/styles/spacings';
@@ -27,6 +27,8 @@ const makeNow = () => {
   return d;
 };
 
+const pad = (n: number) => String(n).padStart(2, '0');
+
 export const FormTimeInput: React.FC<FormTimeInputProps> = ({
   title,
   value,
@@ -36,21 +38,25 @@ export const FormTimeInput: React.FC<FormTimeInputProps> = ({
 }) => {
   const { t } = useTranslation();
   const [show, setShow] = useState(false);
-  const [tempDate, setTempDate] = useState<Date>(value ?? makeNow());
+  const [hours, setHours] = useState(0);
+  const [minutes, setMinutes] = useState(0);
 
   const handleOpen = () => {
-    setTempDate(value ?? makeNow());
+    const base = value ?? makeNow();
+    setHours(base.getHours());
+    setMinutes(base.getMinutes());
     setShow(true);
   };
 
-  const handleChange = (_: any, selected?: Date) => {
-    if (selected) setTempDate(selected);
-  };
-
   const handleConfirm = () => {
-    onChange(tempDate);
+    const d = new Date();
+    d.setHours(hours, minutes, 0, 0);
+    onChange(d);
     setShow(false);
   };
+
+  const changeHours = (delta: number) => setHours(h => (h + delta + 24) % 24);
+  const changeMinutes = (delta: number) => setMinutes(m => (m + delta + 60) % 60);
 
   return (
     <View style={styles.inputGroup}>
@@ -73,14 +79,34 @@ export const FormTimeInput: React.FC<FormTimeInputProps> = ({
       >
         <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShow(false)}>
           <TouchableOpacity activeOpacity={1} style={styles.pickerContainer}>
-            <DateTimePicker
-              mode="time"
-              value={tempDate}
-              display="spinner"
-              is24Hour
-              onChange={handleChange}
-              style={styles.spinner}
-            />
+            <Text style={styles.pickerTitle}>{title}</Text>
+
+            <View style={styles.wheelRow}>
+              {/* Hours */}
+              <View style={styles.wheelCol}>
+                <TouchableOpacity onPress={() => changeHours(1)} style={styles.arrowBtn}>
+                  <MaterialIcons name="keyboard-arrow-up" size={32} color={Color.primary} />
+                </TouchableOpacity>
+                <Text style={styles.wheelValue}>{pad(hours)}</Text>
+                <TouchableOpacity onPress={() => changeHours(-1)} style={styles.arrowBtn}>
+                  <MaterialIcons name="keyboard-arrow-down" size={32} color={Color.primary} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.separator}>:</Text>
+
+              {/* Minutes */}
+              <View style={styles.wheelCol}>
+                <TouchableOpacity onPress={() => changeMinutes(5)} style={styles.arrowBtn}>
+                  <MaterialIcons name="keyboard-arrow-up" size={32} color={Color.primary} />
+                </TouchableOpacity>
+                <Text style={styles.wheelValue}>{pad(minutes)}</Text>
+                <TouchableOpacity onPress={() => changeMinutes(-5)} style={styles.arrowBtn}>
+                  <MaterialIcons name="keyboard-arrow-down" size={32} color={Color.primary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <View style={styles.modalButtons}>
               <TouchableOpacity onPress={() => setShow(false)} style={styles.modalBtn}>
                 <Text style={styles.cancelText}>{t('common.cancel')}</Text>
@@ -138,10 +164,42 @@ const styles = StyleSheet.create({
     backgroundColor: Color.Background.white,
     borderRadius: Border.md_12,
     overflow: 'hidden',
-    width: 300,
+    width: 280,
+    paddingTop: Spacing.lg_24,
   },
-  spinner: {
-    width: '100%',
+  pickerTitle: {
+    fontSize: FontSize.bodymedium_16,
+    fontFamily: FontFamily.semi_bold,
+    color: Color.dark,
+    textAlign: 'center',
+    marginBottom: Spacing.md_16,
+  },
+  wheelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.lg_24,
+    marginBottom: Spacing.md_16,
+    gap: 8,
+  },
+  wheelCol: {
+    alignItems: 'center',
+    width: 72,
+  },
+  arrowBtn: {
+    padding: Spacing.xs_4,
+  },
+  wheelValue: {
+    fontSize: 40,
+    fontFamily: FontFamily.bold ?? FontFamily.semi_bold,
+    color: Color.dark,
+    lineHeight: 52,
+  },
+  separator: {
+    fontSize: 36,
+    fontFamily: FontFamily.bold ?? FontFamily.semi_bold,
+    color: Color.dark,
+    marginBottom: 4,
   },
   modalButtons: {
     flexDirection: 'row',
