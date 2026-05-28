@@ -290,13 +290,19 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
   const displayedEvents = useMemo(() => {
     return events.filter(e => {
       const assignedRole = (e as any).assignedTo?.role;
-      if (useInstitutionView && assignedRole === 'CAREGIVER' && !filterCaregivers) return false;
-      if (useInstitutionView && assignedRole === 'CLINICIAN' && !filterClinicians) return false;
       const isExternal = !e.assignedToId && (!!e.externalProfessionalId || !!(e as any).externalProfessionalName);
       if (isExternal && !filterExternal) return false;
-      if (!isAdmin && filterOnlyMine && currentUserId) {
-        if (e.createdById !== currentUserId && e.assignedToId !== currentUserId) return false;
+
+      // "Pessoal" mode: shows only own events and bypasses role filters
+      if (!isAdmin && useInstitutionView && filterOnlyMine) {
+        if (!currentUserId || (e.createdById !== currentUserId && e.assignedToId !== currentUserId)) return false;
+        return true;
       }
+
+      // Role filters (only applied when "Pessoal" is not active)
+      if (useInstitutionView && assignedRole === 'CAREGIVER' && !filterCaregivers) return false;
+      if (useInstitutionView && assignedRole === 'CLINICIAN' && !filterClinicians) return false;
+
       return true;
     });
   }, [events, useInstitutionView, isAdmin, filterCaregivers, filterClinicians, filterExternal, filterOnlyMine, currentUserId]);
@@ -1046,7 +1052,7 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
               onPress={() => setFilterOnlyMine(v => !v)}
             >
               <View style={[styles.filterDot, { backgroundColor: '#22C55E' }]} />
-              <Text style={[styles.filterChipText, filterOnlyMine && styles.filterChipTextActive]}>Só os meus</Text>
+              <Text style={[styles.filterChipText, filterOnlyMine && styles.filterChipTextActive]}>Pessoal</Text>
             </TouchableOpacity>
           )}
           {/* Role filters + Feriados + Ausências — visible to all users in institution view */}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Modal, Platform,
+  View, Text, TouchableOpacity, StyleSheet, Modal,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Color } from '@src/styles/colors';
@@ -43,12 +43,7 @@ export const FormTimeInput: React.FC<FormTimeInputProps> = ({
     setShow(true);
   };
 
-  const handleAndroidChange = (_: any, selected?: Date) => {
-    setShow(false);
-    if (selected) onChange(selected);
-  };
-
-  const handleIOSChange = (_: any, selected?: Date) => {
+  const handleChange = (_: any, selected?: Date) => {
     if (selected) setTempDate(selected);
   };
 
@@ -70,45 +65,33 @@ export const FormTimeInput: React.FC<FormTimeInputProps> = ({
         </Text>
       </TouchableOpacity>
 
-      {Platform.OS === 'android' && show && (
-        <DateTimePicker
-          mode="time"
-          value={value}
-          display="default"
-          is24Hour
-          onChange={handleAndroidChange}
-        />
-      )}
-
-      {Platform.OS === 'ios' && (
-        <Modal
-          visible={show}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShow(false)}
-        >
-          <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShow(false)}>
-            <TouchableOpacity activeOpacity={1} style={styles.pickerContainer}>
-              <DateTimePicker
-                mode="time"
-                value={tempDate}
-                display="spinner"
-                is24Hour
-                onChange={handleIOSChange}
-                style={styles.spinner}
-              />
-              <View style={styles.modalButtons}>
-                <TouchableOpacity onPress={() => setShow(false)} style={styles.modalBtn}>
-                  <Text style={styles.cancelText}>{t('common.cancel')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleConfirm} style={styles.modalBtn}>
-                  <Text style={styles.confirmText}>{t('common.confirm')}</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
+      <Modal
+        visible={show}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShow(false)}
+      >
+        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShow(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.pickerContainer}>
+            <DateTimePicker
+              mode="time"
+              value={tempDate}
+              display="spinner"
+              is24Hour
+              onChange={handleChange}
+              style={styles.spinner}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity onPress={() => setShow(false)} style={styles.modalBtn}>
+                <Text style={styles.cancelText}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleConfirm} style={styles.modalBtn}>
+                <Text style={styles.confirmText}>{t('common.confirm')}</Text>
+              </TouchableOpacity>
+            </View>
           </TouchableOpacity>
-        </Modal>
-      )}
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
