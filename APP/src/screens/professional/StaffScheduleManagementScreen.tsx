@@ -563,13 +563,25 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ── Vacation Policy Modal ── */}
-      <Modal visible={showPolicyModal} transparent animationType="slide" onRequestClose={() => setShowPolicyModal(false)}>
+      {/* ── Vacation Policy Modal (No fundo do ecrã, livre de bugs) ── */}
+      <Modal 
+        visible={showPolicyModal} 
+        transparent 
+        animationType="slide" // Faz o modal deslizar elegantemente de baixo
+        onRequestClose={() => setShowPolicyModal(false)}
+      >
+        {/* Fundo escuro que fecha se clicares fora */}
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowPolicyModal(false)} />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ justifyContent: 'flex-end' }}>
+        
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+          style={{ justifyContent: 'flex-end', flex: 1 }}
+        >
+          {/* Reaproveita o estilo modalSheet que já tens no fundo do ficheiro */}
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>Política de Férias</Text>
+            
             <Text style={styles.fieldLabel}>Máximo de dias de férias por trabalhador por ano (1 – 365)</Text>
             <TextInput
               style={styles.timeInput}
@@ -581,7 +593,13 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
               returnKeyType="done"
               onSubmitEditing={savePolicy}
             />
-            <TouchableOpacity style={[styles.saveBtn, { marginTop: Spacing.sm_8 }]} onPress={savePolicy} disabled={saving} activeOpacity={0.85}>
+            
+            <TouchableOpacity 
+              style={[styles.saveBtn, { marginTop: Spacing.sm_8 }]} 
+              onPress={savePolicy} 
+              disabled={saving} 
+              activeOpacity={0.85}
+            >
               <MaterialIcons name="save" size={18} color="#fff" />
               <Text style={styles.saveBtnText}>Guardar política</Text>
             </TouchableOpacity>
@@ -750,7 +768,7 @@ const styles = StyleSheet.create({
   // Modal
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalSheet: {
     position: 'absolute',
