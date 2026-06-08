@@ -293,7 +293,17 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
       }
 
       navigation.goBack();
-    } catch (err) {
+    } catch (err: any) {
+      const status = err.response?.status;
+      const serverMessage = err.response?.data?.message;
+
+      // REGRA: Só tratamos como erro bonito se for um erro controlado de negócio (gama 400 a 499)
+      if (status >= 400 && status < 500 && serverMessage) {
+        return handleValidationError(serverMessage);
+      }
+
+      // Se for um erro 500 (Internal Server Error), crash do Node, ou falha de rede:
+      // Deixamos passar para o handler padrão. Isto vai fazer o erro aparecer no terminal!
       handleError(err);
     } finally {
       setLoading(false);
