@@ -284,27 +284,18 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
         externalProfessionalName: undefined,
       };
 
+      // Podes voltar a usar os teus métodos abstratos originais aqui:
       if (isEditing) {
-        // Mudamos para chamada direta da API para enviar o _silentError e calar o terminal
-        await api.put(`calendar-events/${editEvent.id}`, payload, { _silentError: true } as any);
+        await calendarEventApi.updateEvent(editEvent.id, payload);
         handleSuccess(t('calendar.eventUpdated'));
       } else {
-        // Mudamos para chamada direta da API para enviar o _silentError e calar o terminal
-        await api.post(`calendar-events/elderly/${elderlyId}`, payload, { _silentError: true } as any);
+        await calendarEventApi.createEvent(elderlyId, payload);
         handleSuccess(t('calendar.eventAdded'));
       }
 
       navigation.goBack();
-    } catch (err: any) {
-      const status = err.response?.status;
-      const serverMessage = err.response?.data?.message;
-
-      // Se for erro controlado do utilizador (gama 400), ativa a notificação bonita e não suja o terminal
-      if (status >= 400 && status < 500 && serverMessage) {
-        return handleValidationError(serverMessage);
-      }
-
-      // Se for um erro crítico 500, o terminal avisa-te normalmente
+    } catch (err) {
+      // O teu catch original e super limpo
       handleError(err);
     } finally {
       setLoading(false);

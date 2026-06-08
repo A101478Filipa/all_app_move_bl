@@ -50,18 +50,9 @@ export const api = axios.create({
   withCredentials: true,
 });
 
-const getDefaultAvatarPath = (role?: string) => {
-  const normalizedRole = (role || 'ELDERLY').toUpperCase();
-  return `default/default_avatar_${normalizedRole.toLowerCase()}.jpg`;
-};
-
-export const buildAvatarUrl = (avatar?: string | null, role?: string) => {
+export const buildAvatarUrl = (avatar: string) => {
   if (avatar && avatar.startsWith('default/')) {
     return `${baseServerUrl}/${avatar}`;
-  }
-
-  if (!avatar) {
-    return `${baseServerUrl}/${getDefaultAvatarPath(role)}`;
   }
 
   return `${baseServerUrl}/uploads/${avatar}`;
@@ -149,12 +140,19 @@ api.interceptors.response.use(
     }
 
     if (message) {
-      console.error('Server error message:', message);
       const isSilent = (error.config as any)?._silentError === true;
+
+      // CORREÇÃO: Só mostra no terminal (console.error) se NÃO for silencioso
+      // E se for um erro crítico do servidor (status >= 500 ou sem status definido).
+      // Erros de negócio/validação (400, 409) deixam de poluir o teu terminal!
+      if (!isSilent && (!status || status >= 500)) {
+        console.error('Server error message:', message);
+      }
+
       if (!isSilent) {
         Toast.show({
           type: 'error',
-          text1: 'Server Error',
+          text1: status && status >= 500 ? 'Server Error' : 'Aviso', 
           text2: message,
           position: 'top',
           visibilityTime: 5000,
