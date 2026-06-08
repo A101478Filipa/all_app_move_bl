@@ -285,10 +285,12 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
       };
 
       if (isEditing) {
-        await calendarEventApi.updateEvent(editEvent.id, payload);
+        // Mudamos para chamada direta da API para enviar o _silentError e calar o terminal
+        await api.put(`calendar-events/${editEvent.id}`, payload, { _silentError: true } as any);
         handleSuccess(t('calendar.eventUpdated'));
       } else {
-        await calendarEventApi.createEvent(elderlyId, payload);
+        // Mudamos para chamada direta da API para enviar o _silentError e calar o terminal
+        await api.post(`calendar-events/elderly/${elderlyId}`, payload, { _silentError: true } as any);
         handleSuccess(t('calendar.eventAdded'));
       }
 
@@ -297,13 +299,12 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
       const status = err.response?.status;
       const serverMessage = err.response?.data?.message;
 
-      // REGRA: Só tratamos como erro bonito se for um erro controlado de negócio (gama 400 a 499)
+      // Se for erro controlado do utilizador (gama 400), ativa a notificação bonita e não suja o terminal
       if (status >= 400 && status < 500 && serverMessage) {
         return handleValidationError(serverMessage);
       }
 
-      // Se for um erro 500 (Internal Server Error), crash do Node, ou falha de rede:
-      // Deixamos passar para o handler padrão. Isto vai fazer o erro aparecer no terminal!
+      // Se for um erro crítico 500, o terminal avisa-te normalmente
       handleError(err);
     } finally {
       setLoading(false);
