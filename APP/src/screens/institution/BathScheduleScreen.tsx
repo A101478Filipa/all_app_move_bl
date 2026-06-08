@@ -512,7 +512,7 @@ const BathScheduleScreen: React.FC<Props> = ({ navigation }) => {
                   activeOpacity={0.7}
                 >
                   <Image
-                    source={{ uri: buildAvatarUrl(item.user.avatarUrl) }}
+                    source={{ uri: buildAvatarUrl(item.user.avatarUrl, item.user.role) }}
                     style={styles.avatar}
                   />
                   <Text style={styles.elderlyName} numberOfLines={1}>

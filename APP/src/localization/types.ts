@@ -16,6 +16,9 @@ export type TranslationKeys = {
   'settings.saving': string;
   'settings.profileUpdated': string;
   'settings.avatarUpdated': string;
+  'settings.avatarRemoved': string;
+  'settings.failedToRemoveAvatar': string;
+  'settings.removePhoto': string;
   'common.loading': string;
   'common.error': string;
   'common.success': string;

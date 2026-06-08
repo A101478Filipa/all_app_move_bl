@@ -5,16 +5,23 @@ import { authenticate, authorizeRoles } from '../../middleware/authMiddleware';
 
 const router = express.Router();
 
-const allowedRoles = [
+// All institution roles can list and create (needed for calendar event picker)
+const readRoles = [
   UserRole.INSTITUTION_ADMIN,
   UserRole.CAREGIVER,
   UserRole.CLINICIAN,
   UserRole.PROGRAMMER,
 ];
 
-router.get('/', authenticate, authorizeRoles(allowedRoles), controller.listExternalProfessionals);
-router.post('/', authenticate, authorizeRoles(allowedRoles), controller.createExternalProfessional);
-router.put('/:id', authenticate, authorizeRoles(allowedRoles), controller.updateExternalProfessional);
-router.delete('/:id', authenticate, authorizeRoles(allowedRoles), controller.deleteExternalProfessional);
+// Only admins (and programmers) can edit or delete external professionals
+const writeRoles = [
+  UserRole.INSTITUTION_ADMIN,
+  UserRole.PROGRAMMER,
+];
+
+router.get('/', authenticate, authorizeRoles(readRoles), controller.listExternalProfessionals);
+router.post('/', authenticate, authorizeRoles(readRoles), controller.createExternalProfessional);
+router.put('/:id', authenticate, authorizeRoles(writeRoles), controller.updateExternalProfessional);
+router.delete('/:id', authenticate, authorizeRoles(writeRoles), controller.deleteExternalProfessional);
 
 export default router;

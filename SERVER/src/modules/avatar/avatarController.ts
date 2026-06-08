@@ -3,6 +3,7 @@ import fs from 'fs';
 import prisma from "../../prisma";
 import { sendEmptySuccess, sendError, sendSuccess } from "../../utils/apiResponse";
 import { TimelineService } from "../../services/timelineService";
+import { roleDefaultAvatarUrl } from "../../utils/defaultAvatarHelper";
 
 export const uploadAvatar = async (req, res) => {
   const userId = req.user.userId;
@@ -102,7 +103,7 @@ export const deleteAvatar = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { avatarUrl: true }
+      select: { avatarUrl: true, role: true }
     });
 
     if (!user) {
@@ -110,15 +111,18 @@ export const deleteAvatar = async (req, res) => {
     }
 
     const oldAvatar = user.avatarUrl;
+    const defaultAvatarUrl = roleDefaultAvatarUrl(user.role);
 
     await prisma.user.update({
       where: { id: userId },
-      data: { avatarUrl: null }
+      data: { avatarUrl: defaultAvatarUrl }
     });
 
     deleteAvatarFile(oldAvatar);
 
-    return sendEmptySuccess(res, 'Avatar deleted successfully!');
+    return sendSuccess(res, {
+      avatarUrl: defaultAvatarUrl
+    }, 'Avatar deleted successfully!');
   } catch (err) {
     console.error(err);
     return sendError(res, 'Database error', 500);

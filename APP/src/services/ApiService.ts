@@ -50,9 +50,18 @@ export const api = axios.create({
   withCredentials: true,
 });
 
-export const buildAvatarUrl = (avatar: string) => {
+const getDefaultAvatarPath = (role?: string) => {
+  const normalizedRole = (role || 'ELDERLY').toUpperCase();
+  return `default/default_avatar_${normalizedRole.toLowerCase()}.jpg`;
+};
+
+export const buildAvatarUrl = (avatar?: string | null, role?: string) => {
   if (avatar && avatar.startsWith('default/')) {
     return `${baseServerUrl}/${avatar}`;
+  }
+
+  if (!avatar) {
+    return `${baseServerUrl}/${getDefaultAvatarPath(role)}`;
   }
 
   return `${baseServerUrl}/uploads/${avatar}`;

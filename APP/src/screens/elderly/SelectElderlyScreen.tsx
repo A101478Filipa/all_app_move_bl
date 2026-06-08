@@ -49,7 +49,7 @@ const ElderlyCard: React.FC<ElderlyCardProps> = ({ elderly, t,onPress }) => {
     >
       <HStack spacing={Spacing.md_16} align="center">
         <Image
-          source={{ uri: buildAvatarUrl(elderly.user.avatarUrl) }}
+          source={{ uri: buildAvatarUrl(elderly.user.avatarUrl, elderly.user.role) }}
           style={styles.avatar}
         />
         <VStack align="flex-start" style={{ flex: 1 }}>

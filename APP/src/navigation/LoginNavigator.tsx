@@ -8,6 +8,9 @@ import { InvitationRegistrationScreen } from "@src/screens/authentication/Invita
 import { CompleteProfileScreen } from "@src/screens/authentication/CompleteProfileScreen";
 import ForgotPasswordScreen from "@src/screens/authentication/ForgotPassword";
 import CreateNewPasswordScreen from "@src/screens/authentication/CreateNewPassword";
+import ExternalAccessScreen from "@src/screens/authentication/ExternalAccessScreen";
+import ExternalElderlyProfileScreen from "@src/screens/authentication/ExternalElderlyProfileScreen";
+import { ExternalProfileResponse } from '@src/api/endpoints/externalAccess';
 import { UserRole } from 'moveplus-shared';
 
 export type LoginStackParamList = {
@@ -26,6 +29,8 @@ export type LoginStackParamList = {
     username: string;
     password: string;
   };
+  ExternalAccess: undefined;
+  ExternalElderlyProfile: { profile: ExternalProfileResponse; token: string };
 };
 
 const Stack = createNativeStackNavigator<LoginStackParamList>();
@@ -41,6 +46,8 @@ export const LoginNavigator: React.FC = () => {
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CreateNewPassword" component={CreateNewPasswordScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="ExternalAccess" component={ExternalAccessScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="ExternalElderlyProfile" component={ExternalElderlyProfileScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 };

@@ -1,5 +1,5 @@
 import { api } from '@src/services/ApiService';
-import { ApiEmptyResponse, AppUser } from 'moveplus-shared';
+import { AppUser } from 'moveplus-shared';
 import { ApiResponse } from '@src/types/api';
 
 export const settingsApi = {
@@ -13,14 +13,17 @@ export const settingsApi = {
       },
     }).then(response => response.data),
 
-    updateProfile: (userId: number, profileData: {
-      name?: string;
-      phone?: string;
-      email?: string;
-      birthDate?: string;
-      gender?: string;
-      nif?: string;          
-      address?: string;      
-    }): Promise<ApiResponse<any>> =>
-      api.put(`/profile/${userId}`, profileData).then(response => response.data),
+  deleteAvatar: (): Promise<ApiResponse<{ avatarUrl: string }>> =>
+    api.delete(`/avatar/delete`).then(response => response.data),
+
+  updateProfile: (userId: number, profileData: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    birthDate?: string;
+    gender?: string;
+    nif?: string;
+    address?: string;
+  }): Promise<ApiResponse<any>> =>
+    api.put(`/profile/${userId}`, profileData).then(response => response.data),
 };

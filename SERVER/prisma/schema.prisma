@@ -628,9 +628,41 @@ model CalendarEvent {
   createdBy                User              @relation("CalendarEventsCreated", fields: [createdById], references: [id])
   assignedTo               User?             @relation("CalendarEventsAssigned", fields: [assignedToId], references: [id])
   externalProfessional     ExternalProfessional? @relation(fields: [externalProfessionalId], references: [id])
+  externalAccessToken      ExternalAccessToken?
+  externalVisitNote        ExternalVisitNote?
 
   @@index([elderlyId])
   @@index([startDate])
+}
+
+// MARK: ExternalAccessToken
+// Short-lived code sent to external professionals so they can view the elderly profile
+// and submit visit observations — without needing a system account.
+model ExternalAccessToken {
+  id              Int           @id @default(autoincrement())
+  token           String        @unique
+  calendarEventId Int           @unique
+  calendarEvent   CalendarEvent @relation(fields: [calendarEventId], references: [id], onDelete: Cascade)
+  expiresAt       DateTime
+  createdAt       DateTime      @default(now())
+
+  @@index([token])
+  @@map("external_access_tokens")
+}
+
+// MARK: ExternalVisitNote
+// Notes submitted by the external professional after viewing the elderly profile.
+model ExternalVisitNote {
+  id               Int           @id @default(autoincrement())
+  calendarEventId  Int           @unique
+  calendarEvent    CalendarEvent @relation(fields: [calendarEventId], references: [id], onDelete: Cascade)
+  professionalName String
+  notes            String
+  recommendations  String?
+  submittedAt      DateTime      @default(now())
+  createdAt        DateTime      @default(now())
+
+  @@map("external_visit_notes")
 }
 
 // MARK: Notification

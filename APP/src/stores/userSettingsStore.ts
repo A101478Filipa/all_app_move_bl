@@ -33,6 +33,7 @@ interface UserSettingsState {
   pickAndUploadAvatar: (user: AppUser) => Promise<boolean>;
   takePhotoAndUploadAvatar: (user: AppUser) => Promise<boolean>;
   uploadAvatar: (user: AppUser, imageUri: string) => Promise<boolean>;
+  removeAvatar: () => Promise<boolean>;
   resetForm: () => void;
   clearError: () => void;
   hasUnsavedChanges: () => boolean;
@@ -274,6 +275,45 @@ export const useUserSettingsStore = create<UserSettingsState>((set, get) => ({
           message: error.response?.data?.message || t('settings.failedToUploadAvatarTryAgain')
         }
       });
+      return false;
+    }
+  },
+
+  removeAvatar: async (): Promise<boolean> => {
+    set({ avatarUploading: true, error: null });
+
+    try {
+      const response = await settingsApi.deleteAvatar();
+
+      if (response.data) {
+        const authState = useAuthStore.getState();
+        const currentUser = authState.user;
+
+        if (currentUser) {
+          const updatedUser = {
+            ...currentUser,
+            user: {
+              ...currentUser.user,
+              avatarUrl: response.data.avatarUrl,
+            },
+          };
+
+          authState.setUser(updatedUser);
+          await asyncStorageService.storeUser(updatedUser);
+        }
+      }
+
+      set({ avatarUploading: false });
+      return true;
+
+    } catch (error: any) {
+      set({
+        avatarUploading: false,
+        error: {
+          message: error.response?.data?.message || t('settings.failedToRemoveAvatar')
+        }
+      });
+      console.error('Error removing avatar:', error);
       return false;
     }
   },

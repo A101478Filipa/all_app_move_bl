@@ -22,10 +22,19 @@ type InstitutionAdminDetailsComponentArgs = {
   navigation?: any;
   professionalUserId?: number;
   professionalName?: string;
+  showProfessionalCalendar?: boolean;
 }
 
 // MARK: Component
-const InstitutionAdminDetailsComponent = ({ screenState, admin, onRefresh, navigation, professionalUserId, professionalName }: InstitutionAdminDetailsComponentArgs) => {
+const InstitutionAdminDetailsComponent = ({
+  screenState,
+  admin,
+  onRefresh,
+  navigation,
+  professionalUserId,
+  professionalName,
+  showProfessionalCalendar = true,
+}: InstitutionAdminDetailsComponentArgs) => {
   const { t } = useTranslation();
 
   if (screenState === ScreenState.LOADING) {
@@ -48,7 +57,7 @@ const InstitutionAdminDetailsComponent = ({ screenState, admin, onRefresh, navig
         {admin && (
           <VStack align="flex-start" spacing={Spacing.lg_24}>
             <HStack spacing={Spacing.lg_24} style={styles.header}>
-              <Image source={{ uri: buildAvatarUrl(admin.user.avatarUrl) }} style={styles.avatar} />
+              <Image source={{ uri: buildAvatarUrl(admin.user.avatarUrl, admin.user.role) }} style={styles.avatar} />
               <VStack align="flex-start" spacing={Spacing.xs_4}>
                 <Text style={styles.name}>{admin.name}</Text>
                 {admin.institution?.name && <Text style={styles.institution}>{admin.institution.name}</Text>}
@@ -116,7 +125,7 @@ const InstitutionAdminDetailsComponent = ({ screenState, admin, onRefresh, navig
               </VStack>
             </ExpandableRow>
 
-            {navigation && professionalUserId != null && (
+            {showProfessionalCalendar && navigation && professionalUserId != null && (
               <TouchableOpacity
                 style={styles.calendarButton}
                 onPress={() => navigation.push('ProfessionalCalendar', {

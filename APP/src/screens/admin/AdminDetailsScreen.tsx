@@ -11,7 +11,7 @@ import { shadowStyles } from '@src/styles/shadow';
 
 // MARK: Screen
 const InstitutionAdminDetailsScreen = ({ route, navigation }) => {
-  const { adminId } = route.params;
+  const { adminId, hideProfessionalCalendar } = route.params;
   const [admin, setAdmin] = useState<InstitutionAdmin | null>(null);
   const [state, setState] = useState<ScreenState>(ScreenState.LOADING);
 
@@ -51,6 +51,7 @@ const InstitutionAdminDetailsScreen = ({ route, navigation }) => {
         navigation={navigation}
         professionalUserId={admin?.user?.id}
         professionalName={admin?.name}
+        showProfessionalCalendar={!hideProfessionalCalendar}
       />
     </View>
   );

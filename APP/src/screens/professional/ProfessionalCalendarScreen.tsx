@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  Modal, Animated, Dimensions, Alert,
+  Modal, Animated, Dimensions, Alert, Clipboard,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
@@ -19,6 +19,7 @@ import { api } from '@src/services/ApiService';
 import { EVENT_TYPE_CONFIG } from '@components/CalendarEventCard';
 import { ActivityIndicatorOverlay } from '@components/ActivityIndicatorOverlay';
 import { useAuthStore } from '@src/stores/authStore';
+import { externalAccessApi, ExternalAccessTokenResult, ExternalVisitNote } from '@src/api/endpoints/externalAccess';
 import { Color } from '@src/styles/colors';
 import { FontFamily, FontSize } from '@src/styles/fonts';
 import { Spacing } from '@src/styles/spacings';
@@ -183,6 +184,12 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
   const scrollRef = useRef<ScrollView>(null);
   const slideAnim = useRef(new Animated.Value(500)).current;
 
+  // External access token / visit note for the currently open event
+  const [eventToken, setEventToken] = useState<ExternalAccessTokenResult | null>(null);
+  const [eventVisitNote, setEventVisitNote] = useState<ExternalVisitNote | null>(null);
+  const [tokenLoading, setTokenLoading] = useState(false);
+  const [generatingToken, setGeneratingToken] = useState(false);
+
   // Admin-only institution-wide data
   const [adminTimeOffs, setAdminTimeOffs] = useState<StaffTimeOffWithUser[]>([]);
   const [adminAbsences, setAdminAbsences] = useState<ElderlyAbsenceWithElderly[]>([]);
@@ -200,7 +207,33 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
   const openModal = (ev: ProfessionalCalendarEvent) => {
     slideAnim.setValue(500);
     setSelectedModal(ev);
+    setEventToken(null);
+    setEventVisitNote(null);
     Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 80, friction: 12 }).start();
+
+    // Fetch access token + visit note for events with an external professional
+    if (ev.externalProfessionalId) {
+      setTokenLoading(true);
+      Promise.all([
+        externalAccessApi.getTokenForEvent(ev.id).catch(() => ({ data: null })),
+        externalAccessApi.getVisitNote(ev.id).catch(() => ({ data: null })),
+      ]).then(([tokenRes, noteRes]) => {
+        setEventToken(tokenRes.data);
+        setEventVisitNote(noteRes.data);
+      }).finally(() => setTokenLoading(false));
+    }
+  };
+
+  const handleGenerateToken = async (ev: ProfessionalCalendarEvent) => {
+    setGeneratingToken(true);
+    try {
+      const res = await externalAccessApi.generateToken(ev.id);
+      setEventToken(res.data);
+    } catch {
+      Alert.alert('Erro', 'Não foi possível gerar o código de acesso.');
+    } finally {
+      setGeneratingToken(false);
+    }
   };
 
   const closeModal = () => {
@@ -533,6 +566,8 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     const typeName = (t as any)(`calendar.types.${ev.type}`) ?? ev.type;
     const canEdit = canEditEvent(ev);
     const canDelete = canDeleteEvent(ev);
+    const canManageAccessCode =
+      userRole === UserRole.INSTITUTION_ADMIN || userRole === UserRole.CAREGIVER;
 
     return (
       <Modal transparent animationType="none" visible onRequestClose={closeModal}>
@@ -619,6 +654,76 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
                   <Text style={styles.modalRowLabel}>{t('calendar.externalProfessional')}</Text>
                   <Text style={styles.modalRowText}>{ev.externalProfessionalName}</Text>
                 </View>
+              </View>
+            )}
+
+            {/* Access code section — shown when event has a linked external professional */}
+            {!!ev.externalProfessionalId && canManageAccessCode && (
+              <View style={styles.accessCodeSection}>
+                <View style={styles.accessCodeHeader}>
+                  <MaterialIcons name="vpn-key" size={16} color={Color.primary} />
+                  <Text style={styles.accessCodeTitle}>Código de Acesso Externo</Text>
+                </View>
+
+                {tokenLoading ? (
+                  <Text style={styles.accessCodeHint}>A carregar...</Text>
+                ) : eventToken && !eventToken.isExpired ? (
+                  <>
+                    <Text style={styles.accessCodeHint}>
+                      Partilhe este código com o profissional para que possa consultar o perfil do utente e registar as suas observações.
+                    </Text>
+                    <View style={styles.tokenRow}>
+                      <Text style={styles.tokenText}>{eventToken.token}</Text>
+                      <TouchableOpacity
+                        style={styles.copyBtn}
+                        onPress={() => {
+                          Clipboard.setString(eventToken.token);
+                          Alert.alert('Copiado', 'Código copiado para a área de transferência.');
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <MaterialIcons name="content-copy" size={16} color={Color.primary} />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.accessCodeExpiry}>
+                      Expira em: {new Date(eventToken.expiresAt).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    {eventToken?.isExpired && (
+                      <Text style={[styles.accessCodeHint, { color: '#EF4444' }]}>O código anterior expirou.</Text>
+                    )}
+                    <TouchableOpacity
+                      style={styles.generateTokenBtn}
+                      onPress={() => handleGenerateToken(ev)}
+                      disabled={generatingToken}
+                      activeOpacity={0.8}
+                    >
+                      <MaterialIcons name="add" size={16} color={Color.primary} />
+                      <Text style={styles.generateTokenBtnText}>
+                        {generatingToken ? 'A gerar...' : 'Gerar código de acesso'}
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+
+                {/* Visit note submitted by the external professional */}
+                {eventVisitNote && (
+                  <View style={styles.visitNoteBox}>
+                    <Text style={styles.visitNoteLabel}>Nota de visita registada</Text>
+                    <Text style={styles.visitNoteText}>{eventVisitNote.notes}</Text>
+                    {eventVisitNote.recommendations && (
+                      <>
+                        <Text style={[styles.visitNoteLabel, { marginTop: 6 }]}>Recomendações</Text>
+                        <Text style={styles.visitNoteText}>{eventVisitNote.recommendations}</Text>
+                      </>
+                    )}
+                    <Text style={styles.visitNoteDate}>
+                      Submetido em {new Date(eventVisitNote.submittedAt).toLocaleDateString('pt-PT')}
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
 
@@ -1599,6 +1704,102 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semi_bold,
     fontSize: FontSize.bodysmall_14,
     color: '#FFFFFF',
+  },
+
+  // ── Access code section ──
+  accessCodeSection: {
+    marginTop: Spacing.sm_8,
+    padding: Spacing.sm_10,
+    backgroundColor: Color.primary + '0D',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Color.primary + '30',
+  },
+  accessCodeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  accessCodeTitle: {
+    fontFamily: FontFamily.semi_bold,
+    fontSize: FontSize.bodysmall_14,
+    color: Color.primary,
+  },
+  accessCodeHint: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.caption_12,
+    color: Color.Gray.v500,
+    marginBottom: 8,
+  },
+  tokenRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: Color.white,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: Color.primary + '40',
+  },
+  tokenText: {
+    flex: 1,
+    fontFamily: FontFamily.semi_bold,
+    fontSize: 18,
+    color: Color.primary,
+    letterSpacing: 3,
+  },
+  copyBtn: {
+    padding: 4,
+  },
+  accessCodeExpiry: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.caption_12,
+    color: Color.Gray.v400,
+    marginTop: 4,
+  },
+  generateTokenBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: Color.primary,
+    alignSelf: 'flex-start',
+  },
+  generateTokenBtnText: {
+    fontFamily: FontFamily.semi_bold,
+    fontSize: FontSize.caption_12,
+    color: Color.primary,
+  },
+  visitNoteBox: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  visitNoteLabel: {
+    fontFamily: FontFamily.semi_bold,
+    fontSize: FontSize.caption_12,
+    color: '#166534',
+    marginBottom: 3,
+  },
+  visitNoteText: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.caption_12,
+    color: Color.Gray.v500,
+    lineHeight: 18,
+  },
+  visitNoteDate: {
+    fontFamily: FontFamily.regular,
+    fontSize: 10,
+    color: Color.Gray.v400,
+    marginTop: 4,
   },
 
   // ── FAB ──

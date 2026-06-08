@@ -98,7 +98,7 @@ const ElderlyDetailsComponent = ({ screenState, elderly, onRefresh, navigation, 
           <VStack align={'flex-start'} spacing={Spacing.lg_24}>
          
             <HStack spacing={Spacing.lg_24} style={styles.header}>
-              <Image source={{ uri: buildAvatarUrl(elderly.user.avatarUrl) }} style={styles.avatar}/>
+              <Image source={{ uri: buildAvatarUrl(elderly.user.avatarUrl, elderly.user.role) }} style={styles.avatar}/>
               <VStack align={'flex-start'} spacing={Spacing.xs_4}>
                 <Text style={styles.name}>{elderly.name}</Text>
                 <Text style={styles.institution}>{elderly.institution.name}</Text>

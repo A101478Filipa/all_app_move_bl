@@ -41,7 +41,7 @@ const HeaderComponent = ({ user, onSettingsPress }: HeaderComponentProps) => {
   return (
     <TouchableOpacity style={styles.headerContainer} onPress={onSettingsPress}>
       <HStack spacing={Spacing.md_16}>
-        <Image source={{ uri: buildAvatarUrl(user.user.avatarUrl) }} style={styles.avatar}/>
+        <Image source={{ uri: buildAvatarUrl(user.user.avatarUrl, user.user.role) }} style={styles.avatar}/>
 
         <VStack spacing={Spacing.xs_4} align='flex-start' style={styles.userInfo}>
           <Text
@@ -158,6 +158,10 @@ const UserMenuScreen: React.FC<Props> = ({ navigation }) => {
     }
   }
 
+  const onExternalProfessionals = () => {
+    navigation.navigate('ExternalProfessionalsManagement');
+  }
+
   const isCaregiver = user?.user.role === UserRole.CAREGIVER;
   const isAdmin = user?.user.role === UserRole.INSTITUTION_ADMIN;
   const isElderly = user?.user.role === UserRole.ELDERLY;
@@ -200,6 +204,16 @@ const UserMenuScreen: React.FC<Props> = ({ navigation }) => {
                   iconColor={Color.Cyan.v400}
                   title={t('invitation.viewInvitations')}
                   onPress={onInstitutionInvitations}
+                  hasNavigation={true}
+                  isLast={false}
+                />
+              )}
+              {isAdmin && (
+                <MenuOption
+                  iconName="people-outline"
+                  iconColor={Color.Cyan.v400}
+                  title="Profissionais Externos"
+                  onPress={onExternalProfessionals}
                   hasNavigation={true}
                   isLast={true}
                 />

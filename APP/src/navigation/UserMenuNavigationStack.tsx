@@ -12,6 +12,7 @@ import MeasurementDetailsScreen from "@src/screens/measurements/MeasurementDetai
 import PathologyDetailsScreen from "@src/screens/pathology/PathologyDetailsScreen";
 import InstitutionInvitationsScreen from "@src/screens/invitation/InstitutionInvitationsScreen";
 import StaffScheduleManagementScreen from "@src/screens/professional/StaffScheduleManagementScreen";
+import ExternalProfessionalsManagementScreen from '@src/screens/institution/ExternalProfessionalsManagementScreen';
 import { NotificationCenterStack } from "@src/navigation/NotificationCenterStack";
 import { getScreenOptionsWithNavigation } from "@src/utils/navigationHelper";
 import { useTranslation } from 'react-i18next';
@@ -53,6 +54,7 @@ export type UserMenuStackParamList = {
     userId: number;
     staffName: string;
   };
+  ExternalProfessionalsManagement: undefined;
 };
 
 const Stack = createNativeStackNavigator<UserMenuStackParamList>();
@@ -152,6 +154,11 @@ export const UserMenuNavigationStack = () => {
         name="StaffScheduleManagement"
         component={StaffScheduleManagementScreen}
         options={({ route }) => ({ title: route.params.staffName })}
+      />
+      <Stack.Screen
+        name="ExternalProfessionalsManagement"
+        component={ExternalProfessionalsManagementScreen}
+        options={{ title: 'Profissionais Externos' }}
       />
     </Stack.Navigator>
   );

@@ -188,6 +188,15 @@ const InvitationRegistrationScreen = ({ navigation }) => {
         loading={validating}
         style={styles.button}
       />
+
+      <TouchableOpacity
+        style={styles.externalAccessBtn}
+        onPress={() => (navigation as any).navigate('ExternalAccess')}
+        activeOpacity={0.7}
+      >
+        <MaterialIcons name="vpn-key" size={14} color={Color.primary} />
+        <Text style={styles.externalAccessText}>Sou profissional externo</Text>
+      </TouchableOpacity>
     </VStack>
   );
 
@@ -394,6 +403,19 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: Spacing.sm_8,
+  },
+  externalAccessBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: Spacing.md_16,
+    paddingVertical: Spacing.sm_8,
+  },
+  externalAccessText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.bodysmall_14,
+    color: Color.primary,
   },
 });
 

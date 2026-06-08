@@ -54,7 +54,8 @@ export type InstitutionMembersNavigationStackParamList = {
   };
   InstitutionAdminDetails: {
     name: string,
-    adminId: number
+    adminId: number,
+    hideProfessionalCalendar?: boolean
   };
   ElderlyDetails: {
     name: string,

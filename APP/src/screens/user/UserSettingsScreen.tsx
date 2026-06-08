@@ -33,7 +33,6 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
 import UnsavedChangesModal from '@components/UnsavedChangesModal';
 import { useFocusEffect } from '@react-navigation/native';
-import { settingsApi } from '@src/api/endpoints/settings';
 
 
 type Props = NativeStackScreenProps<UserMenuStackParamList, 'UserSettings'>;
@@ -70,6 +69,7 @@ const UserSettingsScreen: React.FC<Props> = ({ navigation }) => {
     saveSettings,
     pickAndUploadAvatar,
     takePhotoAndUploadAvatar,
+    removeAvatar,
     resetForm,
     clearError,
     hasUnsavedChanges,
@@ -111,6 +111,9 @@ const UserSettingsScreen: React.FC<Props> = ({ navigation }) => {
   const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
 
   const showAvatarOptions = () => {
+    const avatarUrl = user?.user.avatarUrl;
+    const canRemoveAvatar = Boolean(avatarUrl && !avatarUrl.startsWith('default/'));
+
     Alert.alert(
       t('settings.changeAvatar'),
       t('settings.chooseAvatarSource'),
@@ -123,6 +126,11 @@ const UserSettingsScreen: React.FC<Props> = ({ navigation }) => {
           text: t('settings.chooseFromGallery'),
           onPress: pickImage,
         },
+        ...(canRemoveAvatar ? [{
+          text: t('settings.removePhoto'),
+          style: 'destructive' as const,
+          onPress: removeCurrentAvatar,
+        }] : []),
         {
           text: t('common.cancel'),
           style: 'cancel',
@@ -175,6 +183,23 @@ const UserSettingsScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const removeCurrentAvatar = async () => {
+    if (!user) return;
+
+    try {
+      setIsPickingImage(true);
+      const success = await removeAvatar();
+
+      if (success) {
+        handleSuccess(t('settings.avatarRemoved'));
+      }
+    } catch (err) {
+      handleError(err, t('settings.failedToRemoveAvatar'));
+    } finally {
+      setIsPickingImage(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!user) return;
 
@@ -218,7 +243,7 @@ const UserSettingsScreen: React.FC<Props> = ({ navigation }) => {
             activeOpacity={0.8}
           >
             <Image
-              source={{ uri: buildAvatarUrl(user?.user.avatarUrl || '') }}
+              source={{ uri: buildAvatarUrl(user?.user.avatarUrl, user?.user.role) }}
               style={styles.avatar}
             />
 

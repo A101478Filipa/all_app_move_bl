@@ -36,6 +36,7 @@ import { Pathology, Medication, MeasurementType, CalendarEvent, CalendarEventTyp
 import BathScheduleScreen from '@src/screens/institution/BathScheduleScreen';
 import StaffScheduleManagementScreen from '@src/screens/professional/StaffScheduleManagementScreen';
 import AdminTeamSchedulesScreen from '@src/screens/professional/AdminTeamSchedulesScreen';
+import ExternalProfessionalsManagementScreen from '@src/screens/institution/ExternalProfessionalsManagementScreen';
 
 export type InstitutionDashboardNavigationStackParamList = {
   InstitutionDashboardScreen: undefined;
@@ -137,6 +138,7 @@ export type InstitutionDashboardNavigationStackParamList = {
     staffName: string;
   };
   AdminTeamSchedules: undefined;
+  ExternalProfessionalsManagement: undefined;
 };
 
 const Stack = createNativeStackNavigator<InstitutionDashboardNavigationStackParamList>();
@@ -325,6 +327,11 @@ export const InstitutionDashboardNavigationStack = () => {
         name='AdminTeamSchedules'
         component={AdminTeamSchedulesScreen}
         options={{ title: 'Horários Equipa' }}
+      />
+      <Stack.Screen
+        name='ExternalProfessionalsManagement'
+        component={ExternalProfessionalsManagementScreen}
+        options={{ title: 'Profissionais Externos' }}
       />
     </Stack.Navigator>
   );

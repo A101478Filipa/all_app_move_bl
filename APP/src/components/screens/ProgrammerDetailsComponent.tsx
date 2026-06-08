@@ -44,7 +44,7 @@ const ProgrammerDetailsComponent = ({ screenState, programmer, onRefresh }: Prog
         {programmer && (
           <VStack align="flex-start" spacing={Spacing.lg_24}>
             <HStack spacing={Spacing.lg_24} style={styles.header}>
-              <Image source={{ uri: buildAvatarUrl(programmer.user.avatarUrl) }} style={styles.avatar} />
+              <Image source={{ uri: buildAvatarUrl(programmer.user.avatarUrl, programmer.user.role) }} style={styles.avatar} />
               <VStack align="flex-start" spacing={Spacing.xs_4}>
                 <Text style={styles.name}>{programmer.name}</Text>
                 <Text style={styles.role}>Programmer</Text>
