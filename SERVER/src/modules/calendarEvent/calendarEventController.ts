@@ -133,7 +133,9 @@ export const createCalendarEvent = async (req, res) => {
       const message = isElderlyConflict
         ? 'O idoso já tem um evento agendado para este horário.'
         : 'O profissional de saúde já tem um evento agendado para este horário.';
-      return sendError(res, message, 409); // 409 Conflict
+      
+      // Alterado de sendError para sendInputValidationError
+      return sendInputValidationError(res, message, []);
     }
 
     const event = await prisma.calendarEvent.create({
@@ -220,7 +222,9 @@ export const updateCalendarEvent = async (req, res) => {
       const message = isElderlyConflict
         ? 'O idoso já tem outro evento agendado para este horário.'
         : 'O profissional de saúde já tem outro evento agendado para este horário.';
-      return sendError(res, message, 409);
+      
+      // Alterado de sendError para sendInputValidationError
+      return sendInputValidationError(res, message, []);
     }
 
     // 3. VALIDAÇÃO DE FÉRIAS/FOLGA (REUTILIZANDO AS VARIÁVEIS ACIMA)
