@@ -110,6 +110,32 @@ export const createCalendarEvent = async (req, res) => {
       }
     }
 
+    const eventStart = validation.data.startDate;
+    const eventEnd = validation.data.endDate ?? validation.data.startDate;
+
+    // Prepara as condições de conflito: queremos verificar o Idoso OU o Profissional
+    const conflictConditions: any[] = [{ elderlyId }];
+    if (validation.data.assignedToId) {
+      conflictConditions.push({ assignedToId: validation.data.assignedToId });
+    }
+
+    // Procura na base de dados algum evento que se sobreponha
+    const conflictingEvent = await prisma.calendarEvent.findFirst({
+      where: {
+        OR: conflictConditions,
+        startDate: { lt: eventEnd }, // O evento existente começa antes do novo terminar
+        endDate: { gt: eventStart }, // O evento existente termina depois do novo começar
+      },
+    });
+
+    if (conflictingEvent) {
+      const isElderlyConflict = conflictingEvent.elderlyId === elderlyId;
+      const message = isElderlyConflict
+        ? 'O idoso já tem um evento agendado para este horário.'
+        : 'O profissional de saúde já tem um evento agendado para este horário.';
+      return sendError(res, message, 409); // 409 Conflict
+    }
+
     const event = await prisma.calendarEvent.create({
       data: {
         elderlyId,
@@ -162,11 +188,43 @@ export const updateCalendarEvent = async (req, res) => {
       return sendInputValidationError(res, 'Invalid request data', validation.error.errors);
     }
 
-    // Block assignment if the target staff member is on time-off during the event period
+    // 1. DEFINIR AS VARIÁVEIS TOTAIS APENAS UMA VEZ
+    const eventStart = validation.data.startDate ?? existing.startDate;
+    const eventEnd = validation.data.endDate ?? existing.endDate ?? eventStart;
     const newAssignedToId = 'assignedToId' in validation.data ? validation.data.assignedToId : existing.assignedToId;
+
+    // 2. VALIDAÇÃO DE DUPLO AGENDAMENTO (CONFLITOS DE HORÁRIO)
+    const conflictConditions: any[] = [{ elderlyId: existing.elderlyId }];
     if (newAssignedToId) {
-      const eventStart = validation.data.startDate ?? existing.startDate;
-      const eventEnd = validation.data.endDate ?? existing.endDate ?? eventStart;
+      conflictConditions.push({ assignedToId: newAssignedToId });
+    }
+
+    const conflictingEvent = await prisma.calendarEvent.findFirst({
+      where: {
+        id: { not: eventId }, // Ignora o próprio evento que está a ser editado
+        OR: conflictConditions,
+        AND: [
+          { startDate: { lt: eventEnd } },
+          {
+            OR: [
+              { endDate: { gt: eventStart } },
+              { endDate: null, startDate: { equals: eventStart } }
+            ]
+          }
+        ]
+      },
+    });
+
+    if (conflictingEvent) {
+      const isElderlyConflict = conflictingEvent.elderlyId === existing.elderlyId;
+      const message = isElderlyConflict
+        ? 'O idoso já tem outro evento agendado para este horário.'
+        : 'O profissional de saúde já tem outro evento agendado para este horário.';
+      return sendError(res, message, 409);
+    }
+
+    // 3. VALIDAÇÃO DE FÉRIAS/FOLGA (REUTILIZANDO AS VARIÁVEIS ACIMA)
+    if (newAssignedToId) {
       const conflictingTimeOff = await prisma.staffTimeOff.findFirst({
         where: {
           userId: newAssignedToId,
@@ -179,6 +237,7 @@ export const updateCalendarEvent = async (req, res) => {
       }
     }
 
+    // 4. ATUALIZAÇÃO NA BASE DE DADOS
     const event = await prisma.calendarEvent.update({
       where: { id: eventId },
       data: {
