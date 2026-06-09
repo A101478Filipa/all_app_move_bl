@@ -84,17 +84,23 @@ type PresenceInfo =
   | { status: 'absent' | 'no-schedule' }
   | { status: 'present'; shift: ShiftType; timeRange: string };
 
+// Mapeia a presença diária avaliando os novos slots dinâmicos por dia da semana
 function getPresenceInfo(s: StaffScheduleSummary, date: Date): PresenceInfo {
   const hasTimeOff = s.timeOffs.some(t =>
     isDateInRange(date, t.startDate as string, t.endDate as string)
   );
   if (hasTimeOff) return { status: 'absent' };
-  if (!s.schedule) return { status: 'no-schedule' };
+  if (!s.schedule || !s.schedule.slots) return { status: 'no-schedule' };
+  
   const jsDay = date.getDay();
   const isoDay = jsDay === 0 ? 7 : jsDay;
-  if (!s.schedule.workDays.includes(isoDay)) return { status: 'absent' };
-  const shift = getShiftType(s.schedule.startTime);
-  return { status: 'present', shift, timeRange: `${s.schedule.startTime}–${s.schedule.endTime}` };
+
+  // Encontra o slot específico para o dia da semana analisado
+  const activeSlot = s.schedule.slots.find((slot: any) => slot.dayIso === isoDay);
+  if (!activeSlot || !activeSlot.isActive) return { status: 'absent' };
+
+  const shift = getShiftType(activeSlot.startTime);
+  return { status: 'present', shift, timeRange: `${activeSlot.startTime}–${activeSlot.endTime}` };
 }
 
 type StaffMember = { id: number; userId: number; name: string; role: string };
@@ -351,7 +357,7 @@ const AdminTeamSchedulesScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={styles.presenceTodayText}>Hoje</Text>
               </TouchableOpacity>
             </View>
-            {/* List: grouped by shift (present) then absent */}
+            
             {(() => {
               const infos = institutionSchedules.map(s => ({ s, info: getPresenceInfo(s, presenceDate) }));
               const shiftOrder: ShiftType[] = ['morning', 'afternoon', 'night'];
@@ -461,31 +467,43 @@ const AdminTeamSchedulesScreen: React.FC<Props> = ({ navigation }) => {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ── Policy Modal ── */}
-      <Modal visible={showPolicyModal} transparent animationType="slide" onRequestClose={() => setShowPolicyModal(false)}>
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowPolicyModal(false)} />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ justifyContent: 'flex-end' }}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Política de Férias</Text>
-            <Text style={styles.fieldLabel}>Máximo de dias de férias por trabalhador por ano (1 – 365)</Text>
-            <TextInput
-              style={styles.timeInput}
-              value={policyDays}
-              onChangeText={setPolicyDays}
-              keyboardType="number-pad"
-              maxLength={3}
-              placeholder="22"
-              returnKeyType="done"
-              onSubmitEditing={savePolicy}
-            />
-            <TouchableOpacity style={[styles.saveBtn, { marginTop: 4 }]} onPress={savePolicy} disabled={saving}>
-              <MaterialIcons name="save" size={18} color="#fff" />
-              <Text style={styles.saveBtnText}>Guardar política</Text>
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      {/* ── Custom Pop-up da Política de Férias (Sem usar Modal para evitar bugs no iPhone) ── */}
+      {showPolicyModal && (
+        <View style={styles.popupOverlay}>
+          <TouchableOpacity 
+            style={styles.popupBackdrop} 
+            activeOpacity={1} 
+            onPress={() => setShowPolicyModal(false)} 
+          />
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+            style={styles.popupKeyboardAvoiding}
+          >
+            <View style={styles.popupAlertBox}>
+              <Text style={styles.modalTitle}>Política de Férias</Text>
+              <Text style={styles.fieldLabel}>Máximo de dias de férias por trabalhador por ano (1 – 365)</Text>
+              <TextInput
+                style={styles.timeInput}
+                value={policyDays}
+                onChangeText={setPolicyDays}
+                keyboardType="number-pad"
+                maxLength={3}
+                placeholder="22"
+                returnKeyType="done"
+                onSubmitEditing={savePolicy}
+              />
+              <TouchableOpacity 
+                style={[styles.saveBtn, { marginTop: Spacing.sm_8, width: '100%' }]} 
+                onPress={savePolicy} 
+                disabled={saving}
+              >
+                <MaterialIcons name="save" size={18} color="#fff" />
+                <Text style={styles.saveBtnText}>Guardar política</Text>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      )}
 
       {saving && <ActivityIndicatorOverlay />}
     </SafeAreaView>
@@ -553,7 +571,6 @@ const styles = StyleSheet.create({
   policyCard: { alignItems: 'center', paddingVertical: 12 },
   policyNumber: { fontFamily: FontFamily.bold, fontSize: 48, color: Color.primary },
   policyLabel: { fontFamily: FontFamily.regular, fontSize: FontSize.caption_12, color: Color.Gray.v400 },
-  // Modal shared styles
   modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
   modalSheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -609,4 +626,33 @@ const styles = StyleSheet.create({
     marginTop: 8, marginBottom: 2,
   },
   shiftHeaderText: { fontFamily: FontFamily.semi_bold, fontSize: FontSize.caption_12 },
+  popupOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 999, 
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  popupBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  popupKeyboardAvoiding: {
+    flex: 1, 
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  popupAlertBox: {
+    width: '85%',
+    maxWidth: 320,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: Spacing.md_16,
+    gap: Spacing.sm_8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
 });

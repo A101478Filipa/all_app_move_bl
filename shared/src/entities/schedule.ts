@@ -1,15 +1,22 @@
 import { TimeOffType } from '../enums/timeOffType';
 import { TimeOffStatus } from '../enums/timeOffStatus';
 
+// Interface para o slot de cada dia individual
+export interface WorkScheduleSlot {
+  id: number;
+  scheduleId: number;
+  dayIso: number;    // 1=Seg … 7=Dom (ISO)
+  startTime: string; // "HH:MM"
+  endTime: string;   // "HH:MM"
+  isActive: boolean;
+}
+
 export interface StaffWorkSchedule {
   id: number;
   userId: number;
-  /** 1=Mon … 7=Sun (ISO weekday) */
-  workDays: number[];
-  startTime: string; // "HH:MM"
-  endTime: string;   // "HH:MM"
   createdAt: string;
   updatedAt: string;
+  slots: WorkScheduleSlot[]; 
 }
 
 export interface StaffTimeOff {

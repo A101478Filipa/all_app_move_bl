@@ -23,7 +23,7 @@ import { DatePickerInput } from '@components/DatePickerInput';
 
 type Props = NativeStackScreenProps<any, 'StaffScheduleManagement'>;
 
-const DOW_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+const DOW_LABELS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 const DOW_ISO   = [1, 2, 3, 4, 5, 6, 7];
 
 const TIME_OFF_LABELS: Record<TimeOffType, string> = {
@@ -55,28 +55,45 @@ function formatShortDate(d: string | Date): string {
   return date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function computeUsedVacationDays(timeOffs: StaffTimeOff[], includePending = false, excludeId?: number): number {
+interface LocalSlot {
+  dayIso: number;
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
+}
+
+// CÁLCULO INTELIGENTE DAS FÉRIAS BASEADO NOS NOVOS SLOTS DO FUNCIONÁRIO
+function computeUsedVacationDays(timeOffs: StaffTimeOff[], slots: LocalSlot[], includePending = false, excludeId?: number): number {
   const now = new Date();
   const yearStart = new Date(now.getFullYear(), 0, 1);
   const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
   let total = 0;
+
   for (const to of timeOffs) {
     if (to.id === excludeId) continue;
     if (to.type !== TimeOffType.VACATION) continue;
     if (to.status !== TimeOffStatus.APPROVED && !(includePending && to.status === TimeOffStatus.PENDING)) continue;
+
     const start = new Date(to.startDate);
     const end = new Date(to.endDate);
     const effectiveStart = start < yearStart ? yearStart : start;
     const effectiveEnd = end > yearEnd ? yearEnd : end;
-    if (effectiveStart <= effectiveEnd) {
-      const days = Math.round((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      total += days;
+
+    let current = new Date(effectiveStart);
+    while (current <= effectiveEnd) {
+      const jsDay = current.getDay();
+      const isoDay = jsDay === 0 ? 7 : jsDay;
+
+      // REGRA: Só gasta dia de férias se o dia da semana estiver marcado como ativo (trabalho) nos slots
+      const matchingSlot = slots.find(s => s.dayIso === isoDay);
+      if (matchingSlot && matchingSlot.isActive) {
+        total += 1;
+      }
+      current.setDate(current.getDate() + 1);
     }
   }
   return total;
 }
-
-const defaultWorkDays = [1, 2, 3, 4, 5];
 
 const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) => {
   const { userId, staffName } = route.params ?? {};
@@ -91,14 +108,12 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Work schedule state
-  const [workSchedule, setWorkSchedule] = useState<StaffWorkSchedule | null>(null);
-  const [workDays, setWorkDays] = useState<number[]>(defaultWorkDays);
-  const [startTime, setStartTime] = useState('09:00');
-  const [endTime, setEndTime] = useState('17:00');
+  // 🔥 NOVO ESTADO: Armazena a matriz completa de slots de 7 dias com horários independentes
+  const [slots, setSlots] = useState<LocalSlot[]>(
+    DOW_ISO.map(iso => ({ dayIso: iso, startTime: '09:00', endTime: '17:00', isActive: iso <= 5 }))
+  );
   const [scheduleEdited, setScheduleEdited] = useState(false);
 
-  // Time-off state
   const [timeOffs, setTimeOffs] = useState<StaffTimeOff[]>([]);
   const [showTimeOffModal, setShowTimeOffModal] = useState(false);
   const [editingTimeOff, setEditingTimeOff] = useState<StaffTimeOff | null>(null);
@@ -107,7 +122,6 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
   const [toEnd, setToEnd] = useState<Date>(new Date());
   const [toNote, setToNote] = useState('');
 
-  // Vacation policy state (admin only)
   const [vacationPolicy, setVacationPolicy] = useState<VacationPolicy | null>(null);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [policyDays, setPolicyDays] = useState('22');
@@ -119,11 +133,15 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
         timeOffApi.getTimeOffs(userId).catch(() => ({ data: [] as StaffTimeOff[] })),
       ]);
       const sched = schedRes.data;
-      if (sched) {
-        setWorkSchedule(sched);
-        setWorkDays(sched.workDays);
-        setStartTime(sched.startTime);
-        setEndTime(sched.endTime);
+      if (sched && sched.slots && sched.slots.length > 0) {
+        // Popula os slots com as configurações vindas do banco de dados
+        const fullSlots = DOW_ISO.map(iso => {
+          const found = sched.slots.find((s: any) => s.dayIso === iso);
+          return found 
+            ? { dayIso: iso, startTime: found.startTime, endTime: found.endTime, isActive: found.isActive }
+            : { dayIso: iso, startTime: '09:00', endTime: '17:00', isActive: false };
+        });
+        setSlots(fullSlots);
       }
       setTimeOffs(toRes.data ?? []);
 
@@ -142,26 +160,34 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
 
   useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
-  // ── Work schedule handlers ────────────────────────────────────────────────
-  const toggleDay = (iso: number) => {
-    setWorkDays(prev =>
-      prev.includes(iso) ? prev.filter(d => d !== iso) : [...prev, iso].sort((a, b) => a - b)
-    );
+  // ── Handlers do Horário por Dia ──────────────────────────────────────────
+  const handleToggleDay = (dayIso: number) => {
+    setSlots(prev => prev.map(s => s.dayIso === dayIso ? { ...s, isActive: !s.isActive } : s));
+    setScheduleEdited(true);
+  };
+
+  const handleTimeChange = (dayIso: number, field: 'startTime' | 'endTime', value: string) => {
+    setSlots(prev => prev.map(s => s.dayIso === dayIso ? { ...s, [field]: value } : s));
     setScheduleEdited(true);
   };
 
   const saveSchedule = async () => {
-    const payload: UpsertWorkScheduleRequest = { workDays, startTime, endTime };
-    const parsed = UpsertWorkScheduleRequest.safeParse(payload);
-    if (!parsed.success) {
-      Alert.alert('Erro', 'Formato de hora inválido. Use HH:MM');
-      return;
+    // Valida o formato de horas HH:MM de todos os dias que estão marcados como ativos
+    const activeSlots = slots.filter(s => s.isActive);
+    const hourRegex = /^\d{2}:\d{2}$/;
+    for (const slot of activeSlots) {
+      if (!hourRegex.test(slot.startTime) || !hourRegex.test(slot.endTime)) {
+        Alert.alert('Erro', `Formato de hora inválido no dia ${DOW_LABELS[slot.dayIso - 1]}. Use HH:MM`);
+        return;
+      }
     }
+
+    const payload: UpsertWorkScheduleRequest = { slots };
     try {
       setSaving(true);
       await staffScheduleApi.upsertSchedule(userId, payload);
       setScheduleEdited(false);
-      Alert.alert('Guardado', 'Horário de trabalho actualizado.');
+      Alert.alert('Guardado', 'Horário de trabalho por dia actualizado.');
     } catch (err) {
       handleError(err);
     } finally {
@@ -169,7 +195,7 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
     }
   };
 
-  // ── Time-off modal handlers ───────────────────────────────────────────────
+  // ── Handlers de Ausências ──────────────────────────────────────────────────
   const openCreateTimeOff = () => {
     setEditingTimeOff(null);
     setToType(TimeOffType.VACATION);
@@ -194,14 +220,25 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
       return;
     }
 
-    // Vacation limit check
     if (toType === TimeOffType.VACATION && maxVacationDays != null) {
-      const newDays = Math.round((toEnd.getTime() - toStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      const usedAlready = computeUsedVacationDays(timeOffs, true, editingTimeOff?.id);
+      const usedAlready = computeUsedVacationDays(timeOffs, slots, true, editingTimeOff?.id);
+      
+      let newDays = 0;
+      let current = new Date(toStart);
+      while (current <= toEnd) {
+        const jsDay = current.getDay();
+        const isoDay = jsDay === 0 ? 7 : jsDay;
+        const targetSlot = slots.find(s => s.dayIso === isoDay);
+        if (targetSlot && targetSlot.isActive) {
+          newDays += 1;
+        }
+        current.setDate(current.getDate() + 1);
+      }
+
       if (usedAlready + newDays > maxVacationDays) {
         Alert.alert(
           'Limite de férias excedido',
-          `Já tem ${usedAlready} dia(s) de férias registados este ano (aprovados e pendentes). Este pedido de ${newDays} dia(s) excederia o limite de ${maxVacationDays} dias.`,
+          `Já tem ${usedAlready} dia(s) úteis registados este ano. Este pedido de ${newDays} dia(s) efetivo(s) excederia o limite de ${maxVacationDays} dias.`,
         );
         return;
       }
@@ -300,68 +337,67 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
 
   if (loading) return <ActivityIndicatorOverlay />;
 
-  const usedVacationDays = computeUsedVacationDays(timeOffs);
+  const usedVacationDays = computeUsedVacationDays(timeOffs, slots);
   const maxVacationDays = vacationPolicy?.maxVacationDaysPerYear;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
-        {/* ── Work Schedule Section ── */}
+        {/* ── Work Schedule Section (Mapeamento de Linhas Individuais por Dia) ── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <MaterialIcons name="schedule" size={20} color={Color.Cyan.v400} />
-            <Text style={styles.sectionTitle}>Horário de trabalho</Text>
+            <Text style={styles.sectionTitle}>Horário de trabalho semanal</Text>
           </View>
 
-          {/* Day-of-week toggles */}
-          <Text style={styles.fieldLabel}>Dias de trabalho</Text>
-          <View style={styles.dowRow}>
-            {DOW_ISO.map((iso, i) => {
-              const active = workDays.includes(iso);
-              return (
-                <TouchableOpacity
-                  key={iso}
-                  style={[styles.dowChip, active && styles.dowChipActive]}
-                  onPress={() => isAdmin ? toggleDay(iso) : undefined}
-                  activeOpacity={isAdmin ? 0.75 : 1}
-                >
-                  <Text style={[styles.dowChipText, active && styles.dowChipTextActive]}>
-                    {DOW_LABELS[i]}
+          <Text style={[styles.fieldLabel, { marginBottom: Spacing.sm_8 }]}>Configure as horas de cada dia útil:</Text>
+          
+          {slots.map((slot) => {
+            const index = slot.dayIso - 1;
+            return (
+              <View key={slot.dayIso} style={[styles.slotRow, !slot.isActive && styles.slotRowDisabled]}>
+                <View style={styles.slotLeftInfo}>
+                  <Switch
+                    value={slot.isActive}
+                    onValueChange={() => isAdmin ? handleToggleDay(slot.dayIso) : undefined}
+                    disabled={!isAdmin}
+                    trackColor={{ true: Color.Cyan.v300, false: Color.Gray.v200 }}
+                    thumbColor={slot.isActive ? Color.Cyan.v500 : Color.Gray.v400}
+                  />
+                  <Text style={[styles.slotDayLabel, slot.isActive && styles.slotDayLabelActive]}>
+                    {DOW_LABELS[index]}
                   </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+                </View>
 
-          {/* Time inputs */}
-          <View style={styles.timeRow}>
-            <View style={styles.timeField}>
-              <Text style={styles.fieldLabel}>Início</Text>
-              <TextInput
-                style={styles.timeInput}
-                value={startTime}
-                onChangeText={isAdmin ? (v => { setStartTime(v); setScheduleEdited(true); }) : undefined}
-                editable={isAdmin}
-                placeholder="09:00"
-                keyboardType="numbers-and-punctuation"
-                maxLength={5}
-              />
-            </View>
-            <MaterialIcons name="arrow-forward" size={18} color={Color.Gray.v400} style={{ marginTop: 28 }} />
-            <View style={styles.timeField}>
-              <Text style={styles.fieldLabel}>Fim</Text>
-              <TextInput
-                style={styles.timeInput}
-                value={endTime}
-                onChangeText={isAdmin ? (v => { setEndTime(v); setScheduleEdited(true); }) : undefined}
-                editable={isAdmin}
-                placeholder="17:00"
-                keyboardType="numbers-and-punctuation"
-                maxLength={5}
-              />
-            </View>
-          </View>
+                {slot.isActive ? (
+                  <View style={styles.slotInputsContainer}>
+                    <TextInput
+                      style={styles.slotTimeInput}
+                      value={slot.startTime}
+                      onChangeText={(v) => handleTimeChange(slot.dayIso, 'startTime', v)}
+                      editable={isAdmin}
+                      placeholder="09:00"
+                      keyboardType="numbers-and-punctuation"
+                      maxLength={5}
+                    />
+                    <Text style={styles.slotTimeSeparator}>-</Text>
+                    <TextInput
+                      style={styles.slotTimeInput}
+                      value={slot.endTime}
+                      onChangeText={(v) => handleTimeChange(slot.dayIso, 'endTime', v)}
+                      editable={isAdmin}
+                      placeholder="17:00"
+                      keyboardType="numbers-and-punctuation"
+                      maxLength={5}
+                    />
+                  </View>
+                ) : (
+                  <Text style={styles.slotOffText}>Folga / Inactivo</Text>
+                )}
+              </View>
+            );
+          })}
 
           {isAdmin && (
             <TouchableOpacity
@@ -371,7 +407,7 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
               activeOpacity={0.8}
             >
               <MaterialIcons name="save" size={18} color="#fff" />
-              <Text style={styles.saveBtnText}>Guardar horário</Text>
+              <Text style={styles.saveBtnText}>Guardar escala semanal</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -386,7 +422,6 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
             </TouchableOpacity>
           </View>
 
-          {/* Vacation days stats */}
           {maxVacationDays != null && (
             <View style={styles.vacationStatsRow}>
               <MaterialIcons name="event-available" size={16} color={Color.primary} />
@@ -430,7 +465,6 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
                     )}
                   </View>
                   <View style={styles.timeOffActions}>
-                    {/* Admin viewing another user: show approve/deny for PENDING */}
                     {isAdminViewingOther && isPending ? (
                       <>
                         <TouchableOpacity
@@ -508,7 +542,6 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
             <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <Text style={styles.modalTitle}>{editingTimeOff ? 'Editar pedido' : (isAdmin ? 'Nova ausência' : 'Pedir ausência')}</Text>
 
-              {/* Type selector */}
               <Text style={styles.fieldLabel}>Tipo</Text>
               <View style={styles.typeRow}>
                 {Object.values(TimeOffType).map(t => {
@@ -527,7 +560,6 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
                 })}
               </View>
 
-              {/* Date pickers */}
               <Text style={[styles.fieldLabel, { marginTop: Spacing.sm_8 }]}>Data de início</Text>
               <DatePickerInput
                 value={toStart}
@@ -541,7 +573,6 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
                 label=""
               />
 
-              {/* Note */}
               <Text style={[styles.fieldLabel, { marginTop: Spacing.sm_8 }]}>Nota (opcional)</Text>
               <TextInput
                 style={styles.noteInput}
@@ -563,49 +594,44 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ── Vacation Policy Modal (No fundo do ecrã, livre de bugs) ── */}
-      <Modal 
-        visible={showPolicyModal} 
-        transparent 
-        animationType="slide" // Faz o modal deslizar elegantemente de baixo
-        onRequestClose={() => setShowPolicyModal(false)}
-      >
-        {/* Fundo escuro que fecha se clicares fora */}
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowPolicyModal(false)} />
-        
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-          style={{ justifyContent: 'flex-end', flex: 1 }}
-        >
-          {/* Reaproveita o estilo modalSheet que já tens no fundo do ficheiro */}
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Política de Férias</Text>
-            
-            <Text style={styles.fieldLabel}>Máximo de dias de férias por trabalhador por ano (1 – 365)</Text>
-            <TextInput
-              style={styles.timeInput}
-              value={policyDays}
-              onChangeText={setPolicyDays}
-              keyboardType="number-pad"
-              maxLength={3}
-              placeholder="22"
-              returnKeyType="done"
-              onSubmitEditing={savePolicy}
-            />
-            
-            <TouchableOpacity 
-              style={[styles.saveBtn, { marginTop: Spacing.sm_8 }]} 
-              onPress={savePolicy} 
-              disabled={saving} 
-              activeOpacity={0.85}
-            >
-              <MaterialIcons name="save" size={18} color="#fff" />
-              <Text style={styles.saveBtnText}>Guardar política</Text>
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      {/* ── Custom Pop-up da Política de Férias (Sem usar Modal para evitar bugs no iPhone) ── */}
+      {showPolicyModal && (
+        <View style={styles.popupOverlay}>
+          <TouchableOpacity 
+            style={styles.popupBackdrop} 
+            activeOpacity={1} 
+            onPress={() => setShowPolicyModal(false)} 
+          />
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+            style={styles.popupKeyboardAvoiding}
+          >
+            <View style={styles.popupAlertBox}>
+              <Text style={styles.modalTitle}>Política de Férias</Text>
+              <Text style={styles.fieldLabel}>Máximo de dias de férias por trabalhador por ano (1 – 365)</Text>
+              <TextInput
+                style={styles.timeInput}
+                value={policyDays}
+                onChangeText={setPolicyDays}
+                keyboardType="number-pad"
+                maxLength={3}
+                placeholder="22"
+                returnKeyType="done"
+                onSubmitEditing={savePolicy}
+              />
+              <TouchableOpacity 
+                style={[styles.saveBtn, { marginTop: Spacing.sm_8, width: '100%' }]} 
+                onPress={savePolicy} 
+                disabled={saving} 
+                activeOpacity={0.85}
+              >
+                <MaterialIcons name="save" size={18} color="#fff" />
+                <Text style={styles.saveBtnText}>Guardar política</Text>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      )}
 
       {saving && <ActivityIndicatorOverlay />}
     </SafeAreaView>
@@ -614,79 +640,13 @@ const StaffScheduleManagementScreen: React.FC<Props> = ({ route, navigation }) =
 
 export default StaffScheduleManagementScreen;
 
-// ── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Color.Background.muted,
-  },
-  content: {
-    padding: Spacing.md_16,
-    gap: Spacing.md_16,
-    paddingBottom: Spacing.xl2_40,
-  },
-  section: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: Spacing.md_16,
-    gap: Spacing.sm_10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm_8,
-    marginBottom: 2,
-  },
-  sectionTitle: {
-    flex: 1,
-    fontFamily: FontFamily.bold,
-    fontSize: FontSize.bodylarge_18,
-    color: Color.dark,
-  },
-  fieldLabel: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSize.caption_12,
-    color: Color.Gray.v400,
-    marginBottom: 2,
-  },
-  dowRow: {
-    flexDirection: 'row',
-    gap: 6,
-    flexWrap: 'wrap',
-  },
-  dowChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: Color.Gray.v200,
-    backgroundColor: Color.Background.subtle,
-  },
-  dowChipActive: {
-    borderColor: Color.Cyan.v300,
-    backgroundColor: Color.Cyan.v100,
-  },
-  dowChipText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSize.caption_12,
-    color: Color.Gray.v400,
-  },
-  dowChipTextActive: {
-    color: Color.Cyan.v500,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm_12,
-    alignItems: 'center',
-  },
-  timeField: {
-    flex: 1,
-  },
+  container: { flex: 1, backgroundColor: Color.Background.muted },
+  content: { padding: Spacing.md_16, gap: Spacing.md_16, paddingBottom: Spacing.xl2_40 },
+  section: { backgroundColor: '#fff', borderRadius: 14, padding: Spacing.md_16, gap: Spacing.sm_10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm_8, marginBottom: 2 },
+  sectionTitle: { flex: 1, fontFamily: FontFamily.bold, fontSize: FontSize.bodylarge_18, color: Color.dark },
+  fieldLabel: { fontFamily: FontFamily.medium, fontSize: FontSize.caption_12, color: Color.Gray.v400, marginBottom: 2 },
   timeInput: {
     borderWidth: 1.5,
     borderColor: Color.Gray.v200,
@@ -698,180 +658,48 @@ const styles = StyleSheet.create({
     color: Color.dark,
     backgroundColor: Color.Background.subtle,
   },
-  saveBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: Color.primary,
-    borderRadius: 12,
-    paddingVertical: Spacing.sm_12,
-    marginTop: 4,
-  },
-  saveBtnDisabled: {
-    backgroundColor: Color.Gray.v300,
-  },
-  saveBtnText: {
-    fontFamily: FontFamily.semi_bold,
-    fontSize: FontSize.bodysmall_14,
-    color: '#fff',
-  },
-  addBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    backgroundColor: Color.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.caption_12,
-    color: Color.Gray.v400,
-    textAlign: 'center',
-    paddingVertical: Spacing.sm_8,
-  },
-  timeOffRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm_8,
-    borderLeftWidth: 3,
-    borderRadius: 8,
-    backgroundColor: Color.Background.subtle,
-    paddingVertical: Spacing.sm_8,
-    paddingHorizontal: Spacing.sm_10,
-  },
-  timeOffBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    flexShrink: 0,
-  },
-  timeOffBadgeText: {
-    fontFamily: FontFamily.semi_bold,
-    fontSize: FontSize.caption_12,
-  },
-  timeOffDates: {
-    flex: 1,
-  },
-  timeOffDateText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSize.caption_12,
-    color: Color.dark,
-  },
-  timeOffNote: {
-    fontFamily: FontFamily.regular,
-    fontSize: 11,
-    color: Color.Gray.v400,
-    marginTop: 1,
-  },
-  // Modal
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalSheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: Spacing.md_16,
-    paddingBottom: 34,
-    gap: Spacing.sm_8,
-  },
-  modalHandle: {
-    alignSelf: 'center',
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Color.Gray.v200,
-    marginBottom: Spacing.sm_8,
-  },
-  modalTitle: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSize.bodylarge_18,
-    color: Color.dark,
-    marginBottom: 4,
-  },
-  typeRow: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  typeChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: Color.Gray.v200,
-    backgroundColor: Color.Background.subtle,
-  },
-  typeChipText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSize.caption_12,
-    color: Color.Gray.v400,
-  },
-  noteInput: {
-    borderWidth: 1.5,
-    borderColor: Color.Gray.v200,
-    borderRadius: 10,
-    padding: Spacing.sm_10,
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.bodysmall_14,
-    color: Color.dark,
-    minHeight: 60,
-    textAlignVertical: 'top',
-  },
-  timeOffLeft: {
-    flexDirection: 'column',
-    gap: 4,
-    flexShrink: 0,
-  },
-  statusBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    flexShrink: 0,
-  },
-  statusBadgeText: {
-    fontFamily: FontFamily.semi_bold,
-    fontSize: 10,
-  },
-  timeOffActions: {
-    flexDirection: 'row',
-    gap: 6,
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  actionBtn: {
-    padding: 4,
-  },
-  vacationStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Color.Background.subtle,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-  },
-  vacationStatsText: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.caption_12,
-    color: Color.Gray.v500,
-  },
-  policyText: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.bodysmall_14,
-    color: Color.Gray.v500,
-  },
-  policyHint: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.caption_12,
-    color: Color.Gray.v400,
-    fontStyle: 'italic',
-  },
+  
+  // ESTILOS NOVOS PARA OS SLOTS DIÁRIOS ALINHADOS
+  slotRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: Color.Gray.v100 },
+  slotRowDisabled: { opacity: 0.65 },
+  slotLeftInfo: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  slotDayLabel: { fontFamily: FontFamily.medium, fontSize: FontSize.bodysmall_14, color: Color.Gray.v400 },
+  slotDayLabelActive: { fontFamily: FontFamily.semi_bold, color: Color.dark },
+  slotInputsContainer: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  slotTimeInput: { borderWidth: 1.5, borderColor: Color.Gray.v200, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6, width: 64, textAlign: 'center', fontFamily: FontFamily.medium, fontSize: 13, color: Color.dark, backgroundColor: Color.Background.subtle },
+  slotTimeSeparator: { fontSize: 14, color: Color.Gray.v400, fontFamily: FontFamily.medium },
+  slotOffText: { fontFamily: FontFamily.regular, fontSize: FontSize.caption_12, color: Color.Gray.v400, fontStyle: 'italic', paddingRight: 10 },
+  
+  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: Color.primary, borderRadius: 12, paddingVertical: Spacing.sm_12, marginTop: 12 },
+  saveBtnDisabled: { backgroundColor: Color.Gray.v300 },
+  saveBtnText: { fontFamily: FontFamily.semi_bold, fontSize: FontSize.bodysmall_14, color: '#fff' },
+  addBtn: { width: 30, height: 30, borderRadius: 8, backgroundColor: Color.primary, alignItems: 'center', justifyContent: 'center' },
+  emptyText: { fontFamily: FontFamily.regular, fontSize: FontSize.caption_12, color: Color.Gray.v400, textAlign: 'center', paddingVertical: Spacing.sm_8 },
+  timeOffRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm_8, borderLeftWidth: 3, borderRadius: 8, backgroundColor: Color.Background.subtle, paddingVertical: Spacing.sm_8, paddingHorizontal: Spacing.sm_10 },
+  timeOffBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, flexShrink: 0 },
+  timeOffBadgeText: { fontFamily: FontFamily.semi_bold, fontSize: FontSize.caption_12 },
+  timeOffDates: { flex: 1 },
+  timeOffDateText: { fontFamily: FontFamily.medium, fontSize: FontSize.caption_12, color: Color.dark },
+  timeOffNote: { fontFamily: FontFamily.regular, fontSize: 11, color: Color.Gray.v400, marginTop: 1 },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: Spacing.md_16, paddingBottom: 34, gap: Spacing.sm_8 },
+  modalHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Color.Gray.v200, marginBottom: Spacing.sm_8 },
+  modalTitle: { fontFamily: FontFamily.bold, fontSize: FontSize.bodylarge_18, color: Color.dark, marginBottom: 4 },
+  typeRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  typeChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1.5, borderColor: Color.Gray.v200, backgroundColor: Color.Background.subtle },
+  typeChipText: { fontFamily: FontFamily.medium, fontSize: FontSize.caption_12, color: Color.Gray.v400 },
+  noteInput: { borderWidth: 1.5, borderColor: Color.Gray.v200, borderRadius: 10, padding: Spacing.sm_10, fontFamily: FontFamily.regular, fontSize: FontSize.bodysmall_14, color: Color.dark, minHeight: 60, textAlignVertical: 'top' },
+  timeOffLeft: { flexDirection: 'column', gap: 4, flexShrink: 0 },
+  statusBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, flexShrink: 0 },
+  statusBadgeText: { fontFamily: FontFamily.semi_bold, fontSize: 10 },
+  timeOffActions: { flexDirection: 'row', gap: 6, alignItems: 'center', flexShrink: 0 },
+  actionBtn: { padding: 4 },
+  vacationStatsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Color.Background.subtle, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 10 },
+  vacationStatsText: { fontFamily: FontFamily.regular, fontSize: FontSize.caption_12, color: Color.Gray.v500 },
+  policyText: { fontFamily: FontFamily.regular, fontSize: FontSize.bodysmall_14, color: Color.Gray.v500 },
+  policyHint: { fontFamily: FontFamily.regular, fontSize: FontSize.caption_12, color: Color.Gray.v400, fontStyle: 'italic' },
+  popupOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 999, justifyContent: 'center', alignItems: 'center' },
+  popupBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0, 0, 0, 0.45)' },
+  popupKeyboardAvoiding: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' },
+  popupAlertBox: { width: '85%', maxWidth: 320, backgroundColor: '#fff', borderRadius: 16, padding: Spacing.md_16, gap: Spacing.sm_8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 6 },
 });

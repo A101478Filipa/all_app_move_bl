@@ -98,21 +98,21 @@ async function main() {
   // USERS – Elderly (15 – 5 per institution)
   // ═══════════════════════════════════════════════════════════════════════════
   const elderlyRaw = [
-    { username: 'elderly1',  email: 'john.doe@hcc-res.pt',       name: 'John Doe',       institutionId: 1, birth: '1945-05-15', gender: Gender.MALE,   medId: 1001, phone: '253-100-001', emergency: '253-200-001', floor: 1 },
-    { username: 'elderly2',  email: 'jane.roe@hcc-res.pt',       name: 'Jane Roe',       institutionId: 1, birth: '1938-10-21', gender: Gender.FEMALE, medId: 1002, phone: '253-100-002', emergency: '253-200-002', floor: 1 },
-    { username: 'elderly3',  email: 'michael.smith@hcc-res.pt',  name: 'Michael Smith',  institutionId: 1, birth: '1943-07-08', gender: Gender.MALE,   medId: 1003, phone: '253-100-003', emergency: '253-200-003', floor: 2 },
-    { username: 'elderly4',  email: 'susan.johnson@hcc-res.pt',  name: 'Susan Johnson',  institutionId: 1, birth: '1939-09-15', gender: Gender.FEMALE, medId: 1004, phone: '253-100-004', emergency: '253-200-004', floor: 2 },
-    { username: 'elderly5',  email: 'robert.brown@hcc-res.pt',   name: 'Robert Brown',   institutionId: 1, birth: '1947-11-22', gender: Gender.MALE,   medId: 1005, phone: '253-100-005', emergency: '253-200-005', floor: 3 },
-    { username: 'elderly6',  email: 'linda.green@lsb-res.pt',    name: 'Linda Green',    institutionId: 2, birth: '1942-06-10', gender: Gender.FEMALE, medId: 1006, phone: '253-100-006', emergency: '253-200-006', floor: 1 },
-    { username: 'elderly7',  email: 'david.white@lsb-res.pt',    name: 'David White',    institutionId: 2, birth: '1940-02-18', gender: Gender.MALE,   medId: 1007, phone: '253-100-007', emergency: '253-200-007', floor: 1 },
-    { username: 'elderly8',  email: 'barbara.adams@lsb-res.pt',  name: 'Barbara Adams',  institutionId: 2, birth: '1936-04-05', gender: Gender.FEMALE, medId: 1008, phone: '253-100-008', emergency: '253-200-008', floor: 2 },
-    { username: 'elderly9',  email: 'james.wilson@lsb-res.pt',   name: 'James Wilson',   institutionId: 2, birth: '1949-08-25', gender: Gender.MALE,   medId: 1009, phone: '253-100-009', emergency: '253-200-009', floor: 2 },
-    { username: 'elderly10', email: 'patricia.clark@lsb-res.pt', name: 'Patricia Clark', institutionId: 2, birth: '1937-12-30', gender: Gender.FEMALE, medId: 1010, phone: '253-100-010', emergency: '253-200-010', floor: 3 },
-    { username: 'elderly11', email: 'carlos.sousa@csg-res.pt',   name: 'Carlos Sousa',   institutionId: 3, birth: '1935-03-22', gender: Gender.MALE,   medId: 1011, phone: '253-100-011', emergency: '253-200-011', floor: 1 },
-    { username: 'elderly12', email: 'maria.oliveira@csg-res.pt', name: 'Maria Oliveira', institutionId: 3, birth: '1941-07-14', gender: Gender.FEMALE, medId: 1012, phone: '253-100-012', emergency: '253-200-012', floor: 1 },
-    { username: 'elderly13', email: 'antonio.silva@csg-res.pt',  name: 'Antonio Silva',  institutionId: 3, birth: '1933-11-09', gender: Gender.MALE,   medId: 1013, phone: '253-100-013', emergency: '253-200-013', floor: 2 },
-    { username: 'elderly14', email: 'rosa.pereira@csg-res.pt',   name: 'Rosa Pereira',   institutionId: 3, birth: '1946-02-28', gender: Gender.FEMALE, medId: 1014, phone: '253-100-014', emergency: '253-200-014', floor: 2 },
-    { username: 'elderly15', email: 'manuel.gomes@csg-res.pt',   name: 'Manuel Gomes',   institutionId: 3, birth: '1944-09-03', gender: Gender.MALE,   medId: 1015, phone: '253-100-015', emergency: '253-200-015', floor: 3 },
+    { username: 'elderly1',  email: 'john.doe@hcc-res.pt',        name: 'John Doe',       institutionId: 1, birth: '1945-05-15', gender: Gender.MALE,   medId: 1001, phone: '253-100-001', emergency: '253-200-001', floor: 1 },
+    { username: 'elderly2',  email: 'jane.roe@hcc-res.pt',        name: 'Jane Roe',       institutionId: 1, birth: '1938-10-21', gender: Gender.FEMALE, medId: 1002, phone: '253-100-002', emergency: '253-200-002', floor: 1 },
+    { username: 'elderly3',  email: 'michael.smith@hcc-res.pt',   name: 'Michael Smith',  institutionId: 1, birth: '1943-07-08', gender: Gender.MALE,   medId: 1003, phone: '253-100-003', emergency: '253-200-003', floor: 2 },
+    { username: 'elderly4',  email: 'susan.johnson@hcc-res.pt',   name: 'Susan Johnson',  institutionId: 1, birth: '1939-09-15', gender: Gender.FEMALE, medId: 1004, phone: '253-100-004', emergency: '253-200-004', floor: 2 },
+    { username: 'elderly5',  email: 'robert.brown@hcc-res.pt',    name: 'Robert Brown',   institutionId: 1, birth: '1947-11-22', gender: Gender.MALE,   medId: 1005, phone: '253-100-005', emergency: '253-200-005', floor: 3 },
+    { username: 'elderly6',  email: 'linda.green@lsb-res.pt',     name: 'Linda Green',    institutionId: 2, birth: '1942-06-10', gender: Gender.FEMALE, medId: 1006, phone: '253-100-006', emergency: '253-200-006', floor: 1 },
+    { username: 'elderly7',  email: 'david.white@lsb-res.pt',     name: 'David White',    institutionId: 2, birth: '1940-02-18', gender: Gender.MALE,   medId: 1007, phone: '253-100-007', emergency: '253-200-007', floor: 1 },
+    { username: 'elderly8',  email: 'barbara.adams@lsb-res.pt',   name: 'Barbara Adams',  institutionId: 2, birth: '1936-04-05', gender: Gender.FEMALE, medId: 1008, phone: '253-100-008', emergency: '253-200-008', floor: 2 },
+    { username: 'elderly9',  email: 'james.wilson@lsb-res.pt',    name: 'James Wilson',   institutionId: 2, birth: '1949-08-25', gender: Gender.MALE,   medId: 1009, phone: '253-100-009', emergency: '253-200-009', floor: 2 },
+    { username: 'elderly10', email: 'patricia.clark@lsb-res.pt',  name: 'Patricia Clark', institutionId: 2, birth: '1937-12-30', gender: Gender.FEMALE, medId: 1010, phone: '253-100-010', emergency: '253-200-010', floor: 3 },
+    { username: 'elderly11', email: 'carlos.sousa@csg-res.pt',    name: 'Carlos Sousa',   institutionId: 3, birth: '1935-03-22', gender: Gender.MALE,   medId: 1011, phone: '253-100-011', emergency: '253-200-011', floor: 1 },
+    { username: 'elderly12', email: 'maria.oliveira@csg-res.pt',  name: 'Maria Oliveira', institutionId: 3, birth: '1941-07-14', gender: Gender.FEMALE, medId: 1012, phone: '253-100-012', emergency: '253-200-012', floor: 1 },
+    { username: 'elderly13', email: 'antonio.silva@csg-res.pt',   name: 'Antonio Silva',  institutionId: 3, birth: '1933-11-09', gender: Gender.MALE,   medId: 1013, phone: '253-100-013', emergency: '253-200-013', floor: 2 },
+    { username: 'elderly14', email: 'rosa.pereira@csg-res.pt',    name: 'Rosa Pereira',   institutionId: 3, birth: '1946-02-28', gender: Gender.FEMALE, medId: 1014, phone: '253-100-014', emergency: '253-200-014', floor: 2 },
+    { username: 'elderly15', email: 'manuel.gomes@csg-res.pt',    name: 'Manuel Gomes',   institutionId: 3, birth: '1944-09-03', gender: Gender.MALE,   medId: 1015, phone: '253-100-015', emergency: '253-200-015', floor: 3 },
   ];
   const elderlyProfiles: { id: number; userId: number; institutionId: number }[] = [];
   for (const e of elderlyRaw) {
@@ -227,7 +227,7 @@ async function main() {
       { elderlyId: 10, handlerUserId: caregiverUsers[4].id, date: daysAgo(14), wasActualFall: true,  notes: 'Tripped on rug, fell forward', injured: true, injuryDescription: 'Forearm bruise', injuryBodyLocations: ['FOREARM_LEFT'], isFalseAlarm: false },
       { elderlyId: 11, handlerUserId: caregiverUsers[6].id, date: daysAgo(10), wasActualFall: false, notes: 'Dizziness - felt unwell, did not fall', injured: false, isFalseAlarm: false },
       { elderlyId: 13, handlerUserId: caregiverUsers[7].id, date: daysAgo(7),  wasActualFall: true,  notes: 'Night fall in corridor', injured: true, injuryDescription: 'Minor head bump', injuryBodyLocations: ['HEAD'], isFalseAlarm: false },
-      { elderlyId: 14, handlerUserId: null,                 date: daysAgo(3),  wasActualFall: null,  notes: 'Unattended SOS - staff arrived but patient seemed ok', injured: null, isFalseAlarm: false },
+      { elderlyId: 14, handlerUserId: null,                  date: daysAgo(3),  wasActualFall: null,  notes: 'Unattended SOS - staff arrived but patient seemed ok', injured: null, isFalseAlarm: false },
       { elderlyId: 1,  handlerUserId: caregiverUsers[0].id, date: daysAgo(20), wasActualFall: false, notes: 'Patient pressed SOS out of anxiety', injured: false, isFalseAlarm: true },
       { elderlyId: 5,  handlerUserId: caregiverUsers[1].id, date: daysAgo(1),  wasActualFall: true,  notes: 'Fall in garden walk', injured: false, isFalseAlarm: false, environment: 'Garden' },
     ],
@@ -285,34 +285,30 @@ async function main() {
   const addM = (elderlyId: number, type: MeasurementType, value: number, unit: MeasurementUnit, status: MeasurementStatus, notes: string, assessmentId?: number, measuredById?: number) =>
     measurementsData.push({ elderlyId, type, value, unit, status, notes, ...(assessmentId ? { assessmentId } : {}), ...(measuredById ? { measuredById } : {}) });
 
-  // Elderly 1 – hypertension trending over 6 weeks
   for (let i = 0; i < 6; i++) addM(1, MeasurementType.BLOOD_PRESSURE_SYSTOLIC,  140 + i * 2, MeasurementUnit.MMHG,       MeasurementStatus.YELLOW, `Week ${i+1}`);
   for (let i = 0; i < 6; i++) addM(1, MeasurementType.BLOOD_PRESSURE_DIASTOLIC, 88  + i,     MeasurementUnit.MMHG,       MeasurementStatus.YELLOW, `Week ${i+1}`);
   addM(1, MeasurementType.WEIGHT,          72.5, MeasurementUnit.KILOGRAMS,  MeasurementStatus.GREEN,  'Stable weight');
   addM(1, MeasurementType.HEIGHT,         165,   MeasurementUnit.CENTIMETERS,MeasurementStatus.GREEN,  'Annual measurement');
-  addM(1, MeasurementType.HEART_RATE,      82,   MeasurementUnit.BPM,        MeasurementStatus.GREEN,  'Resting heart rate', assessmentsCreated[0].id, clinicianProfiles[0].userId);
-  addM(1, MeasurementType.BALANCE_SCORE,   32,   MeasurementUnit.POINTS,     MeasurementStatus.YELLOW, 'Berg Balance Scale');
-  addM(1, MeasurementType.COGNITIVE_SCORE, 22,   MeasurementUnit.POINTS,     MeasurementStatus.YELLOW, 'MMSE score - mild decline');
+  addM(1, MeasurementType.HEART_RATE,      82,   MeasurementUnit.BPM,         MeasurementStatus.GREEN,  'Resting heart rate', assessmentsCreated[0].id, clinicianProfiles[0].userId);
+  addM(1, MeasurementType.BALANCE_SCORE,   32,   MeasurementUnit.POINTS,      MeasurementStatus.YELLOW, 'Berg Balance Scale');
+  addM(1, MeasurementType.COGNITIVE_SCORE, 22,   MeasurementUnit.POINTS,      MeasurementStatus.YELLOW, 'MMSE score - mild decline');
 
-  // Elderly 2 – diabetes
-  addM(2, MeasurementType.BLOOD_GLUCOSE,           162, MeasurementUnit.POINTS,     MeasurementStatus.ORANGE, 'Fasting glucose elevated');
-  addM(2, MeasurementType.BLOOD_GLUCOSE,           145, MeasurementUnit.POINTS,     MeasurementStatus.YELLOW, 'Post-meal glucose');
+  addM(2, MeasurementType.BLOOD_GLUCOSE,           162, MeasurementUnit.POINTS,      MeasurementStatus.ORANGE, 'Fasting glucose elevated');
+  addM(2, MeasurementType.BLOOD_GLUCOSE,           145, MeasurementUnit.POINTS,      MeasurementStatus.YELLOW, 'Post-meal glucose');
   addM(2, MeasurementType.WEIGHT,                   78.2, MeasurementUnit.KILOGRAMS, MeasurementStatus.YELLOW, 'Slight overweight');
-  addM(2, MeasurementType.BLOOD_PRESSURE_SYSTOLIC, 138,  MeasurementUnit.MMHG,      MeasurementStatus.YELLOW, 'Pre-hypertensive');
+  addM(2, MeasurementType.BLOOD_PRESSURE_SYSTOLIC, 138,  MeasurementUnit.MMHG,       MeasurementStatus.YELLOW, 'Pre-hypertensive');
   addM(2, MeasurementType.OXYGEN_SATURATION,        97,  MeasurementUnit.PERCENTAGE, MeasurementStatus.GREEN, 'Normal SpO2');
 
-  // Elderly 3 – osteoarthritis
-  addM(3, MeasurementType.WEIGHT,         67.8, MeasurementUnit.KILOGRAMS,  MeasurementStatus.YELLOW, 'Weight loss noted');
-  addM(3, MeasurementType.WEIGHT,         68.2, MeasurementUnit.KILOGRAMS,  MeasurementStatus.GREEN,  'Stable this week');
-  addM(3, MeasurementType.HEIGHT,        172,   MeasurementUnit.CENTIMETERS,MeasurementStatus.GREEN,  'No change');
-  addM(3, MeasurementType.MOBILITY_SCORE,  6,   MeasurementUnit.POINTS,     MeasurementStatus.ORANGE, 'Timed Up & Go test');
-  addM(3, MeasurementType.BALANCE_SCORE,  28,   MeasurementUnit.POINTS,     MeasurementStatus.YELLOW, 'Berg scale - moderate risk');
-  addM(3, MeasurementType.BODY_TEMPERATURE,36.8, MeasurementUnit.POINTS,    MeasurementStatus.GREEN,  'Normal');
+  addM(3, MeasurementType.WEIGHT,          67.8, MeasurementUnit.KILOGRAMS,  MeasurementStatus.YELLOW, 'Weight loss noted');
+  addM(3, MeasurementType.WEIGHT,          68.2, MeasurementUnit.KILOGRAMS,  MeasurementStatus.GREEN,  'Stable this week');
+  addM(3, MeasurementType.HEIGHT,         172,   MeasurementUnit.CENTIMETERS,MeasurementStatus.GREEN,  'No change');
+  addM(3, MeasurementType.MOBILITY_SCORE,  6,   MeasurementUnit.POINTS,      MeasurementStatus.ORANGE, 'Timed Up & Go test');
+  addM(3, MeasurementType.BALANCE_SCORE,  28,   MeasurementUnit.POINTS,      MeasurementStatus.YELLOW, 'Berg scale - moderate risk');
+  addM(3, MeasurementType.BODY_TEMPERATURE,36.8, MeasurementUnit.POINTS,     MeasurementStatus.GREEN,  'Normal');
 
-  // Elderly 4-15
   const simpleM: [number, MeasurementType, number, MeasurementUnit, MeasurementStatus, string][] = [
-    [4,  MeasurementType.MOBILITY_SCORE,             8,    MeasurementUnit.POINTS,     MeasurementStatus.YELLOW, 'Good for age'],
-    [4,  MeasurementType.BALANCE_SCORE,             12,    MeasurementUnit.POINTS,     MeasurementStatus.RED,    'High fall risk'],
+    [4,  MeasurementType.MOBILITY_SCORE,             4,    MeasurementUnit.POINTS,     MeasurementStatus.RED,    'Severely limited mobility'],
+    [4,  MeasurementType.BALANCE_SCORE,             10,    MeasurementUnit.POINTS,     MeasurementStatus.RED,    'Very high fall risk'],
     [4,  MeasurementType.HEART_RATE,                85,    MeasurementUnit.BPM,        MeasurementStatus.GREEN,  'Slightly elevated'],
     [5,  MeasurementType.BLOOD_PRESSURE_SYSTOLIC,  118,    MeasurementUnit.MMHG,       MeasurementStatus.GREEN,  'Normal'],
     [5,  MeasurementType.BLOOD_PRESSURE_DIASTOLIC,  76,    MeasurementUnit.MMHG,       MeasurementStatus.GREEN,  'Normal'],
@@ -321,7 +317,7 @@ async function main() {
     [6,  MeasurementType.HEART_RATE,                91,    MeasurementUnit.BPM,        MeasurementStatus.YELLOW, 'AFib patient'],
     [6,  MeasurementType.OXYGEN_SATURATION,         95,    MeasurementUnit.PERCENTAGE, MeasurementStatus.YELLOW, 'Low-normal SpO2'],
     [6,  MeasurementType.WEIGHT,                    61.3,  MeasurementUnit.KILOGRAMS,  MeasurementStatus.GREEN,  'Stable'],
-    [7,  MeasurementType.BLOOD_GLUCOSE,            110,    MeasurementUnit.POINTS,     MeasurementStatus.GREEN,  'Normal fasting'],
+    [7,  MeasurementType.BLOOD_GLUCOSE,             110,    MeasurementUnit.POINTS,     MeasurementStatus.GREEN,  'Normal fasting'],
     [7,  MeasurementType.BLOOD_PRESSURE_SYSTOLIC,  132,    MeasurementUnit.MMHG,       MeasurementStatus.YELLOW, 'Borderline high'],
     [7,  MeasurementType.BALANCE_SCORE,             38,    MeasurementUnit.POINTS,     MeasurementStatus.GREEN,  'Good balance'],
     [8,  MeasurementType.BODY_TEMPERATURE,          37.4,  MeasurementUnit.POINTS,     MeasurementStatus.YELLOW, 'Slight fever'],
@@ -334,7 +330,7 @@ async function main() {
     [10, MeasurementType.BLOOD_PRESSURE_DIASTOLIC,  98,    MeasurementUnit.MMHG,       MeasurementStatus.ORANGE, 'Elevated'],
     [11, MeasurementType.MOBILITY_SCORE,             4,    MeasurementUnit.POINTS,     MeasurementStatus.RED,    'Severely limited mobility'],
     [11, MeasurementType.BALANCE_SCORE,             10,    MeasurementUnit.POINTS,     MeasurementStatus.RED,    'Very high fall risk'],
-    [12, MeasurementType.BLOOD_GLUCOSE,            130,    MeasurementUnit.POINTS,     MeasurementStatus.YELLOW, 'Pre-diabetic range'],
+    [12, MeasurementType.BLOOD_GLUCOSE,             130,    MeasurementUnit.POINTS,     MeasurementStatus.YELLOW, 'Pre-diabetic range'],
     [12, MeasurementType.WEIGHT,                    69.5,  MeasurementUnit.KILOGRAMS,  MeasurementStatus.GREEN,  'Normal'],
     [13, MeasurementType.OXYGEN_SATURATION,         94,    MeasurementUnit.PERCENTAGE, MeasurementStatus.YELLOW, 'Moderate COPD'],
     [13, MeasurementType.BODY_TEMPERATURE,          36.5,  MeasurementUnit.POINTS,     MeasurementStatus.GREEN,  'Normal'],
@@ -353,26 +349,26 @@ async function main() {
   await prisma.pathology.createMany({
     data: [
       { elderlyId: 1,  registeredById: caregiverUsers[0].id,          name: 'Hypertension',              description: 'Essential hypertension stage 2',        diagnosisSite: 'HCC Cardiology',        diagnosisDate: daysAgo(730), status: PathologyStatus.ACTIVE,         notes: 'On Lisinopril 10mg' },
-      { elderlyId: 1,  registeredById: clinicianProfiles[0].userId,   name: 'Osteoporosis',              description: 'Lumbar osteoporosis',                   diagnosisSite: 'HCC Radiology',         diagnosisDate: daysAgo(400), status: PathologyStatus.CHRONIC,        notes: 'Calcium+VitD supplementation' },
+      { elderlyId: 1,  registeredById: clinicianProfiles[0].userId,   name: 'Osteoporosis',              description: 'Lumbar osteoporosis',                   diagnosisSite: 'HCC Radiology',         diagnosisDate: daysAgo(400), status: PathologyStatus.CHRONIC,         notes: 'Calcium+VitD supplementation' },
       { elderlyId: 2,  registeredById: caregiverUsers[1].id,          name: 'Diabetes Type 2',           description: 'T2DM poorly controlled',                diagnosisSite: 'LSB Medical Unit',      diagnosisDate: daysAgo(900), status: PathologyStatus.UNDER_TREATMENT, notes: 'Metformin 850mg BD' },
       { elderlyId: 2,  registeredById: caregiverUsers[1].id,          name: 'Peripheral Neuropathy',     description: 'Diabetic peripheral neuropathy',        diagnosisSite: 'LSB Neurology',         diagnosisDate: daysAgo(200), status: PathologyStatus.ACTIVE,         notes: 'Pregabalin 75mg' },
-      { elderlyId: 3,  registeredById: caregiverUsers[2].id,          name: 'Osteoarthritis',            description: 'Bilateral knee osteoarthritis',         diagnosisSite: 'Orthopedic Clinic Braga',diagnosisDate: daysAgo(1200),status: PathologyStatus.CHRONIC,        notes: 'Physiotherapy 2x/week' },
+      { elderlyId: 3,  registeredById: caregiverUsers[2].id,          name: 'Osteoarthritis',            description: 'Bilateral knee osteoarthritis',         diagnosisSite: 'Orthopedic Clinic Braga',diagnosisDate: daysAgo(1200),status: PathologyStatus.CHRONIC,         notes: 'Physiotherapy 2x/week' },
       { elderlyId: 3,  registeredById: caregiverUsers[2].id,          name: 'GERD',                      description: 'Gastroesophageal reflux disease',       diagnosisSite: 'HCC Gastroenterology',  diagnosisDate: daysAgo(600), status: PathologyStatus.ACTIVE,         notes: 'Omeprazole 20mg daily' },
-      { elderlyId: 4,  registeredById: caregiverUsers[0].id,          name: 'Cataracts',                 description: 'Bilateral cataracts - post-surgery',    diagnosisSite: 'Eye Clinic Barcelos',   diagnosisDate: daysAgo(540), status: PathologyStatus.RESOLVED,       notes: 'Phacoemulsification both eyes' },
+      { elderlyId: 4,  registeredById: caregiverUsers[0].id,          name: 'Cataracts',                  description: 'Bilateral cataracts - post-surgery',    diagnosisSite: 'Eye Clinic Barcelos',   diagnosisDate: daysAgo(540), status: PathologyStatus.RESOLVED,       notes: 'Phacoemulsification both eyes' },
       { elderlyId: 4,  registeredById: caregiverUsers[0].id,          name: 'Mild Cognitive Impairment', description: 'Amnestic MCI',                          diagnosisSite: 'HCC Neurology',         diagnosisDate: daysAgo(180), status: PathologyStatus.MONITORING,     notes: 'MMSE 24, annual review' },
       { elderlyId: 5,  registeredById: caregiverUsers[1].id,          name: 'Depression',                description: 'Major depressive disorder, moderate',   diagnosisSite: 'Mental Health Unit',    diagnosisDate: daysAgo(360), status: PathologyStatus.UNDER_TREATMENT, notes: 'Sertraline 50mg, CBT sessions' },
-      { elderlyId: 5,  registeredById: caregiverUsers[1].id,          name: 'Chronic Low Back Pain',     description: 'L4-L5 disc degeneration',               diagnosisSite: 'HCC Orthopaedics',      diagnosisDate: daysAgo(800), status: PathologyStatus.CHRONIC,        notes: 'Physiotherapy, occasional NSAIDs' },
+      { elderlyId: 5,  registeredById: caregiverUsers[1].id,          name: 'Chronic Low Back Pain',     description: 'L4-L5 disc degeneration',               diagnosisSite: 'HCC Orthopaedics',      diagnosisDate: daysAgo(800), status: PathologyStatus.CHRONIC,         notes: 'Physiotherapy, occasional NSAIDs' },
       { elderlyId: 6,  registeredById: caregiverUsers[3].id,          name: 'Atrial Fibrillation',       description: 'Paroxysmal AFib',                       diagnosisSite: 'Cardiology Dept',       diagnosisDate: daysAgo(730), status: PathologyStatus.INACTIVE,       notes: 'Stabilised on Bisoprolol' },
-      { elderlyId: 6,  registeredById: caregiverUsers[3].id,          name: 'Heart Failure',             description: 'HFpEF',                                 diagnosisSite: 'LSB Cardiology',        diagnosisDate: daysAgo(300), status: PathologyStatus.UNDER_TREATMENT, notes: 'Furosemide 40mg, fluid restriction' },
+      { elderlyId: 6,  registeredById: caregiverUsers[3].id,          name: 'Heart Failure',              description: 'HFpEF',                                 diagnosisSite: 'LSB Cardiology',        diagnosisDate: daysAgo(300), status: PathologyStatus.UNDER_TREATMENT, notes: 'Furosemide 40mg, fluid restriction' },
       { elderlyId: 7,  registeredById: caregiverUsers[4].id,          name: "Parkinson's Disease",       description: 'Early stage PD',                        diagnosisSite: 'LSB Neurology',         diagnosisDate: daysAgo(500), status: PathologyStatus.ACTIVE,         notes: 'Levodopa/Carbidopa 25/100 TDS' },
-      { elderlyId: 8,  registeredById: caregiverUsers[5].id,          name: 'COPD',                      description: 'Moderate COPD (GOLD stage 2)',           diagnosisSite: 'Pulmonology Clinic',    diagnosisDate: daysAgo(1000),status: PathologyStatus.CHRONIC,        notes: 'Salbutamol PRN, Tiotropium daily' },
-      { elderlyId: 8,  registeredById: caregiverUsers[5].id,          name: 'Anaemia',                   description: 'Iron deficiency anaemia',               diagnosisSite: 'LSB Laboratory',        diagnosisDate: daysAgo(90),  status: PathologyStatus.UNDER_TREATMENT, notes: 'Ferrous sulphate 200mg TDS' },
+      { elderlyId: 8,  registeredById: caregiverUsers[5].id,          name: 'COPD',                      description: 'Moderate COPD (GOLD stage 2)',           diagnosisSite: 'Pulmonology Clinic',    diagnosisDate: daysAgo(1000),status: PathologyStatus.CHRONIC,         notes: 'Salbutamol PRN, Tiotropium daily' },
+      { elderlyId: 8,  registeredById: caregiverUsers[5].id,          name: 'Anaemia',                    description: 'Iron deficiency anaemia',               diagnosisSite: 'LSB Laboratory',        diagnosisDate: daysAgo(90),  status: PathologyStatus.UNDER_TREATMENT, notes: 'Ferrous sulphate 200mg TDS' },
       { elderlyId: 9,  registeredById: caregiverUsers[3].id,          name: 'Type 2 Diabetes',           description: 'Well-controlled T2DM',                  diagnosisSite: 'CSG Primary Care',      diagnosisDate: daysAgo(600), status: PathologyStatus.MONITORING,     notes: 'HbA1c 6.8%, diet controlled' },
       { elderlyId: 10, registeredById: caregiverUsers[4].id,          name: 'Hypertension',              description: 'Stage 2 hypertension',                  diagnosisSite: 'LSB Cardiology',        diagnosisDate: daysAgo(850), status: PathologyStatus.ACTIVE,         notes: 'Amlodipine 10mg' },
       { elderlyId: 10, registeredById: caregiverUsers[4].id,          name: 'Chronic Kidney Disease',    description: 'CKD stage 3a',                          diagnosisSite: 'LSB Nephrology',        diagnosisDate: daysAgo(400), status: PathologyStatus.MONITORING,     notes: 'eGFR 45, low protein diet' },
       { elderlyId: 11, registeredById: caregiverUsers[6].id,          name: 'Advanced Dementia',         description: "Alzheimer's type dementia stage 2",     diagnosisSite: 'CSG Neurology',         diagnosisDate: daysAgo(700), status: PathologyStatus.ACTIVE,         notes: 'Donepezil 10mg, high supervision' },
       { elderlyId: 12, registeredById: caregiverUsers[7].id,          name: 'Hypothyroidism',            description: 'Autoimmune hypothyroidism',              diagnosisSite: 'CSG Endocrinology',     diagnosisDate: daysAgo(1100),status: PathologyStatus.ACTIVE,         notes: 'Levothyroxine 75mcg daily' },
-      { elderlyId: 13, registeredById: caregiverUsers[8].id,          name: 'COPD',                      description: 'Severe COPD (GOLD stage 3)',             diagnosisSite: 'Pulmonology Clinic',    diagnosisDate: daysAgo(1500),status: PathologyStatus.CHRONIC,        notes: 'Home oxygen 16h/day' },
+      { elderlyId: 13, registeredById: caregiverUsers[8].id,          name: 'COPD',                      description: 'Severe COPD (GOLD stage 3)',             diagnosisSite: 'Pulmonology Clinic',    diagnosisDate: daysAgo(1500),status: PathologyStatus.CHRONIC,         notes: 'Home oxygen 16h/day' },
       { elderlyId: 14, registeredById: caregiverUsers[6].id,          name: 'Osteoporosis',              description: 'Post-menopausal osteoporosis',           diagnosisSite: 'CSG Rheumatology',      diagnosisDate: daysAgo(600), status: PathologyStatus.UNDER_TREATMENT, notes: 'Alendronate weekly, Ca+D3' },
       { elderlyId: 15, registeredById: caregiverUsers[7].id,          name: 'Benign Prostatic Hyperplasia', description: 'BPH with urinary retention',         diagnosisSite: 'CSG Urology',           diagnosisDate: daysAgo(450), status: PathologyStatus.ACTIVE,         notes: 'Tamsulosin 0.4mg' },
       { elderlyId: 15, registeredById: caregiverUsers[7].id,          name: 'Gout',                      description: 'Recurrent gout, right great toe',       diagnosisSite: 'CSG Primary Care',      diagnosisDate: daysAgo(300), status: PathologyStatus.MONITORING,     notes: 'Allopurinol 100mg, low purine diet' },
@@ -384,32 +380,32 @@ async function main() {
   // ═══════════════════════════════════════════════════════════════════════════
   await prisma.medication.createMany({
     data: [
-      { elderlyId: 1,  registeredById: clinicianProfiles[0].userId, name: 'Lisinopril',          activeIngredient: 'Lisinopril',              dosage: '10mg',         frequency: 'Once daily',         administration: 'Oral',    startDate: daysAgo(730), status: MedicationStatus.ACTIVE,        notes: 'For hypertension' },
-      { elderlyId: 1,  registeredById: clinicianProfiles[0].userId, name: 'Calcium + Vit D3',    activeIngredient: 'Calcium carbonate + D3',  dosage: '500mg/400IU',  frequency: 'Twice daily',        administration: 'Oral',    startDate: daysAgo(400), status: MedicationStatus.ACTIVE,        notes: 'Osteoporosis prevention' },
-      { elderlyId: 2,  registeredById: clinicianProfiles[1].userId, name: 'Metformin',            activeIngredient: 'Metformin HCl',           dosage: '850mg',        frequency: 'Twice daily',        administration: 'Oral',    startDate: daysAgo(900), status: MedicationStatus.ACTIVE,        notes: 'Diabetes control' },
-      { elderlyId: 2,  registeredById: clinicianProfiles[1].userId, name: 'Pregabalin',           activeIngredient: 'Pregabalin',              dosage: '75mg',         frequency: 'Twice daily',        administration: 'Oral',    startDate: daysAgo(200), status: MedicationStatus.ACTIVE,        notes: 'Neuropathic pain' },
-      { elderlyId: 2,  registeredById: clinicianProfiles[1].userId, name: 'Aspirin',              activeIngredient: 'Acetylsalicylic acid',    dosage: '100mg',        frequency: 'Once daily',         administration: 'Oral',    startDate: daysAgo(900), endDate: daysAgo(300), status: MedicationStatus.DISCONTINUED, notes: 'Switched to clopidogrel' },
-      { elderlyId: 3,  registeredById: clinicianProfiles[0].userId, name: 'Omeprazole',           activeIngredient: 'Omeprazole',              dosage: '20mg',         frequency: 'Once daily',         administration: 'Oral',    startDate: daysAgo(600), status: MedicationStatus.ACTIVE,        notes: 'GERD' },
-      { elderlyId: 3,  registeredById: clinicianProfiles[0].userId, name: 'Ibuprofen PRN',        activeIngredient: 'Ibuprofen',               dosage: '400mg',        frequency: 'When needed',        administration: 'Oral',    startDate: daysAgo(1200), status: MedicationStatus.PAUSED,       notes: 'Paused due to GI concerns' },
-      { elderlyId: 4,  registeredById: clinicianProfiles[0].userId, name: 'Memantine',            activeIngredient: 'Memantine HCl',           dosage: '10mg',         frequency: 'Once daily',         administration: 'Oral',    startDate: daysAgo(180), status: MedicationStatus.ACTIVE,        notes: 'MCI neuroprotection' },
-      { elderlyId: 5,  registeredById: clinicianProfiles[0].userId, name: 'Sertraline',           activeIngredient: 'Sertraline HCl',          dosage: '50mg',         frequency: 'Once daily',         administration: 'Oral',    startDate: daysAgo(360), status: MedicationStatus.ACTIVE,        notes: 'Depression' },
-      { elderlyId: 5,  registeredById: clinicianProfiles[0].userId, name: 'Diclofenac',           activeIngredient: 'Diclofenac sodium',       dosage: '50mg',         frequency: 'Twice daily',        administration: 'Oral',    startDate: daysAgo(800), endDate: daysAgo(600), status: MedicationStatus.COMPLETED, notes: 'Back pain course completed' },
-      { elderlyId: 6,  registeredById: clinicianProfiles[1].userId, name: 'Bisoprolol',           activeIngredient: 'Bisoprolol fumarate',     dosage: '5mg',          frequency: 'Once daily',         administration: 'Oral',    startDate: daysAgo(730), status: MedicationStatus.ACTIVE,        notes: 'AFib rate control' },
-      { elderlyId: 6,  registeredById: clinicianProfiles[1].userId, name: 'Furosemide',           activeIngredient: 'Furosemide',              dosage: '40mg',         frequency: 'Once daily',         administration: 'Oral',    startDate: daysAgo(300), status: MedicationStatus.ACTIVE,        notes: 'Heart failure fluid control' },
-      { elderlyId: 6,  registeredById: clinicianProfiles[1].userId, name: 'Warfarin',             activeIngredient: 'Warfarin sodium',         dosage: '5mg',          frequency: 'Once daily',         administration: 'Oral',    startDate: daysAgo(730), endDate: daysAgo(200), status: MedicationStatus.DISCONTINUED, notes: 'Replaced by Apixaban' },
+      { elderlyId: 1,  registeredById: clinicianProfiles[0].userId, name: 'Lisinopril',          activeIngredient: 'Lisinopril',             dosage: '10mg',          frequency: 'Once daily',          administration: 'Oral',    startDate: daysAgo(730), status: MedicationStatus.ACTIVE,        notes: 'For hypertension' },
+      { elderlyId: 1,  registeredById: clinicianProfiles[0].userId, name: 'Calcium + Vit D3',    activeIngredient: 'Calcium carbonate + D3',  dosage: '500mg/400IU',  frequency: 'Twice daily',         administration: 'Oral',    startDate: daysAgo(400), status: MedicationStatus.ACTIVE,        notes: 'Osteoporosis prevention' },
+      { elderlyId: 2,  registeredById: clinicianProfiles[1].userId, name: 'Metformin',            activeIngredient: 'Metformin HCl',           dosage: '850mg',        frequency: 'Twice daily',         administration: 'Oral',    startDate: daysAgo(900), status: MedicationStatus.ACTIVE,        notes: 'Diabetes control' },
+      { elderlyId: 2,  registeredById: clinicianProfiles[1].userId, name: 'Pregabalin',           activeIngredient: 'Pregabalin',              dosage: '75mg',          frequency: 'Twice daily',         administration: 'Oral',    startDate: daysAgo(200), status: MedicationStatus.ACTIVE,        notes: 'Neuropathic pain' },
+      { elderlyId: 2,  registeredById: clinicianProfiles[1].userId, name: 'Aspirin',              activeIngredient: 'Acetylsalicylic acid',    dosage: '100mg',        frequency: 'Once daily',          administration: 'Oral',    startDate: daysAgo(900), endDate: daysAgo(300), status: MedicationStatus.DISCONTINUED, notes: 'Switched to clopidogrel' },
+      { elderlyId: 3,  registeredById: clinicianProfiles[0].userId, name: 'Omeprazole',           activeIngredient: 'Omeprazole',              dosage: '20mg',          frequency: 'Once daily',          administration: 'Oral',    startDate: daysAgo(600), status: MedicationStatus.ACTIVE,        notes: 'GERD' },
+      { elderlyId: 3,  registeredById: clinicianProfiles[0].userId, name: 'Ibuprofen PRN',        activeIngredient: 'Ibuprofen',               dosage: '400mg',        frequency: 'When needed',         administration: 'Oral',    startDate: daysAgo(1200), status: MedicationStatus.PAUSED,        notes: 'Paused due to GI concerns' },
+      { elderlyId: 4,  registeredById: clinicianProfiles[0].userId, name: 'Memantine',            activeIngredient: 'Memantine HCl',           dosage: '10mg',          frequency: 'Once daily',          administration: 'Oral',    startDate: daysAgo(180), status: MedicationStatus.ACTIVE,        notes: 'MCI neuroprotection' },
+      { elderlyId: 5,  registeredById: clinicianProfiles[0].userId, name: 'Sertraline',           activeIngredient: 'Sertraline HCl',          dosage: '50mg',          frequency: 'Once daily',          administration: 'Oral',    startDate: daysAgo(360), status: MedicationStatus.ACTIVE,        notes: 'Depression' },
+      { elderlyId: 5,  registeredById: clinicianProfiles[0].userId, name: 'Diclofenac',           activeIngredient: 'Diclofenac sodium',       dosage: '50mg',          frequency: 'Twice daily',         administration: 'Oral',    startDate: daysAgo(800), endDate: daysAgo(600), status: MedicationStatus.COMPLETED, notes: 'Back pain course completed' },
+      { elderlyId: 6,  registeredById: clinicianProfiles[1].userId, name: 'Bisoprolol',           activeIngredient: 'Bisoprolol fumarate',     dosage: '5mg',           frequency: 'Once daily',          administration: 'Oral',    startDate: daysAgo(730), status: MedicationStatus.ACTIVE,        notes: 'AFib rate control' },
+      { elderlyId: 6,  registeredById: clinicianProfiles[1].userId, name: 'Furosemide',           activeIngredient: 'Furosemide',              dosage: '40mg',          frequency: 'Once daily',          administration: 'Oral',    startDate: daysAgo(300), status: MedicationStatus.ACTIVE,        notes: 'Heart failure fluid control' },
+      { elderlyId: 6,  registeredById: clinicianProfiles[1].userId, name: 'Warfarin',             activeIngredient: 'Warfarin sodium',         dosage: '5mg',           frequency: 'Once daily',          administration: 'Oral',    startDate: daysAgo(730), endDate: daysAgo(200), status: MedicationStatus.DISCONTINUED, notes: 'Replaced by Apixaban' },
       { elderlyId: 7,  registeredById: clinicianProfiles[1].userId, name: 'Levodopa/Carbidopa',   activeIngredient: 'Levodopa + Carbidopa',    dosage: '25/100mg',     frequency: 'Three times daily',  administration: 'Oral',    startDate: daysAgo(500), status: MedicationStatus.ACTIVE,        notes: "Parkinson's" },
-      { elderlyId: 8,  registeredById: clinicianProfiles[1].userId, name: 'Tiotropium inhaler',   activeIngredient: 'Tiotropium bromide',      dosage: '18mcg',        frequency: 'Once daily',         administration: 'Inhaled', startDate: daysAgo(1000), status: MedicationStatus.ACTIVE,       notes: 'COPD maintenance' },
+      { elderlyId: 8,  registeredById: clinicianProfiles[1].userId, name: 'Tiotropium inhaler',   activeIngredient: 'Tiotropium bromide',      dosage: '18mcg',         frequency: 'Once daily',          administration: 'Inhaled', startDate: daysAgo(1000), status: MedicationStatus.ACTIVE,       notes: 'COPD maintenance' },
       { elderlyId: 8,  registeredById: clinicianProfiles[1].userId, name: 'Ferrous Sulphate',     activeIngredient: 'Ferrous sulphate',        dosage: '200mg',        frequency: 'Three times daily',  administration: 'Oral',    startDate: daysAgo(90),  status: MedicationStatus.ACTIVE,        notes: 'Iron deficiency anaemia' },
-      { elderlyId: 9,  registeredById: clinicianProfiles[2].userId, name: 'Gliclazide',           activeIngredient: 'Gliclazide',              dosage: '60mg',         frequency: 'Once daily',         administration: 'Oral',    startDate: daysAgo(600), status: MedicationStatus.ACTIVE,        notes: 'T2DM' },
-      { elderlyId: 10, registeredById: clinicianProfiles[1].userId, name: 'Amlodipine',           activeIngredient: 'Amlodipine besilate',     dosage: '10mg',         frequency: 'Once daily',         administration: 'Oral',    startDate: daysAgo(850), status: MedicationStatus.ACTIVE,        notes: 'Hypertension' },
-      { elderlyId: 10, registeredById: clinicianProfiles[1].userId, name: 'Atorvastatin',         activeIngredient: 'Atorvastatin calcium',    dosage: '40mg',         frequency: 'Once at night',      administration: 'Oral',    startDate: daysAgo(850), status: MedicationStatus.ACTIVE,        notes: 'Dyslipidaemia + CKD protection' },
-      { elderlyId: 11, registeredById: clinicianProfiles[2].userId, name: 'Donepezil',            activeIngredient: 'Donepezil HCl',           dosage: '10mg',         frequency: 'Once at night',      administration: 'Oral',    startDate: daysAgo(700), status: MedicationStatus.ACTIVE,        notes: "Alzheimer's dementia" },
+      { elderlyId: 9,  registeredById: clinicianProfiles[2].userId, name: 'Gliclazide',           activeIngredient: 'Gliclazide',              dosage: '60mg',          frequency: 'Once daily',          administration: 'Oral',    startDate: daysAgo(600), status: MedicationStatus.ACTIVE,        notes: 'T2DM' },
+      { elderlyId: 10, registeredById: clinicianProfiles[1].userId, name: 'Amlodipine',           activeIngredient: 'Amlodipine besilate',     dosage: '10mg',          frequency: 'Once daily',          administration: 'Oral',    startDate: daysAgo(850), status: MedicationStatus.ACTIVE,        notes: 'Hypertension' },
+      { elderlyId: 10, registeredById: clinicianProfiles[1].userId, name: 'Atorvastatin',         activeIngredient: 'Atorvastatin calcium',    dosage: '40mg',          frequency: 'Once at night',       administration: 'Oral',    startDate: daysAgo(850), status: MedicationStatus.ACTIVE,        notes: 'Dyslipidaemia + CKD protection' },
+      { elderlyId: 11, registeredById: clinicianProfiles[2].userId, name: 'Donepezil',            activeIngredient: 'Donepezil HCl',           dosage: '10mg',          frequency: 'Once at night',       administration: 'Oral',    startDate: daysAgo(700), status: MedicationStatus.ACTIVE,        notes: "Alzheimer's dementia" },
       { elderlyId: 12, registeredById: clinicianProfiles[2].userId, name: 'Levothyroxine',        activeIngredient: 'Levothyroxine sodium',    dosage: '75mcg',        frequency: 'Once daily fasting', administration: 'Oral',    startDate: daysAgo(1100), status: MedicationStatus.ACTIVE,       notes: 'Hypothyroidism' },
-      { elderlyId: 13, registeredById: clinicianProfiles[2].userId, name: 'Salbutamol inhaler',   activeIngredient: 'Salbutamol sulphate',     dosage: '100mcg/puff',  frequency: 'PRN',                administration: 'Inhaled', startDate: daysAgo(1500), status: MedicationStatus.ACTIVE,       notes: 'COPD rescue' },
-      { elderlyId: 13, registeredById: clinicianProfiles[2].userId, name: 'Prednisolone',         activeIngredient: 'Prednisolone',            dosage: '30mg',         frequency: 'Once daily 5 days',  administration: 'Oral',    startDate: daysAgo(30),  endDate: daysAgo(25), status: MedicationStatus.COMPLETED, notes: 'Exacerbation course' },
-      { elderlyId: 14, registeredById: clinicianProfiles[2].userId, name: 'Alendronate',          activeIngredient: 'Alendronate sodium',      dosage: '70mg',         frequency: 'Once weekly',        administration: 'Oral',    startDate: daysAgo(600), status: MedicationStatus.ACTIVE,        notes: 'Osteoporosis' },
-      { elderlyId: 15, registeredById: clinicianProfiles[2].userId, name: 'Tamsulosin',           activeIngredient: 'Tamsulosin HCl',          dosage: '0.4mg',        frequency: 'Once daily',         administration: 'Oral',    startDate: daysAgo(450), status: MedicationStatus.ACTIVE,        notes: 'BPH' },
-      { elderlyId: 15, registeredById: clinicianProfiles[2].userId, name: 'Allopurinol',          activeIngredient: 'Allopurinol',             dosage: '100mg',        frequency: 'Once daily',         administration: 'Oral',    startDate: daysAgo(300), status: MedicationStatus.ACTIVE,        notes: 'Gout prevention' },
+      { elderlyId: 13, registeredById: clinicianProfiles[2].userId, name: 'Salbutamol inhaler',   activeIngredient: 'Salbutamol sulphate',     dosage: '100mcg/puff',  frequency: 'PRN',                 administration: 'Inhaled', startDate: daysAgo(1500), status: MedicationStatus.ACTIVE,       notes: 'COPD rescue' },
+      { elderlyId: 13, registeredById: clinicianProfiles[2].userId, name: 'Prednisolone',         activeIngredient: 'Prednisolone',            dosage: '30mg',          frequency: 'Once daily 5 days',  administration: 'Oral',    startDate: daysAgo(30),  endDate: daysAgo(25), status: MedicationStatus.COMPLETED, notes: 'Exacerbation course' },
+      { elderlyId: 14, registeredById: clinicianProfiles[2].userId, name: 'Alendronate',          activeIngredient: 'Alendronate sodium',      dosage: '70mg',          frequency: 'Once weekly',        administration: 'Oral',    startDate: daysAgo(600), status: MedicationStatus.ACTIVE,        notes: 'Osteoporosis' },
+      { elderlyId: 15, registeredById: clinicianProfiles[2].userId, name: 'Tamsulosin',           activeIngredient: 'Tamsulosin HCl',          dosage: '0.4mg',          frequency: 'Once daily',          administration: 'Oral',    startDate: daysAgo(450), status: MedicationStatus.ACTIVE,        notes: 'BPH' },
+      { elderlyId: 15, registeredById: clinicianProfiles[2].userId, name: 'Allopurinol',          activeIngredient: 'Allopurinol',             dosage: '100mg',          frequency: 'Once daily',          administration: 'Oral',    startDate: daysAgo(300), status: MedicationStatus.ACTIVE,        notes: 'Gout prevention' },
     ],
   });
 
@@ -419,11 +415,11 @@ async function main() {
   await prisma.externalProfessional.createMany({
     data: [
       { institutionId: 1, name: 'Dr. Carlos Menezes',   specialty: 'Cardiologist',       phone: '253-300-001', email: 'c.menezes@cardio.pt'    },
-      { institutionId: 1, name: 'Dra. Rita Figueiredo', specialty: 'Neurologist',         phone: '253-300-002', email: 'r.figueiredo@neuro.pt'   },
+      { institutionId: 1, name: 'Dra. Rita Figueiredo', specialty: 'Neurologist',          phone: '253-300-002', email: 'r.figueiredo@neuro.pt'   },
       { institutionId: 2, name: 'Dr. Nuno Araujo',      specialty: 'Pulmonologist',       phone: '253-300-003', email: 'n.araujo@pulmo.pt'       },
       { institutionId: 2, name: 'Dra. Ines Ribeiro',    specialty: 'Endocrinologist',     phone: '253-300-004', email: 'i.ribeiro@endo.pt'       },
       { institutionId: 3, name: 'Dr. Tiago Pinheiro',   specialty: 'Orthopaedic Surgeon', phone: '253-300-005', email: 't.pinheiro@ortho.pt'     },
-      { institutionId: 3, name: 'Dra. Catarina Vaz',    specialty: 'Geriatrician',        phone: '253-300-006', email: 'c.vaz@geriatrics.pt'     },
+      { institutionId: 3, name: 'Dra. Catarina Vaz',    specialty: 'Geriatrician',         phone: '253-300-006', email: 'c.vaz@geriatrics.pt'     },
     ],
   });
 
@@ -432,7 +428,7 @@ async function main() {
   // ═══════════════════════════════════════════════════════════════════════════
   const calendarEventsData = [
     { elderlyId: 1,  createdById: adminUsers[0].id, assignedToId: caregiverUsers[0].id, externalProfessionalId: 1, type: CalendarEventType.APPOINTMENT,    title: 'Cardiology Consultation',    startDate: futureDate(7),  allDay: false, location: 'HCC Cardiology Unit' },
-    { elderlyId: 1,  createdById: adminUsers[0].id, assignedToId: caregiverUsers[0].id, type: CalendarEventType.PHYSIOTHERAPY,  title: 'Physiotherapy Session',      startDate: futureDate(2),  allDay: false, location: 'HCC Physiotherapy' },
+    { elderlyId: 1,  createdById: adminUsers[0].id, assignedToId: caregiverUsers[0].id, type: CalendarEventType.PHYSIOTHERAPY,  title: 'Physiotherapy Session',       startDate: futureDate(2),  allDay: false, location: 'HCC Physiotherapy' },
     { elderlyId: 2,  createdById: adminUsers[0].id, assignedToId: caregiverUsers[1].id, externalProfessionalId: 2, type: CalendarEventType.APPOINTMENT,    title: 'Neurology Follow-up',        startDate: futureDate(14), allDay: false, location: 'HCC Neurology' },
     { elderlyId: 2,  createdById: adminUsers[0].id, assignedToId: caregiverUsers[1].id, type: CalendarEventType.BATH,           title: 'Morning Bath',               startDate: futureDate(1),  allDay: false },
     { elderlyId: 3,  createdById: adminUsers[0].id, assignedToId: caregiverUsers[2].id, type: CalendarEventType.PHYSIOTHERAPY,  title: 'Knee Rehab Session',         startDate: futureDate(3),  allDay: false, location: 'HCC Physiotherapy' },
@@ -450,69 +446,110 @@ async function main() {
     { elderlyId: 13, createdById: adminUsers[2].id, assignedToId: caregiverUsers[8].id, type: CalendarEventType.NURSING_CARE,   title: 'Oxygen Tubing Change',       startDate: futureDate(1),  allDay: false },
     { elderlyId: 14, createdById: adminUsers[2].id, assignedToId: caregiverUsers[6].id, externalProfessionalId: 5, type: CalendarEventType.APPOINTMENT,    title: 'DEXA Scan Follow-up',        startDate: futureDate(30), allDay: false, location: 'CSG Radiology' },
     { elderlyId: 15, createdById: adminUsers[2].id, assignedToId: caregiverUsers[7].id, type: CalendarEventType.ACTIVITY,       title: 'Music Therapy Session',      startDate: futureDate(2),  allDay: false, location: 'Activity Room A' },
-    { elderlyId: 3,  createdById: adminUsers[0].id, assignedToId: caregiverUsers[2].id, type: CalendarEventType.OTHER,          title: 'Family Visit Coordination',  startDate: futureDate(5),  allDay: true,  description: 'Son visiting from Porto' },
+    { elderlyId: 3,  createdById: adminUsers[0].id, assignedToId: caregiverUsers[2].id, type: CalendarEventType.OTHER,           title: 'Family Visit Coordination',  startDate: futureDate(5),  allDay: true,  description: 'Son visiting from Porto' },
   ];
   for (const ev of calendarEventsData) {
     await prisma.calendarEvent.create({ data: ev as any });
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // STAFF WORK SCHEDULES
-  // ─ Caregivers: flexible shifts – can include weekends, nights, public holidays
-  // ─ Clinicians: weekdays only, normal office hours
-  // ─ Admins:     weekdays only, office hours
+  // 🔥 CORREÇÃO: STAFF WORK SCHEDULES (REESCRITO COM CRIAÇÃO EM CASCATA DE SLOTS DOS 7 DIAS)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  // Caregivers – 9 entries, one per caregiverUsers[i]
-  // Shifts:  morning 07:00–15:00 | afternoon 15:00–23:00 | night 23:00–07:00
+  // Cuidadores – 9 entradas (Mapeamento flexível por dia)
   const caregiverSchedules = [
-    // caregiver1 – Alice Thompson (HCC): full week, morning shift
     { workDays: [1,2,3,4,5,6,7], startTime: '07:00', endTime: '15:00' },
-    // caregiver2 – Mark Evans (HCC): Mon–Fri + weekends, afternoon shift
     { workDays: [1,2,3,4,5,6,7], startTime: '15:00', endTime: '23:00' },
-    // caregiver3 – Nancy Lewis (HCC): weekdays only, morning shift
     { workDays: [1,2,3,4,5],     startTime: '07:00', endTime: '15:00' },
-    // caregiver4 – Steven Martinez (LSB): full week, night shift (23:00–07:00)
     { workDays: [1,2,3,4,5,6,7], startTime: '23:00', endTime: '07:00' },
-    // caregiver5 – Rachel Turner (LSB): weekdays, afternoon shift
     { workDays: [1,2,3,4,5],     startTime: '15:00', endTime: '23:00' },
-    // caregiver6 – Thomas Scott (LSB): full week, morning shift
     { workDays: [1,2,3,4,5,6,7], startTime: '07:00', endTime: '15:00' },
-    // caregiver7 – Laura Reis (CSG): full week, afternoon shift
     { workDays: [1,2,3,4,5,6,7], startTime: '15:00', endTime: '23:00' },
-    // caregiver8 – Paulo Costa (CSG): weekends + Mon/Tue, night shift
     { workDays: [1,2,6,7],       startTime: '23:00', endTime: '07:00' },
-    // caregiver9 – Inês Carvalho (CSG): weekdays, morning shift
     { workDays: [1,2,3,4,5],     startTime: '07:00', endTime: '15:00' },
   ];
   for (let i = 0; i < caregiverUsers.length; i++) {
+    const rawSched = caregiverSchedules[i];
+    // Cria automaticamente os 7 dias úteis com o seu estado correspondente
+    const slotsData = [1, 2, 3, 4, 5, 6, 7].map(dayIso => ({
+      dayIso,
+      startTime: rawSched.startTime,
+      endTime: rawSched.endTime,
+      isActive: rawSched.workDays.includes(dayIso)
+    }));
+
     await prisma.staffWorkSchedule.upsert({
       where:  { userId: caregiverUsers[i].id },
-      update: caregiverSchedules[i],
-      create: { userId: caregiverUsers[i].id, ...caregiverSchedules[i] },
+      update: {
+        slots: {
+          deleteMany: {},
+          create: slotsData
+        }
+      },
+      create: {
+        userId: caregiverUsers[i].id,
+        slots: {
+          create: slotsData
+        }
+      },
     });
   }
 
-  // Clinicians – 3 entries, weekdays only, normal office hours
+  // Clínicos – 3 entradas, dias de semana normais
   const clinicianSchedules = [
-    { workDays: [1,2,3,4,5], startTime: '09:00', endTime: '17:00' }, // Dr. Maria Santos (HCC)
-    { workDays: [1,2,3,4,5], startTime: '08:00', endTime: '16:00' }, // Dr. Rui Monteiro (LSB)
-    { workDays: [1,2,3,4,5], startTime: '09:00', endTime: '17:00' }, // Dra. Sofia Andrade (CSG)
+    { workDays: [1,2,3,4,5], startTime: '09:00', endTime: '17:00' },
+    { workDays: [1,2,3,4,5], startTime: '08:00', endTime: '16:00' },
+    { workDays: [1,2,3,4,5], startTime: '09:00', endTime: '17:00' },
   ];
   for (let i = 0; i < clinicianProfiles.length; i++) {
+    const rawSched = clinicianSchedules[i];
+    const slotsData = [1, 2, 3, 4, 5, 6, 7].map(dayIso => ({
+      dayIso,
+      startTime: rawSched.startTime,
+      endTime: rawSched.endTime,
+      isActive: rawSched.workDays.includes(dayIso)
+    }));
+
     await prisma.staffWorkSchedule.upsert({
       where:  { userId: clinicianProfiles[i].userId },
-      update: clinicianSchedules[i],
-      create: { userId: clinicianProfiles[i].userId, ...clinicianSchedules[i] },
+      update: {
+        slots: {
+          deleteMany: {},
+          create: slotsData
+        }
+      },
+      create: {
+        userId: clinicianProfiles[i].userId,
+        slots: {
+          create: slotsData
+        }
+      },
     });
   }
 
-  // Admins – weekdays, office hours
+  // Administradores – Segunda a Sexta, horário padrão
   for (const au of adminUsers) {
+    const slotsData = [1, 2, 3, 4, 5, 6, 7].map(dayIso => ({
+      dayIso,
+      startTime: '09:00',
+      endTime: '17:00',
+      isActive: dayIso <= 5
+    }));
+
     await prisma.staffWorkSchedule.upsert({
       where:  { userId: au.id },
-      update: { workDays: [1,2,3,4,5], startTime: '09:00', endTime: '17:00' },
-      create: { userId: au.id, workDays: [1,2,3,4,5], startTime: '09:00', endTime: '17:00' },
+      update: {
+        slots: {
+          deleteMany: {},
+          create: slotsData
+        }
+      },
+      create: {
+        userId: au.id,
+        slots: {
+          create: slotsData
+        }
+      },
     });
   }
 
@@ -576,7 +613,7 @@ async function main() {
       { institutionId: 2, type: TimelineActivityType.MEDICATION_UPDATED, elderlyId: 6, userId: clinicianProfiles[1].userId,                            metadata: { medicationName: 'Warfarin', action: 'discontinued' } },
       { institutionId: 2, type: TimelineActivityType.USER_ADDED,                       userId: caregiverUsers[3].id,                                   metadata: { role: 'CAREGIVER', name: 'Steven Martinez' } },
       { institutionId: 3, type: TimelineActivityType.FALL_OCCURRENCE,    elderlyId: 9, userId: caregiverUsers[3].id, relatedId: fallOccurrenceIds[8],  metadata: { description: 'Garden slip' } },
-      { institutionId: 3, type: TimelineActivityType.USER_UPDATED,                     userId: clinicianProfiles[2].userId,                            metadata: { name: 'Dra. Sofia Andrade', field: 'phone' } },
+      { institutionId: 3, type: TimelineActivityType.USER_UPDATED,                       userId: clinicianProfiles[2].userId,                            metadata: { name: 'Dra. Sofia Andrade', field: 'phone' } },
     ],
   });
 
@@ -585,16 +622,16 @@ async function main() {
   // ═══════════════════════════════════════════════════════════════════════════
   await prisma.notification.createMany({
     data: [
-      { userId: caregiverUsers[0].id,        type: 'fall_occurrence',     title: 'Fall Detected',          body: 'John Doe had a fall in Corridor A',                      data: { elderlyId: 1 },                             read: true,  readAt: daysAgo(9) },
-      { userId: caregiverUsers[1].id,        type: 'fall_occurrence',     title: 'Fall Occurrence Logged', body: 'Jane Roe - fall registered',                             data: { elderlyId: 2 },                             read: true,  readAt: daysAgo(39) },
-      { userId: caregiverUsers[4].id,        type: 'fall_occurrence',     title: 'Serious Fall',           body: 'David White fell in dining room - injured',              data: { elderlyId: 7 },                             read: false },
+      { userId: caregiverUsers[0].id,        type: 'fall_occurrence',     title: 'Fall Detected',          body: 'John Doe had a fall in Corridor A',                      data: { elderlyId: 1 },                               read: true,  readAt: daysAgo(9) },
+      { userId: caregiverUsers[1].id,        type: 'fall_occurrence',     title: 'Fall Occurrence Logged', body: 'Jane Roe - fall registered',                             data: { elderlyId: 2 },                               read: true,  readAt: daysAgo(39) },
+      { userId: caregiverUsers[4].id,        type: 'fall_occurrence',     title: 'Serious Fall',           body: 'David White fell in dining room - injured',              data: { elderlyId: 7 },                               read: false },
       { userId: adminUsers[0].id,            type: 'data_access_request', title: 'Access Request Pending', body: 'Dr. Maria Santos requests access to patient records',    data: { clinicianId: clinicianProfiles[0].id },     read: false },
       { userId: adminUsers[1].id,            type: 'data_access_request', title: 'New Access Request',     body: 'Dr. Rui Monteiro requests COPD data',                    data: { clinicianId: clinicianProfiles[1].id },     read: false },
-      { userId: caregiverUsers[3].id,        type: 'sos_occurrence',      title: 'SOS Alert',              body: 'Linda Green pressed SOS button',                         data: { elderlyId: 6 },                             read: true,  readAt: daysAgo(17) },
-      { userId: caregiverUsers[6].id,        type: 'sos_occurrence',      title: 'SOS Alert',              body: 'Carlos Sousa pressed SOS',                               data: { elderlyId: 11 },                            read: false },
+      { userId: caregiverUsers[3].id,        type: 'sos_occurrence',      title: 'SOS Alert',              body: 'Linda Green pressed SOS button',                         data: { elderlyId: 6 },                               read: true,  readAt: daysAgo(17) },
+      { userId: caregiverUsers[6].id,        type: 'sos_occurrence',      title: 'SOS Alert',              body: 'Carlos Sousa pressed SOS',                               data: { elderlyId: 11 },                              read: false },
       { userId: adminUsers[2].id,            type: 'data_access_request', title: 'Access Request',         body: 'Dra. Sofia Andrade requests dementia records',            data: { clinicianId: clinicianProfiles[2].id },     read: true,  readAt: daysAgo(19) },
-      { userId: caregiverUsers[2].id,        type: 'fall_occurrence',     title: 'Fall in Garden',         body: 'Michael Smith - follow-up wound care needed',             data: { elderlyId: 3 },                             read: false },
-      { userId: clinicianProfiles[0].userId, type: 'data_access_request', title: 'Access Approved',        body: 'Your request to access patient records was approved',     data: { elderlyId: 1 },                             read: true,  readAt: daysAgo(58) },
+      { userId: caregiverUsers[2].id,        type: 'fall_occurrence',     title: 'Fall in Garden',         body: 'Michael Smith - follow-up wound care needed',             data: { elderlyId: 3 },                               read: false },
+      { userId: clinicianProfiles[0].userId, type: 'data_access_request', title: 'Access Approved',        body: 'Your request to access patient records was approved',     data: { elderlyId: 1 },                               read: true,  readAt: daysAgo(58) },
     ],
   });
 

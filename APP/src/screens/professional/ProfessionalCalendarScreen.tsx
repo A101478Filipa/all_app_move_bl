@@ -30,10 +30,8 @@ type ProfessionalCalendarEvent = CalendarEvent & {
   elderly?: { id: number; name: string; medicalId: number };
 };
 
-// These are the same params that both the caregiver/institution-admin and clinician navigators use
 type Props = NativeStackScreenProps<any, 'ProfessionalCalendar'>;
 
-// ── Constants ─────────────────────────────────────────────────────────────────
 const HOUR_HEIGHT = 64;
 const TIME_COL_WIDTH = 52;
 const MIN_EVENT_HEIGHT = 28;
@@ -41,13 +39,10 @@ const DAY_SHORT = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const DOW_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const MONTH_CELL_W = Math.floor(Dimensions.get('window').width / 7);
 const SCREEN_W = Dimensions.get('window').width;
-// Left edge where event blocks start (time column + padding)
 const EVENT_AREA_LEFT = TIME_COL_WIDTH + 4;
-// Total width available for event blocks (subtract dayGrid marginRight=8)
 const EVENT_AREA_W = SCREEN_W - EVENT_AREA_LEFT - 8;
 const COL_GAP = 2;
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 function isSameDay(a: Date, b: Date): boolean {
   return (
     a.getFullYear() === b.getFullYear() &&
@@ -69,7 +64,6 @@ function getDaysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
 }
 
-// Returns 0=Mon … 6=Sun for the first day of the month
 function getFirstDayOfWeek(year: number, month: number): number {
   const d = new Date(year, month, 1).getDay();
   return d === 0 ? 6 : d - 1;
@@ -96,7 +90,6 @@ function formatModalDate(d: Date): string {
   }
 }
 
-/** Assigns { col, totalCols } to each timed event for side-by-side overlap rendering. */
 function assignColumns(events: ProfessionalCalendarEvent[]): Map<number, { col: number; totalCols: number }> {
   const timed = [...events]
     .filter(e => !e.allDay)
@@ -114,7 +107,6 @@ function assignColumns(events: ProfessionalCalendarEvent[]): Map<number, { col: 
     colEnds[col] = end;
   }
 
-  // Group into overlap clusters to determine totalCols per cluster
   const result = new Map<number, { col: number; totalCols: number }>();
   const clusters: number[][] = [];
   let cEnd = 0;
@@ -141,7 +133,6 @@ function assignColumns(events: ProfessionalCalendarEvent[]): Map<number, { col: 
   return result;
 }
 
-// ── Screen ────────────────────────────────────────────────────────────────────
 const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
   const { userId, isAdmin } = route.params ?? {};
   const { t } = useTranslation();
@@ -153,7 +144,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
   const canEditEvent = useCallback((ev: ProfessionalCalendarEvent): boolean => {
     if (!userRole || userRole === UserRole.ELDERLY) return false;
     if (userRole === UserRole.INSTITUTION_ADMIN || userRole === UserRole.PROGRAMMER) return true;
-    // Clinician / Caregiver: only if they created it or are assigned to it
     return ev.createdById === currentUserId || ev.assignedToId === currentUserId;
   }, [userRole, currentUserId]);
 
@@ -163,8 +153,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     return ev.createdById === currentUserId || ev.assignedToId === currentUserId;
   }, [userRole, currentUserId]);
 
-  // Non-admin professionals (CLINICIAN/CAREGIVER) viewing their OWN calendar should see
-  // all institution events (same data as admin), but cannot edit/delete others' events.
   const useInstitutionView = isAdmin || userRole === UserRole.CLINICIAN || userRole === UserRole.CAREGIVER;
 
   const todayMemo = useMemo(() => {
@@ -184,24 +172,19 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
   const scrollRef = useRef<ScrollView>(null);
   const slideAnim = useRef(new Animated.Value(500)).current;
 
-  // External access token / visit note for the currently open event
   const [eventToken, setEventToken] = useState<ExternalAccessTokenResult | null>(null);
   const [eventVisitNote, setEventVisitNote] = useState<ExternalVisitNote | null>(null);
   const [tokenLoading, setTokenLoading] = useState(false);
   const [generatingToken, setGeneratingToken] = useState(false);
 
-  // Admin-only institution-wide data
   const [adminTimeOffs, setAdminTimeOffs] = useState<StaffTimeOffWithUser[]>([]);
   const [adminAbsences, setAdminAbsences] = useState<ElderlyAbsenceWithElderly[]>([]);
   const [filterHolidays, setFilterHolidays] = useState(true);
   const [filterStaffVacations, setFilterStaffVacations] = useState(true);
   const [filterElderlyAbsences, setFilterElderlyAbsences] = useState(true);
-  // Role-based event filters (admin only) — true = show that role's events
   const [filterCaregivers, setFilterCaregivers] = useState(true);
   const [filterClinicians, setFilterClinicians] = useState(true);
-  // External filter — visible to all users
   const [filterExternal, setFilterExternal] = useState(true);
-  // Non-admin: show only events where user is creator or assigned
   const [filterOnlyMine, setFilterOnlyMine] = useState(false);
 
   const openModal = (ev: ProfessionalCalendarEvent) => {
@@ -211,7 +194,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     setEventVisitNote(null);
     Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 80, friction: 12 }).start();
 
-    // Fetch access token + visit note for events with an external professional
     if (ev.externalProfessionalId) {
       setTokenLoading(true);
       Promise.all([
@@ -242,7 +224,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   };
 
-  // Tick current time every minute
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60_000);
     return () => clearInterval(timer);
@@ -250,7 +231,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const isViewingToday = isSameDay(selectedDate, todayMemo);
 
-  // Auto-scroll to current time when viewing today in week mode
   useEffect(() => {
     if (viewMode === 'week' && isViewingToday) {
       const totalMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
@@ -260,7 +240,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [isViewingToday, viewMode]);
 
-  // Fetch events
   const fetchEvents = useCallback(async () => {
     try {
       const [evRes] = await Promise.all([
@@ -270,7 +249,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
       ]);
       setEvents(evRes.data);
 
-      // Fetch schedule data only when viewing a specific professional (not institution-wide admin view)
       if (!isAdmin && userId) {
         const [schedRes, timeOffRes] = await Promise.all([
           staffScheduleApi.getSchedule(userId).catch(() => ({ data: null })),
@@ -280,13 +258,11 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
         setTimeOffs(timeOffRes.data ?? []);
       }
 
-      // Fetch institution-wide time-offs and absences
       if (useInstitutionView) {
         const absencesRes = await api.get('elderly-absences/institution', { _silentError: true } as any).then((r: any) => r.data).catch(() => ({ data: [] }));
         setAdminAbsences(absencesRes.data ?? []);
       }
 
-      // Fetch institution-wide time-offs (admin only)
       if (isAdmin) {
         const [instTimeOffRes, instAbsencesRes] = await Promise.all([
           api.get('time-off/institution', { _silentError: true } as any).then((r: any) => r.data).catch(() => ({ data: [] })),
@@ -301,9 +277,9 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
       setLoading(false);
     }
   }, [userId, isAdmin, useInstitutionView]);
+  
   useFocusEffect(useCallback(() => { fetchEvents(); }, [fetchEvents]));
 
-  // ── Week view derived ─────────────────────────────────────────────────────
   const weekStart = useMemo(() => getMondayOfWeek(selectedDate), [selectedDate]);
   const weekDays = useMemo(
     () => Array.from({ length: 7 }, (_, i) => {
@@ -319,20 +295,17 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     return s.charAt(0).toUpperCase() + s.slice(1);
   }, [selectedDate]);
 
-  // Events filtered by role – used everywhere instead of raw `events`
   const displayedEvents = useMemo(() => {
     return events.filter(e => {
       const assignedRole = (e as any).assignedTo?.role;
       const isExternal = !e.assignedToId && (!!e.externalProfessionalId || !!(e as any).externalProfessionalName);
       if (isExternal && !filterExternal) return false;
 
-      // "Pessoal" mode: shows only own events and bypasses role filters
       if (!isAdmin && useInstitutionView && filterOnlyMine) {
         if (!currentUserId || (e.createdById !== currentUserId && e.assignedToId !== currentUserId)) return false;
         return true;
       }
 
-      // Role filters (only applied when "Pessoal" is not active)
       if (useInstitutionView && assignedRole === 'CAREGIVER' && !filterCaregivers) return false;
       if (useInstitutionView && assignedRole === 'CLINICIAN' && !filterClinicians) return false;
 
@@ -362,7 +335,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     return map;
   }, [displayedEvents]);
 
-  // ── Month view derived ────────────────────────────────────────────────────
   const mvYear = selectedDate.getFullYear();
   const mvMonth = selectedDate.getMonth();
 
@@ -392,16 +364,17 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     return rows;
   }, [mvYear, mvMonth]);
 
-  // ── Schedule overlays ─────────────────────────────────────────────────────
-  /** ISO weekday of a Date: Mon=1 … Sun=7 */
   const isoWeekday = (d: Date) => {
     const n = d.getDay();
     return n === 0 ? 7 : n;
   };
 
+  // 🔥 CORREÇÃO: Verifica os dias de trabalho mapeando o array de slots dinâmicos
   const isWorkDay = useCallback((d: Date): boolean => {
-    if (!workSchedule || workSchedule.workDays.length === 0) return true; // assume all days if no schedule
-    return workSchedule.workDays.includes(isoWeekday(d));
+    if (!workSchedule || !workSchedule.slots || workSchedule.slots.length === 0) return true;
+    const dayIso = isoWeekday(d);
+    const slot = workSchedule.slots.find(s => s.dayIso === dayIso);
+    return slot ? slot.isActive : false;
   }, [workSchedule]);
 
   const getTimeOffForDay = useCallback((d: Date): StaffTimeOff | undefined => {
@@ -423,9 +396,8 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     return h?.name;
   }, [ptHolidaysThisYear]);
 
-  /** Returns colour overlay info for a calendar day cell */
   const getDayOverlay = useCallback((d: Date): { color: string; label?: string } | null => {
-    if (isAdmin) return null; // no overlays in institution-wide admin view
+    if (isAdmin) return null;
     const holiday = getHolidayForDay(d);
     if (holiday) return { color: '#FF4C4C20', label: holiday };
     const timeOff = getTimeOffForDay(d);
@@ -438,7 +410,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     return null;
   }, [isAdmin, getHolidayForDay, getTimeOffForDay, isWorkDay]);
 
-  /** For institution view: category dots to show on each day (filtered by toggles) */
   const getAdminDayDots = useCallback((d: Date): { color: string; key: string }[] => {
     if (!useInstitutionView) return [];
     const dots: { color: string; key: string }[] = [];
@@ -476,7 +447,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     return dots.slice(0, 5);
   }, [useInstitutionView, filterHolidays, filterStaffVacations, filterElderlyAbsences, getHolidayForDay, adminTimeOffs, adminAbsences]);
 
-  /** For institution view: get time-offs and absences for a specific day (for banner in week view) */
   const getAdminDayInfo = useCallback((d: Date): { timeOffs: StaffTimeOffWithUser[]; absences: ElderlyAbsenceWithElderly[]; holiday?: string } | null => {
     if (!useInstitutionView) return null;
     const holiday = filterHolidays ? getHolidayForDay(d) : undefined;
@@ -494,7 +464,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     return { timeOffs: dayTimeOffs, absences: dayAbsences, holiday };
   }, [useInstitutionView, filterHolidays, filterStaffVacations, filterElderlyAbsences, getHolidayForDay, adminTimeOffs, adminAbsences]);
 
-  // ── Navigation ────────────────────────────────────────────────────────────
   const navigateWeek = (delta: number) =>
     setSelectedDate(d => {
       const nd = new Date(d);
@@ -511,7 +480,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     });
 
   const navigate = (delta: number) => viewMode === 'week' ? navigateWeek(delta) : navigateMonth(delta);
-
   const goToToday = () => setSelectedDate(new Date(todayMemo));
 
   const handleEditEvent = (ev: ProfessionalCalendarEvent) => {
@@ -556,7 +524,7 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
 
   if (loading) return <ActivityIndicatorOverlay />;
 
-  // ── Event detail modal ────────────────────────────────────────────────────
+  // 🔥 CORREÇÃO: Trocamos o componente <Modal> nativo por uma View absoluta ( popupOverlay ) para o iPhone nunca mais bugar
   const renderModal = () => {
     if (!selectedModal) return null;
     const ev = selectedModal;
@@ -566,16 +534,14 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     const typeName = (t as any)(`calendar.types.${ev.type}`) ?? ev.type;
     const canEdit = canEditEvent(ev);
     const canDelete = canDeleteEvent(ev);
-    const canManageAccessCode =
-      userRole === UserRole.INSTITUTION_ADMIN || userRole === UserRole.CAREGIVER;
+    const canManageAccessCode = userRole === UserRole.INSTITUTION_ADMIN || userRole === UserRole.CAREGIVER;
 
     return (
-      <Modal transparent animationType="none" visible onRequestClose={closeModal}>
+      <View style={styles.popupOverlay}>
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={closeModal} />
         <Animated.View style={[styles.modalSheet, { transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.modalHandle} />
 
-          {/* Title row */}
           <View style={styles.modalHeader}>
             <View style={[styles.modalTypeIcon, { backgroundColor: config.color + '25' }]}>
               <MaterialIcons name={config.icon} size={22} color={config.color} />
@@ -591,9 +557,7 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
 
           <View style={styles.modalDivider} />
 
-          {/* Details */}
           <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 280 }}>
-            {/* Date & time */}
             <View style={styles.modalRow}>
               <MaterialIcons name="access-time" size={18} color={Color.Gray.v500} style={styles.modalRowIcon} />
               <View style={{ flex: 1 }}>
@@ -608,7 +572,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
             </View>
 
-            {/* Patient */}
             {!!ev.elderly && (
               <View style={styles.modalRow}>
                 <MaterialIcons name="person" size={18} color={Color.Gray.v500} style={styles.modalRowIcon} />
@@ -619,7 +582,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
             )}
 
-            {/* Location */}
             {!!ev.location && (
               <View style={styles.modalRow}>
                 <MaterialIcons name="location-on" size={18} color={Color.Gray.v500} style={styles.modalRowIcon} />
@@ -627,7 +589,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
             )}
 
-            {/* Description */}
             {!!ev.description && (
               <View style={styles.modalRow}>
                 <MaterialIcons name="notes" size={18} color={Color.Gray.v500} style={styles.modalRowIcon} />
@@ -635,7 +596,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
             )}
 
-            {/* Assigned to */}
             {!!ev.assignedTo && (
               <View style={styles.modalRow}>
                 <MaterialIcons name="assignment-ind" size={18} color={Color.Gray.v500} style={styles.modalRowIcon} />
@@ -646,7 +606,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
             )}
 
-            {/* External professional */}
             {!!ev.externalProfessionalName && (
               <View style={styles.modalRow}>
                 <MaterialIcons name="person-outline" size={18} color={Color.Gray.v500} style={styles.modalRowIcon} />
@@ -657,7 +616,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
             )}
 
-            {/* Access code section — shown when event has a linked external professional */}
             {!!ev.externalProfessionalId && canManageAccessCode && (
               <View style={styles.accessCodeSection}>
                 <View style={styles.accessCodeHeader}>
@@ -708,7 +666,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
                   </>
                 )}
 
-                {/* Visit note submitted by the external professional */}
                 {eventVisitNote && (
                   <View style={styles.visitNoteBox}>
                     <Text style={styles.visitNoteLabel}>Nota de visita registada</Text>
@@ -727,7 +684,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
             )}
 
-            {/* Created by */}
             {!!ev.createdBy && (
               <View style={styles.modalRow}>
                 <MaterialIcons name="edit" size={18} color={Color.Gray.v500} style={styles.modalRowIcon} />
@@ -739,7 +695,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
             )}
           </ScrollView>
 
-          {/* Edit / Delete buttons */}
           {(canEdit || canDelete) && (
             <>
               <View style={styles.modalDivider} />
@@ -768,21 +723,18 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
             </>
           )}
         </Animated.View>
-      </Modal>
+      </View>
     );
   };
 
-  // ── Month view ────────────────────────────────────────────────────────────
   const renderMonthView = () => (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Spacing.xl2_40 }}>
-      {/* Day-of-week header */}
       <View style={styles.dovRow}>
         {DOW_LABELS.map(d => (
           <Text key={d} style={styles.dovLabel}>{d}</Text>
         ))}
       </View>
 
-      {/* Month grid rows */}
       {monthCellRows.map((row, rowIdx) => (
         <View key={rowIdx} style={styles.mvGridRow}>
           {row.map((day, colIdx) => {
@@ -833,7 +785,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
       ))}
 
-      {/* Selected day events list */}
       <View style={[styles.divider, { marginVertical: Spacing.sm_8 }]} />
       <View style={styles.dayLabelRow}>
         <Text style={styles.dayLabel} numberOfLines={1}>
@@ -883,10 +834,8 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     </ScrollView>
   );
 
-  // ── Week view ─────────────────────────────────────────────────────────────
   const renderWeekView = () => (
     <>
-      {/* 7-day strip */}
       <View style={styles.weekStrip}>
         {weekDays.map(day => {
           const selected = isSameDay(day, selectedDate);
@@ -935,7 +884,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
         })}
       </View>
 
-      {/* Day label row */}
       <View style={styles.dayLabelRow}>
         <Text style={styles.dayLabel} numberOfLines={1}>
           {(() => {
@@ -953,7 +901,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
         )}
       </View>
 
-      {/* Day-off / holiday / non-work banner */}
       {(() => {
         if (isAdmin) return null;
         const holiday = getHolidayForDay(selectedDate);
@@ -979,13 +926,11 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
         return null;
       })()}
 
-      {/* Institution overlays: holidays (admin), elderly absences+staff time-offs (all institution view) */}
       {(() => {
         const adminInfo = getAdminDayInfo(selectedDate);
         if (!adminInfo) return null;
         return (
           <>
-            {/* Holiday banner — only for admins (professionals get it from the personal banner above) */}
             {isAdmin && adminInfo.holiday && (
               <View style={[styles.dayBanner, { backgroundColor: '#FF4C4C18', borderColor: '#FF4C4C' }]}>
                 <MaterialIcons name="event-busy" size={15} color="#FF4C4C" />
@@ -1018,13 +963,17 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
 
       <View style={styles.divider} />
 
-      {/* 24h scrollable day view */}
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.dayGrid}>
-          {/* Work-hours background band */}
-          {!isAdmin && workSchedule && isWorkDay(selectedDate) && (() => {
-            const [sh, sm] = workSchedule.startTime.split(':').map(Number);
-            const [eh, em] = workSchedule.endTime.split(':').map(Number);
+          
+          {/*  Desenha a faixa de horário útil buscando os dados do slot dinâmico do dia selecionado */}
+          {!isAdmin && workSchedule && workSchedule.slots && isWorkDay(selectedDate) && (() => {
+            const currentDayIso = isoWeekday(selectedDate);
+            const todaySlot = workSchedule.slots.find(s => s.dayIso === currentDayIso);
+            if (!todaySlot || !todaySlot.isActive) return null;
+
+            const [sh, sm] = todaySlot.startTime.split(':').map(Number);
+            const [eh, em] = todaySlot.endTime.split(':').map(Number);
             const topY = (sh + sm / 60) * HOUR_HEIGHT;
             const height = ((eh + em / 60) - (sh + sm / 60)) * HOUR_HEIGHT;
             return (
@@ -1099,10 +1048,8 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     </>
   );
 
-  // ── Root render ───────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      {/* Header: month/year label + navigation + view toggle */}
       <View style={styles.header}>
         <View style={styles.monthRow}>
           <TouchableOpacity
@@ -1136,13 +1083,11 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Filter chips */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterChipsRow}
         >
-          {/* External filter — visible to all users */}
           <TouchableOpacity
             style={[styles.filterChip, filterExternal && styles.filterChipActive]}
             onPress={() => setFilterExternal(v => !v)}
@@ -1150,17 +1095,16 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
             <View style={[styles.filterDot, { backgroundColor: '#F59E0B' }]} />
             <Text style={[styles.filterChipText, filterExternal && styles.filterChipTextActive]}>Rep. Externa</Text>
           </TouchableOpacity>
-          {/* "Only mine" filter — visible to non-admin professionals in institution view */}
           {!isAdmin && useInstitutionView && (
             <TouchableOpacity
               style={[styles.filterChip, filterOnlyMine && styles.filterChipActive]}
               onPress={() => setFilterOnlyMine(v => !v)}
             >
               <View style={[styles.filterDot, { backgroundColor: '#22C55E' }]} />
+              <View style={[styles.filterDot, { backgroundColor: '#22C55E' }]} />
               <Text style={[styles.filterChipText, filterOnlyMine && styles.filterChipTextActive]}>Pessoal</Text>
             </TouchableOpacity>
           )}
-          {/* Role filters + Feriados + Ausências — visible to all users in institution view */}
           {useInstitutionView && (
             <>
               <View style={styles.filterSeparator} />
@@ -1195,7 +1139,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
               </TouchableOpacity>
             </>
           )}
-          {/* Admin-only extras: staff vacations */}
           {isAdmin && (
             <>
               <TouchableOpacity
@@ -1214,7 +1157,6 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {selectedModal != null && renderModal()}
 
-      {/* FAB: Add Event */}
       {userRole !== UserRole.ELDERLY && (
         <TouchableOpacity style={styles.fab} onPress={handleAddEvent} activeOpacity={0.85}>
           <MaterialIcons name="add" size={28} color="#FFFFFF" />
@@ -1226,640 +1168,116 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
 
 export default ProfessionalCalendarScreen;
 
-// ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-
-  // ── Header ──
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   header: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: Spacing.md_16,
     paddingTop: Spacing.sm_8,
     paddingBottom: Spacing.xs_4,
   },
-  monthRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm_8,
-  },
-  navBtn: {
-    padding: Spacing.xs_4,
-  },
+  monthRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm_8 },
+  navBtn: { padding: Spacing.xs_4 },
   monthTitle: {
-    flex: 1,
-    fontFamily: FontFamily.bold,
-    fontSize: FontSize.bodylarge_18,
-    color: Color.dark,
-    marginLeft: Spacing.xs_4,
-    textTransform: 'capitalize',
+    flex: 1, fontFamily: FontFamily.bold, fontSize: FontSize.bodylarge_18,
+    color: Color.dark, marginLeft: Spacing.xs_4, textTransform: 'capitalize',
   },
   todayBtn: {
-    backgroundColor: Color.primary + '18',
-    borderRadius: 12,
-    paddingHorizontal: Spacing.sm_10,
-    paddingVertical: 4,
-    marginRight: Spacing.xs_4,
-  },
-  todayBtnText: {
-    fontFamily: FontFamily.semi_bold,
-    fontSize: FontSize.caption_12,
-    color: Color.primary,
-  },
-  viewToggleBtn: {
-    padding: 5,
-    borderRadius: 8,
-    marginRight: Spacing.xs_4,
-  },
-  viewToggleBtnActive: {
-    backgroundColor: Color.primary + '18',
-  },
-
-  // ── Week strip ──
-  weekStrip: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md_16,
-    paddingBottom: Spacing.xs_4,
-  },
-  dayCell: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.xs_4,
-    gap: 2,
-  },
-  dayLetter: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSize.caption_12,
-    color: '#9E9E9E',
-    textTransform: 'uppercase',
-  },
-  dayLetterToday: {
-    color: Color.primary,
-  },
-  dayNumCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayNumCircleSelected: {
-    backgroundColor: Color.primary,
-  },
-  dayNumCircleToday: {
-    borderWidth: 1.5,
-    borderColor: Color.primary,
-  },
-  dayNum: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSize.bodysmall_14,
-    color: Color.dark,
-  },
-  dayNumSelected: {
-    color: '#FFFFFF',
-    fontFamily: FontFamily.bold,
-  },
-  dayNumToday: {
-    color: Color.primary,
-    fontFamily: FontFamily.bold,
-  },
-  dotRow: {
-    flexDirection: 'row',
-    gap: 3,
-    height: 6,
-  },
-  dot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-  },
-  overlayLabel: {
-    fontFamily: FontFamily.regular,
-    fontSize: 8,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 10,
-    height: 10,
-  },
-
-  // ── Day banner (non-work / holiday / time-off) ──
-  dayBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginHorizontal: Spacing.md_16,
-    marginBottom: 4,
-    paddingHorizontal: Spacing.sm_10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  dayBannerText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSize.caption_12,
-    flex: 1,
-  },
-
-  // ── Work hours band ──
-  workHoursBand: {
-    position: 'absolute',
-    left: TIME_COL_WIDTH,
-    right: 0,
-    backgroundColor: Color.Cyan.v100 + '55',
-    borderLeftWidth: 2,
-    borderLeftColor: Color.Cyan.v300,
-    zIndex: 0,
-  },
-
-  // ── Day label row ──
-  dayLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md_16,
-    paddingVertical: Spacing.sm_8,
-    gap: Spacing.sm_8,
-    backgroundColor: '#FFFFFF',
-  },
-  dayLabel: {
-    flex: 1,
-    fontFamily: FontFamily.semi_bold,
-    fontSize: FontSize.bodysmall_14,
-    color: '#616161',
-    textTransform: 'capitalize',
-  },
-  eventCountBadge: {
-    backgroundColor: Color.primary,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  eventCountText: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSize.caption_12,
-    color: '#FFFFFF',
-  },
-  noEventsHint: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.caption_12,
-    color: '#9E9E9E',
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: '#E0E0E0',
-    marginHorizontal: Spacing.md_16,
-  },
-
-  // ── 24h grid (week view) ──
-  scrollContent: {
-    paddingBottom: Spacing.xl2_40,
-  },
-  dayGrid: {
-    position: 'relative',
-    marginRight: Spacing.sm_8,
-  },
-  hourRow: {
-    height: HOUR_HEIGHT,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  timeLabel: {
-    width: TIME_COL_WIDTH,
-    paddingRight: Spacing.sm_8,
-    marginTop: -7,
-    textAlign: 'right',
-    fontFamily: FontFamily.regular,
-    fontSize: 10,
-    color: '#9E9E9E',
-    lineHeight: 14,
-  },
-  hourLine: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: '#E0E0E0',
-  },
-  hourLineHidden: {
-    backgroundColor: 'transparent',
-  },
-  currentTimeRow: {
-    position: 'absolute',
-    left: TIME_COL_WIDTH - 5,
-    right: Spacing.sm_8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  currentTimeDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#EA4335',
-    marginRight: -1,
-  },
-  currentTimeBar: {
-    flex: 1,
-    height: 2,
-    backgroundColor: '#EA4335',
-  },
-  eventBlock: {
-    position: 'absolute',
-    left: TIME_COL_WIDTH + 4,
-    right: Spacing.xs_4,
-    borderRadius: 4,
-    borderLeftWidth: 3,
-    paddingHorizontal: Spacing.xs_6,
-    paddingVertical: Spacing.xs_4,
-    overflow: 'hidden',
-  },
-  eventTitle: {
-    fontFamily: FontFamily.semi_bold,
-    fontSize: FontSize.caption_12,
-    lineHeight: 16,
-  },
-  eventPatient: {
-    fontFamily: FontFamily.regular,
-    fontSize: 10,
-    lineHeight: 14,
-    marginTop: 1,
-  },
-  eventTime: {
-    fontFamily: FontFamily.regular,
-    fontSize: 10,
-    lineHeight: 14,
-    marginTop: 2,
-  },
-
-  // ── Month view ──
-  dovRow: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.md_16,
-    marginBottom: 4,
-  },
-  dovLabel: {
-    width: MONTH_CELL_W,
-    textAlign: 'center',
-    fontFamily: FontFamily.medium,
-    fontSize: 11,
-    color: '#9E9E9E',
-    textTransform: 'uppercase',
-    paddingVertical: 4,
-  },
-  mvGridRow: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.md_16,
-  },
-  mvCell: {
-    width: MONTH_CELL_W,
-    alignItems: 'center',
-    paddingVertical: 4,
-    gap: 2,
-  },
-  mvDayCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mvDayCircleSelected: {
-    backgroundColor: Color.primary,
-  },
-  mvDayCircleToday: {
-    borderWidth: 1.5,
-    borderColor: Color.primary,
-  },
-  mvDayNum: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSize.bodysmall_14,
-    color: Color.dark,
-  },
-  mvDayNumSelected: {
-    color: '#FFFFFF',
-    fontFamily: FontFamily.bold,
-  },
-  mvDayNumToday: {
-    color: Color.primary,
-    fontFamily: FontFamily.bold,
-  },
-  noEventsMonthHint: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.caption_12,
-    color: '#9E9E9E',
-    paddingHorizontal: Spacing.md_16,
-    paddingVertical: Spacing.sm_8,
-  },
-  mvEventRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: Spacing.md_16,
-    marginBottom: Spacing.xs_6,
-    borderLeftWidth: 3,
-    borderRadius: 6,
-    backgroundColor: '#F5F5F5',
-    paddingVertical: Spacing.sm_8,
-    paddingHorizontal: Spacing.sm_10,
-    gap: Spacing.sm_8,
-  },
-  mvEventDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    flexShrink: 0,
-  },
-  mvEventTitle: {
-    fontFamily: FontFamily.semi_bold,
-    fontSize: FontSize.bodysmall_14,
-    color: Color.dark,
-  },
-  mvEventSub: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.caption_12,
-    color: '#9E9E9E',
-    marginTop: 1,
-  },
-  mvEventTime: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSize.caption_12,
-    flexShrink: 0,
-  },
-
-  // ── Event detail modal ──
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-  },
-  modalSheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: Spacing.md_16,
-    paddingBottom: 34,
-    paddingTop: Spacing.sm_8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 20,
-  },
-  modalHandle: {
-    alignSelf: 'center',
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#E0E0E0',
-    marginBottom: Spacing.sm_12,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.sm_12,
-  },
-  modalTypeIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  modalTitle: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSize.bodylarge_18,
-    color: Color.dark,
-    lineHeight: 24,
-  },
-  modalTypeBadge: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSize.caption_12,
-    marginTop: 2,
-    textTransform: 'capitalize',
-  },
-  modalDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: '#E0E0E0',
-    marginVertical: Spacing.sm_8,
-  },
-  modalRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginVertical: Spacing.xs_4,
-    gap: Spacing.sm_10,
-  },
-  modalRowIcon: {
-    marginTop: 1,
-    flexShrink: 0,
-  },
-  modalRowLabel: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSize.caption_12,
-    color: '#9E9E9E',
-    marginBottom: 1,
-  },
-  modalRowText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSize.bodysmall_14,
-    color: Color.dark,
-    lineHeight: 20,
-  },
-  modalRowSub: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.caption_12,
-    color: '#9E9E9E',
-    marginTop: 1,
-  },
-  editBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs_6,
-    backgroundColor: Color.primary,
-    borderRadius: 12,
-    paddingVertical: Spacing.sm_12,
-    marginTop: Spacing.xs_4,
-  },
-  deleteBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs_6,
-    backgroundColor: Color.Error.default,
-    borderRadius: 12,
-    paddingVertical: Spacing.sm_12,
-    marginTop: Spacing.xs_4,
-  },
-  modalActionRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm_8,
-  },
-  editBtnText: {
-    fontFamily: FontFamily.semi_bold,
-    fontSize: FontSize.bodysmall_14,
-    color: '#FFFFFF',
-  },
-
-  // ── Access code section ──
-  accessCodeSection: {
-    marginTop: Spacing.sm_8,
-    padding: Spacing.sm_10,
-    backgroundColor: Color.primary + '0D',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Color.primary + '30',
-  },
-  accessCodeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
-  },
-  accessCodeTitle: {
-    fontFamily: FontFamily.semi_bold,
-    fontSize: FontSize.bodysmall_14,
-    color: Color.primary,
-  },
-  accessCodeHint: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.caption_12,
-    color: Color.Gray.v500,
-    marginBottom: 8,
-  },
-  tokenRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: Color.white,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: Color.primary + '40',
-  },
-  tokenText: {
-    flex: 1,
-    fontFamily: FontFamily.semi_bold,
-    fontSize: 18,
-    color: Color.primary,
-    letterSpacing: 3,
-  },
-  copyBtn: {
-    padding: 4,
-  },
-  accessCodeExpiry: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.caption_12,
-    color: Color.Gray.v400,
-    marginTop: 4,
-  },
-  generateTokenBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: Color.primary,
-    alignSelf: 'flex-start',
-  },
-  generateTokenBtnText: {
-    fontFamily: FontFamily.semi_bold,
-    fontSize: FontSize.caption_12,
-    color: Color.primary,
-  },
-  visitNoteBox: {
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: '#F0FDF4',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-  },
-  visitNoteLabel: {
-    fontFamily: FontFamily.semi_bold,
-    fontSize: FontSize.caption_12,
-    color: '#166534',
-    marginBottom: 3,
-  },
-  visitNoteText: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.caption_12,
-    color: Color.Gray.v500,
-    lineHeight: 18,
-  },
-  visitNoteDate: {
-    fontFamily: FontFamily.regular,
-    fontSize: 10,
-    color: Color.Gray.v400,
-    marginTop: 4,
-  },
-
-  // ── FAB ──
-  fab: {
-    position: 'absolute',
-    bottom: 28,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Color.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: Color.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-
-  // ── Admin filter chips ──
-  filterChipsRow: {
-    flexDirection: 'row',
-    gap: Spacing.xs_6,
-    paddingBottom: Spacing.sm_8,
-    paddingHorizontal: 2,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: Spacing.sm_10,
-    paddingVertical: 5,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: Color.Gray.v200,
-    backgroundColor: '#FFFFFF',
-  },
-  filterChipActive: {
-    borderColor: Color.primary,
-    backgroundColor: Color.primary + '12',
-  },
-  filterDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  filterChipText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSize.caption_12,
-    color: Color.Gray.v400,
-  },
-  filterChipTextActive: {
-    color: Color.primary,
-  },
-  filterSeparator: {
-    width: 1,
-    height: 20,
-    backgroundColor: Color.Gray.v200,
-    alignSelf: 'center',
-    marginHorizontal: 4,
-  },
+    backgroundColor: Color.primary + '18', borderRadius: 12,
+    paddingHorizontal: Spacing.sm_10, paddingVertical: 4, marginRight: Spacing.xs_4,
+  },
+  todayBtnText: { fontFamily: FontFamily.semi_bold, fontSize: FontSize.caption_12, color: Color.primary },
+  viewToggleBtn: { padding: 5, borderRadius: 8, marginRight: Spacing.xs_4 },
+  viewToggleBtnActive: { backgroundColor: Color.primary + '18' },
+  weekStrip: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: Spacing.md_16, paddingBottom: Spacing.xs_4 },
+  dayCell: { flex: 1, alignItems: 'center', paddingVertical: Spacing.xs_4, gap: 2 },
+  dayLetter: { fontFamily: FontFamily.medium, fontSize: FontSize.caption_12, color: '#9E9E9E', textTransform: 'uppercase' },
+  dayLetterToday: { color: Color.primary },
+  dayNumCircle: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  dayNumCircleSelected: { backgroundColor: Color.primary },
+  dayNumCircleToday: { borderWidth: 1.5, borderColor: Color.primary },
+  dayNum: { fontFamily: FontFamily.medium, fontSize: FontSize.bodysmall_14, color: Color.dark },
+  dayNumSelected: { color: '#FFFFFF', fontFamily: FontFamily.bold },
+  dayNumToday: { color: Color.primary, fontFamily: FontFamily.bold },
+  dotRow: { flexDirection: 'row', gap: 3, height: 6 },
+  dot: { width: 5, height: 5, borderRadius: 3 },
+  overlayLabel: { fontFamily: FontFamily.regular, fontSize: 8, color: '#6B7280', textAlign: 'center', lineHeight: 10, height: 10 },
+  dayBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: Spacing.md_16, marginBottom: 4, paddingHorizontal: Spacing.sm_10, paddingVertical: 5, borderRadius: 8, borderWidth: 1 },
+  dayBannerText: { fontFamily: FontFamily.medium, fontSize: FontSize.caption_12, flex: 1 },
+  workHoursBand: { position: 'absolute', left: TIME_COL_WIDTH, right: 0, backgroundColor: Color.Cyan.v100 + '55', borderLeftWidth: 2, borderLeftColor: Color.Cyan.v300, zIndex: 0 },
+  dayLabelRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md_16, paddingVertical: Spacing.sm_8, gap: Spacing.sm_8, backgroundColor: '#FFFFFF' },
+  dayLabel: { flex: 1, fontFamily: FontFamily.semi_bold, fontSize: FontSize.bodysmall_14, color: '#616161', textTransform: 'capitalize' },
+  eventCountBadge: { backgroundColor: Color.primary, borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  eventCountText: { fontFamily: FontFamily.bold, fontSize: FontSize.caption_12, color: '#FFFFFF' },
+  noEventsHint: { fontFamily: FontFamily.regular, fontSize: FontSize.caption_12, color: '#9E9E9E' },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: '#E0E0E0', marginHorizontal: Spacing.md_16 },
+  scrollContent: { paddingBottom: Spacing.xl2_40 },
+  dayGrid: { position: 'relative', marginRight: Spacing.sm_8 },
+  hourRow: { height: HOUR_HEIGHT, flexDirection: 'row', alignItems: 'flex-start' },
+  timeLabel: { width: TIME_COL_WIDTH, paddingRight: Spacing.sm_8, marginTop: -7, textAlign: 'right', fontFamily: FontFamily.regular, fontSize: 10, color: '#9E9E9E', lineHeight: 14 },
+  hourLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: '#E0E0E0' },
+  hourLineHidden: { backgroundColor: 'transparent' },
+  currentTimeRow: { position: 'absolute', left: TIME_COL_WIDTH - 5, right: Spacing.sm_8, flexDirection: 'row', alignItems: 'center', zIndex: 10 },
+  currentTimeDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#EA4335', marginRight: -1 },
+  currentTimeBar: { flex: 1, height: 2, backgroundColor: '#EA4335' },
+  eventBlock: { position: 'absolute', left: TIME_COL_WIDTH + 4, right: Spacing.xs_4, borderRadius: 4, borderLeftWidth: 3, paddingHorizontal: Spacing.xs_6, paddingVertical: Spacing.xs_4, overflow: 'hidden' },
+  eventTitle: { fontFamily: FontFamily.semi_bold, fontSize: FontSize.caption_12, lineHeight: 16 },
+  eventPatient: { fontFamily: FontFamily.regular, fontSize: 10, lineHeight: 14, marginTop: 1 },
+  eventTime: { fontFamily: FontFamily.regular, fontSize: 10, lineHeight: 14, marginTop: 2 },
+  dovRow: { flexDirection: 'row', paddingHorizontal: Spacing.md_16, marginBottom: 4 },
+  dovLabel: { width: MONTH_CELL_W, textAlign: 'center', fontFamily: FontFamily.medium, fontSize: 11, color: '#9E9E9E', textTransform: 'uppercase', paddingVertical: 4 },
+  mvGridRow: { flexDirection: 'row', paddingHorizontal: Spacing.md_16 },
+  mvCell: { width: MONTH_CELL_W, alignItems: 'center', paddingVertical: 4, gap: 2 },
+  mvDayCircle: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  mvDayCircleSelected: { backgroundColor: Color.primary },
+  mvDayCircleToday: { borderWidth: 1.5, borderColor: Color.primary },
+  mvDayNum: { fontFamily: FontFamily.medium, fontSize: FontSize.bodysmall_14, color: Color.dark },
+  mvDayNumSelected: { color: '#FFFFFF', fontFamily: FontFamily.bold },
+  mvDayNumToday: { color: Color.primary, fontFamily: FontFamily.bold },
+  noEventsMonthHint: { fontFamily: FontFamily.regular, fontSize: FontSize.caption_12, color: '#9E9E9E', paddingHorizontal: Spacing.md_16, paddingVertical: Spacing.sm_8 },
+  mvEventRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: Spacing.md_16, marginBottom: Spacing.xs_6, borderLeftWidth: 3, borderRadius: 6, backgroundColor: '#F5F5F5', paddingVertical: Spacing.sm_8, paddingHorizontal: Spacing.sm_10, gap: Spacing.sm_8 },
+  mvEventDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
+  mvEventTitle: { fontFamily: FontFamily.semi_bold, fontSize: FontSize.bodysmall_14, color: Color.dark },
+  mvEventSub: { fontFamily: FontFamily.regular, fontSize: FontSize.caption_12, color: '#9E9E9E', marginTop: 1 },
+  mvEventTime: { fontFamily: FontFamily.medium, fontSize: FontSize.caption_12, flexShrink: 0 },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
+  modalSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: Spacing.md_16, paddingBottom: 34, paddingTop: Spacing.sm_8, shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.12, shadowRadius: 10, elevation: 20 },
+  modalHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: '#E0E0E0', marginBottom: Spacing.sm_12 },
+  modalHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: Spacing.sm_12 },
+  modalTypeIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  modalTitle: { fontFamily: FontFamily.bold, fontSize: FontSize.bodylarge_18, color: Color.dark, lineHeight: 24 },
+  modalTypeBadge: { fontFamily: FontFamily.medium, fontSize: FontSize.caption_12, marginTop: 2, textTransform: 'capitalize' },
+  modalDivider: { height: StyleSheet.hairlineWidth, backgroundColor: '#E0E0E0', marginVertical: Spacing.sm_8 },
+  modalRow: { flexDirection: 'row', alignItems: 'flex-start', marginVertical: Spacing.xs_4, gap: Spacing.sm_10 },
+  modalRowIcon: { marginTop: 1, flexShrink: 0 },
+  modalRowLabel: { fontFamily: FontFamily.medium, fontSize: FontSize.caption_12, color: '#9E9E9E', marginBottom: 1 },
+  modalRowText: { fontFamily: FontFamily.medium, fontSize: FontSize.bodysmall_14, color: Color.dark, lineHeight: 20 },
+  modalRowSub: { fontFamily: FontFamily.regular, fontSize: FontSize.caption_12, color: '#9E9E9E', marginTop: 1 },
+  editBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs_6, backgroundColor: Color.primary, borderRadius: 12, paddingVertical: Spacing.sm_12, marginTop: Spacing.xs_4 },
+  deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs_6, backgroundColor: Color.Error.default, borderRadius: 12, paddingVertical: Spacing.sm_12, marginTop: Spacing.xs_4 },
+  modalActionRow: { flexDirection: 'row', gap: Spacing.sm_8 },
+  editBtnText: { fontFamily: FontFamily.semi_bold, fontSize: FontSize.bodysmall_14, color: '#FFFFFF' },
+  accessCodeSection: { marginTop: Spacing.sm_8, padding: Spacing.sm_10, backgroundColor: Color.primary + '0D', borderRadius: 10, borderWidth: 1, borderColor: Color.primary + '30' },
+  accessCodeHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+  accessCodeTitle: { fontFamily: FontFamily.semi_bold, fontSize: FontSize.bodysmall_14, color: Color.primary },
+  accessCodeHint: { fontFamily: FontFamily.regular, fontSize: FontSize.caption_12, color: Color.Gray.v500, marginBottom: 8 },
+  tokenRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Color.white, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: Color.primary + '40' },
+  tokenText: { flex: 1, fontFamily: FontFamily.semi_bold, fontSize: 18, color: Color.primary, letterSpacing: 3 },
+  copyBtn: { padding: 4 },
+  accessCodeExpiry: { fontFamily: FontFamily.regular, fontSize: FontSize.caption_12, color: Color.Gray.v400, marginTop: 4 },
+  generateTokenBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1.5, borderColor: Color.primary, alignSelf: 'flex-start' },
+  generateTokenBtnText: { fontFamily: FontFamily.semi_bold, fontSize: FontSize.caption_12, color: Color.primary },
+  visitNoteBox: { marginTop: 10, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 8, borderWidth: 1, borderColor: '#BBF7D0' },
+  visitNoteLabel: { fontFamily: FontFamily.semi_bold, fontSize: FontSize.caption_12, color: '#166534', marginBottom: 3 },
+  visitNoteText: { fontFamily: FontFamily.regular, fontSize: FontSize.caption_12, color: Color.Gray.v500, lineHeight: 18 },
+  visitNoteDate: { fontFamily: FontFamily.regular, fontSize: 10, color: Color.Gray.v400, marginTop: 4 },
+  fab: { position: 'absolute', bottom: 28, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: Color.primary, alignItems: 'center', justifyContent: 'center', shadowColor: Color.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 8 },
+  filterChipsRow: { flexDirection: 'row', gap: Spacing.xs_6, paddingBottom: Spacing.sm_8, paddingHorizontal: 2 },
+  filterChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: Spacing.sm_10, paddingVertical: 5, borderRadius: 14, borderWidth: 1.5, borderColor: Color.Gray.v200, backgroundColor: '#FFFFFF' },
+  filterChipActive: { borderColor: Color.primary, backgroundColor: Color.primary + '12' },
+  filterDot: { width: 8, height: 8, borderRadius: 4 },
+  filterChipText: { fontFamily: FontFamily.medium, fontSize: FontSize.caption_12, color: Color.Gray.v400 },
+  filterChipTextActive: { color: Color.primary },
+  filterSeparator: { width: 1, height: 20, backgroundColor: Color.Gray.v200, alignSelf: 'center', marginHorizontal: 4 },
+  popupOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 999 },
 });

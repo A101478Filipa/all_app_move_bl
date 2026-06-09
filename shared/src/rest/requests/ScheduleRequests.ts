@@ -2,16 +2,22 @@ import { z } from 'zod';
 import { TimeOffType } from '../../enums/timeOffType';
 import { TimeOffStatus } from '../../enums/timeOffStatus';
 
-export const UpsertWorkScheduleRequest = z.object({
-  workDays: z
-    .array(z.number().int().min(1).max(7))
-    .min(0)
-    .max(7),
+// Renomeado para UpsertWorkScheduleSlot para não colidir com o modelo da BD ──
+export const UpsertWorkScheduleSlot = z.object({
+  dayIso: z.number().int().min(1).max(7), // 1 = Seg, 7 = Dom
   startTime: z.string().regex(/^\d{2}:\d{2}$/, 'startTime must be HH:MM'),
   endTime: z.string().regex(/^\d{2}:\d{2}$/, 'endTime must be HH:MM'),
+  isActive: z.boolean(), // Define se trabalha ou folga nesse dia
+});
+
+export type UpsertWorkScheduleSlot = z.infer<typeof UpsertWorkScheduleSlot>;
+
+export const UpsertWorkScheduleRequest = z.object({
+  slots: z.array(UpsertWorkScheduleSlot).min(1).max(7), // Usa o tipo corrigido aqui
 });
 
 export type UpsertWorkScheduleRequest = z.infer<typeof UpsertWorkScheduleRequest>;
+// ─────────────────────────────────────────────────────────────────────────────────────────
 
 export const CreateTimeOffRequest = z.object({
   userId: z.number().int().positive(),
@@ -33,6 +39,7 @@ export const UpdateTimeOffRequest = z.object({
 export type UpdateTimeOffRequest = z.infer<typeof UpdateTimeOffRequest>;
 
 export const CreateElderlyAbsenceRequest = z.object({
+  addDate: z.coerce.date(), // Mantido conforme o teu original
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
   reason: z.string().optional().nullable(),

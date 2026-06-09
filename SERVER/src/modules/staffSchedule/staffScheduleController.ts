@@ -41,7 +41,10 @@ export const getInstitutionSchedules = async (req, res) => {
     const staffUserIds = staffList.map(s => s.userId);
 
     const [schedules, timeOffs] = await Promise.all([
-      prisma.staffWorkSchedule.findMany({ where: { userId: { in: staffUserIds } } }),
+      prisma.staffWorkSchedule.findMany({ 
+        where: { userId: { in: staffUserIds } },
+        include: { slots: true } 
+      }),
       prisma.staffTimeOff.findMany({
         where: {
           userId: { in: staffUserIds },
@@ -78,7 +81,6 @@ export const getWorkSchedule = async (req, res) => {
   const { userId: requesterId, role } = req.user;
   const targetUserId = Number(req.params.userId);
 
-  // Caregiver / Clinician can only see their own schedule
   if (
     role !== UserRole.INSTITUTION_ADMIN &&
     role !== UserRole.PROGRAMMER &&
@@ -90,6 +92,7 @@ export const getWorkSchedule = async (req, res) => {
   try {
     const schedule = await prisma.staffWorkSchedule.findUnique({
       where: { userId: targetUserId },
+      include: { slots: true } 
     });
     return sendSuccess(res, schedule ?? null);
   } catch (error) {
@@ -112,16 +115,21 @@ export const upsertWorkSchedule = async (req, res) => {
       where: { userId: targetUserId },
       create: {
         userId: targetUserId,
-        workDays: validation.data.workDays,
-        startTime: validation.data.startTime,
-        endTime: validation.data.endTime,
+        slots: {
+          create: validation.data.slots, // Grava os novos 7 slots de dias
+        },
       },
       update: {
-        workDays: validation.data.workDays,
-        startTime: validation.data.startTime,
-        endTime: validation.data.endTime,
+        slots: {
+          deleteMany: {}, // Limpa os slots antigos do utilizador para não acumular lixo na BD
+          create: validation.data.slots, // Substitui pelos novos enviados pelo admin
+        },
       },
+      include: {
+        slots: true, // Garante que a resposta da API já vai com os slots anexados
+      }
     });
+
     return sendSuccess(res, schedule, 'Work schedule updated');
   } catch (error) {
     console.error('Error upserting work schedule:', error);
