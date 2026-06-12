@@ -21,7 +21,7 @@ type Props = NativeStackScreenProps<LoginStackParamList, 'ExternalElderlyProfile
 type AddModal = 'measurement' | 'medication' | 'pathology' | 'fall' | null;
 
 const CategoryCard = ({ iconName, iconColor, title, count, onPress, onAdd }: any) => (
-  <TouchableOpacity style={styles.categoryCard} onPress={onPress} activeOpacity={0.75}>
+  <TouchableOpacity style={[styles.categoryCard, { flex: 1 }]} onPress={onPress} activeOpacity={0.75}>
     <View style={styles.categoryIconContainer}>
       <View style={[styles.categoryIconWrap, { backgroundColor: iconColor + '18' }]}>
         <MaterialIcons name={iconName} size={28} color={iconColor} />
@@ -104,8 +104,8 @@ const styles = StyleSheet.create({
   name: { fontSize: FontSize.large, fontFamily: FontFamily.bold },
   institution: { fontSize: 16, color: 'gray' },
   gridContainer: { alignSelf: 'stretch' },
-  gridRow: { alignSelf: 'stretch', marginBottom: Spacing.sm_12 },
-  categoryCard: { flex: 1, backgroundColor: Color.Background.white, borderRadius: Border.md_12, padding: Spacing.md_16, minHeight: 100, borderWidth: 1, borderColor: Color.Gray.v200, alignItems: 'flex-start' },
+  gridRow: { alignSelf: 'stretch', marginBottom: Spacing.sm_12, flexDirection: 'row', gap: Spacing.sm_12, alignItems: 'stretch'},
+  categoryCard: { flex: 1, backgroundColor: Color.Background.white, borderRadius: Border.md_12, padding: Spacing.md_16, minHeight: 120, borderWidth: 1, borderColor: Color.Gray.v200, justifyContent: 'center', position: 'relative' },
   categoryIconWrap: { width: 52, height: 52, borderRadius: Border.sm_8, justifyContent: 'center', alignItems: 'center' },
   categoryTitle: { marginTop: Spacing.sm_8, fontSize: FontSize.bodysmall_14, fontFamily: FontFamily.semi_bold, color: Color.dark },
   categoryBadge: { position: 'absolute', top: Spacing.sm_8, right: Spacing.sm_8, minWidth: 24, height: 24, borderRadius: Border.full, justifyContent: 'center', alignItems: 'center' },

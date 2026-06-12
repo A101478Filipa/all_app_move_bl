@@ -12,6 +12,12 @@ import ExternalAccessScreen from "@src/screens/authentication/ExternalAccessScre
 import ExternalElderlyProfileScreen from "@src/screens/authentication/ExternalElderlyProfileScreen";
 import { ExternalProfileResponse } from '@src/api/endpoints/externalAccess';
 import { UserRole } from 'moveplus-shared';
+import ElderlyMeasurementsListScreen from "@src/screens/elderly/ElderlyMeasurementsListScreen";
+import ElderlyMedicationsListScreen from "@src/screens/elderly/ElderlyMedicationsListScreen";
+import ElderlyPathologiesListScreen from "@src/screens/elderly/ElderlyPathologiesListScreen";
+import ElderlyFallsListScreen from "@src/screens/elderly/ElderlyFallsListScreen";
+import ElderlySOSListScreen from "@src/screens/elderly/ElderlySOSListScreen";
+import ElderlyWoundTrackingScreen from "@src/screens/elderly/ElderlyWoundTrackingScreen";
 
 export type LoginStackParamList = {
   Welcome: undefined;
@@ -31,6 +37,12 @@ export type LoginStackParamList = {
   };
   ExternalAccess: undefined;
   ExternalElderlyProfile: { profile: ExternalProfileResponse; token: string };
+  ElderlyMeasurementsList: undefined;
+  ElderlyMedicationsList: undefined;
+  ElderlyPathologiesList: undefined;
+  ElderlyFallsList: undefined;
+  ElderlySOSList: undefined;
+  ElderlyWoundTrackingScreen: undefined;
 };
 
 const Stack = createNativeStackNavigator<LoginStackParamList>();
@@ -48,6 +60,12 @@ export const LoginNavigator: React.FC = () => {
       <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ExternalAccess" component={ExternalAccessScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ExternalElderlyProfile" component={ExternalElderlyProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="ElderlyMeasurementsList" component={ElderlyMeasurementsListScreen} />
+      <Stack.Screen name="ElderlyMedicationsList" component={ElderlyMedicationsListScreen} />
+      <Stack.Screen name="ElderlyPathologiesList" component={ElderlyPathologiesListScreen} />
+      <Stack.Screen name="ElderlyFallsList" component={ElderlyFallsListScreen} />
+      <Stack.Screen name="ElderlySOSList" component={ElderlySOSListScreen} />
+      <Stack.Screen name="ElderlyWoundTrackingScreen" component={ElderlyWoundTrackingScreen} />
     </Stack.Navigator>
   );
 };

@@ -115,8 +115,8 @@ export const getProfileByToken = async (req: Request, res: Response): Promise<vo
                   take: 5,
                   select: { id: true, date: true, description: true, injured: true, injuryDescription: true },
                 },
-                sosOccurrences: { orderBy: { date: 'desc' }, take: 5 }, 
-                woundTrackings: { orderBy: { createdAt: 'desc' }, take: 5 },
+                sosOccurrences: { orderBy: { date: 'desc' }, take: 5, select: { id: true, date: true, description: true, createdAt: true } }, 
+                woundTrackings: { orderBy: { createdAt: 'desc' }, take: 5, select: { id: true, location: true, status: true, notes: true, createdAt: true } },
               },
             },
             externalProfessional: {
