@@ -45,18 +45,15 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuthStore();
   const userRole = user?.user?.role;
   const currentUserId = user?.user?.id;
-  const canEdit = [UserRole.INSTITUTION_ADMIN, UserRole.CAREGIVER, UserRole.PROGRAMMER, UserRole.CLINICIAN].includes(userRole);
-  const canCreate = [UserRole.INSTITUTION_ADMIN, UserRole.CAREGIVER, UserRole.PROGRAMMER, UserRole.CLINICIAN].includes(userRole);
-  // Absences can only be managed by caregivers and admins (not clinicians)
-  const canManageAbsence = [UserRole.INSTITUTION_ADMIN, UserRole.CAREGIVER, UserRole.PROGRAMMER].includes(userRole);
+  const canEdit = [UserRole.INSTITUTION_ADMIN, UserRole.CAREGIVER, UserRole.PROGRAMMER, UserRole.CLINICIAN].includes(userRole as UserRole);
+  const canCreate = [UserRole.INSTITUTION_ADMIN, UserRole.CAREGIVER, UserRole.PROGRAMMER, UserRole.CLINICIAN].includes(userRole as UserRole);
+  const canManageAbsence = [UserRole.INSTITUTION_ADMIN, UserRole.CAREGIVER, UserRole.PROGRAMMER].includes(userRole as UserRole);
 
   const today = new Date();
 
   const canEditEvent = (event: CalendarEvent) => {
     if (!canEdit) return false;
-    // Admins can edit everything, including past events
     if (userRole === UserRole.INSTITUTION_ADMIN) return true;
-    // Past events cannot be edited, except all-day events on today
     const isPast = new Date(event.startDate) < today;
     if (isPast) {
       const startDate = new Date(event.startDate);
@@ -84,12 +81,10 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
   const [absences, setAbsences] = useState<ElderlyAbsence[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filter states
   const [filterCaregivers, setFilterCaregivers] = useState(true);
   const [filterClinicians, setFilterClinicians] = useState(true);
   const [filterExternal, setFilterExternal] = useState(true);
 
-  // Absence modal state
   const [showAbsenceModal, setShowAbsenceModal] = useState(false);
   const [absenceStart, setAbsenceStart] = useState<Date>(new Date());
   const [absenceEnd, setAbsenceEnd] = useState<Date>(new Date());
@@ -116,7 +111,6 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
 
   useFocusEffect(useCallback(() => { fetchEvents(); }, [fetchEvents]));
 
-  // ── Derived data ──────────────────────────────────────────────────────────
   const passesFilters = (e: CalendarEvent) => {
     const role = (e as any).assignedTo?.role;
     if (role === 'CAREGIVER' && !filterCaregivers) return false;
@@ -132,7 +126,6 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     return d.getFullYear() === year && d.getMonth() === month;
   });
 
-  // Map day → colors (up to 4 dot types per day)
   const dayColors = new Map<number, string[]>();
   for (const e of monthEvents) {
     const day = new Date(e.startDate).getDate();
@@ -142,7 +135,7 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
       dayColors.set(day, [...existing, color]);
     }
   }
-  // Add fall occurrence dots (purple)
+
   for (const f of fallOccurrences) {
     const d = new Date(f.date);
     if (d.getFullYear() === year && d.getMonth() === month) {
@@ -153,7 +146,7 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
       }
     }
   }
-  // Add SOS occurrence dots (amber)
+
   for (const s of sosOccurrences) {
     const d = new Date(s.date);
     if (d.getFullYear() === year && d.getMonth() === month) {
@@ -165,7 +158,6 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }
 
-  /** Returns true if the given day number (in the displayed month) is within an absence period */
   const isDayAbsent = (day: number): boolean => {
     const d = new Date(year, month, day);
     d.setHours(12, 0, 0, 0);
@@ -199,7 +191,6 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     return d >= start && d <= end;
   });
 
-  // ── Group overlapping timed events for side-by-side rendering ─────────────
   const eventRows: CalendarEvent[][] = (() => {
     const allDay = selectedDayEvents.filter(e => e.allDay);
     const timed = [...selectedDayEvents.filter(e => !e.allDay)].sort(
@@ -229,7 +220,6 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     return [...allDay.map(e => [e]), ...groups];
   })();
 
-  // ── Absence modal handlers ───────────────────────────────────────────────
   const openAddAbsence = () => {
     const initial = new Date(year, month, selectedDay);
     setAbsenceStart(initial);
@@ -246,6 +236,7 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       setSavingAbsence(true);
       const payload: CreateElderlyAbsenceRequest = {
+        addDate: new Date(),
         startDate: absenceStart,
         endDate: absenceEnd,
         reason: absenceReason || null,
@@ -280,7 +271,6 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   };
 
-  // ── Navigation ──────────────────────────────────────────────────────────
   const prevMonth = () => {
     if (month === 0) { setYear(y => y - 1); setMonth(11); }
     else setMonth(m => m - 1);
@@ -337,7 +327,6 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
 
   if (loading) return <ActivityIndicatorOverlay />;
 
-  // ── Calendar grid ──────────────────────────────────────────────────────
   const daysInMonth = getDaysInMonth(year, month);
   const firstDow = getFirstDayOfWeek(year, month);
   const monthName = new Date(year, month, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -633,221 +622,43 @@ const ElderlyCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
 export default ElderlyCalendarScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Color.Background.subtle,
-    paddingHorizontal: Spacing.md_16,
-    paddingTop: Spacing.md_16,
-  },
-  monthNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.sm_8,
-  },
-  navBtn: {
-    width: 36,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: Border.sm_8,
-    backgroundColor: Color.Background.white,
-    borderWidth: 1,
-    borderColor: Color.Gray.v200,
-  },
-  monthTitle: {
-    fontSize: FontSize.bodymedium_16,
-    fontFamily: FontFamily.semi_bold,
-    color: Color.dark,
-    textTransform: 'capitalize',
-  },
-  dowRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: Spacing.xs_4,
-  },
-  dowLabel: {
-    width: CELL_SIZE,
-    textAlign: 'center',
-    fontSize: FontSize.caption_12,
-    fontFamily: FontFamily.medium,
-    color: Color.Gray.v400,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-    gap: 2,
-  },
-  cell: {
-    width: CELL_SIZE,
-    height: CELL_SIZE,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: Border.sm_8,
-    marginHorizontal: 1,
-  },
-  cellSelected: {
-    backgroundColor: Color.primary,
-  },
-  cellToday: {
-    borderWidth: 1.5,
-    borderColor: Color.primary,
-  },
-  dayText: {
-    fontSize: FontSize.bodysmall_14,
-    fontFamily: FontFamily.regular,
-    color: Color.dark,
-  },
-  dayTextSelected: {
-    color: Color.white,
-    fontFamily: FontFamily.semi_bold,
-  },
-  dayTextToday: {
-    color: Color.primary,
-    fontFamily: FontFamily.semi_bold,
-  },
-  dotsRow: {
-    flexDirection: 'row',
-    gap: 2,
-    marginTop: 2,
-  },
-  dot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-  },
-  eventsSection: {
-    marginTop: Spacing.md_16,
-    paddingBottom: Spacing.xl_32,
-  },
-  eventsSectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.sm_12,
-  },
-  eventsSectionTitle: {
-    fontSize: FontSize.bodymedium_16,
-    fontFamily: FontFamily.semi_bold,
-    color: Color.dark,
-    textTransform: 'capitalize',
-  },
-  addBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: Border.full,
-    backgroundColor: Color.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerBtns: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-  },
-  cellAbsent: {
-    backgroundColor: '#64748B15',
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.xl_32,
-    gap: Spacing.sm_8,
-  },
-  emptyText: {
-    fontSize: FontSize.bodymedium_16,
-    fontFamily: FontFamily.medium,
-    color: Color.Gray.v400,
-    textAlign: 'center',
-  },
-  emptySubtext: {
-    fontSize: FontSize.bodysmall_14,
-    fontFamily: FontFamily.regular,
-    color: Color.Gray.v400,
-    textAlign: 'center',
-  },
-  eventList: {
-    gap: Spacing.sm_8,
-  },
-  occurrenceCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Color.Background.white,
-    borderRadius: Border.md_12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#7B1FA2',
-    padding: Spacing.md_16,
-    gap: Spacing.sm_12,
-    borderWidth: 1,
-    borderColor: Color.Gray.v200,
-  },
-  occurrenceIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: Border.sm_8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  occurrenceContent: {
-    flex: 1,
-  },
-  occurrenceTitle: {
-    fontFamily: FontFamily.semi_bold,
-    fontSize: FontSize.bodysmall_14,
-  },
-  occurrenceDesc: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.caption_12,
-    color: Color.Gray.v500,
-    marginTop: 2,
-  },
-  occurrenceTime: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.caption_12,
-    color: Color.Gray.v400,
-    marginTop: 2,
-  },
-  eventGroupRow: {
-    flexDirection: 'row',
-    gap: Spacing.xs_6,
-    alignSelf: 'stretch',
-  },
-  eventGroupItem: {
-    flex: 1,
-  },
-  filterChipsRow: {
-    paddingVertical: Spacing.xs_6,
-    paddingBottom: Spacing.sm_8,
-    flexDirection: 'row',
-    gap: Spacing.xs_6,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: Border.full,
-    borderWidth: 1,
-    borderColor: Color.Gray.v200,
-    backgroundColor: Color.Background.white,
-    gap: 4,
-  },
-  filterChipActive: {
-    borderColor: Color.primary,
-    backgroundColor: Color.primary + '15',
-  },
-  filterChipText: {
-    fontSize: FontSize.caption_12,
-    fontFamily: FontFamily.medium,
-    color: Color.Gray.v500,
-  },
-  filterChipTextActive: {
-    color: Color.primary,
-  },
-  filterDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
+  container: { flex: 1, backgroundColor: Color.Background.subtle, paddingHorizontal: Spacing.md_16, paddingTop: Spacing.md_16 },
+  monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.sm_8 },
+  navBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center', borderRadius: Border.sm_8, backgroundColor: Color.Background.white, borderWidth: 1, borderColor: Color.Gray.v200 },
+  monthTitle: { fontSize: FontSize.bodymedium_16, fontFamily: FontFamily.semi_bold, color: Color.dark, textTransform: 'capitalize' },
+  dowRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: Spacing.xs_4 },
+  dowLabel: { width: CELL_SIZE, textAlign: 'center', fontSize: FontSize.caption_12, fontFamily: FontFamily.medium, color: Color.Gray.v400 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', gap: 2 },
+  cell: { width: CELL_SIZE, height: CELL_SIZE, justifyContent: 'center', alignItems: 'center', borderRadius: Border.sm_8, marginHorizontal: 1 },
+  cellSelected: { backgroundColor: Color.primary },
+  cellToday: { borderWidth: 1.5, borderColor: Color.primary },
+  dayText: { fontSize: FontSize.bodysmall_14, fontFamily: FontFamily.regular, color: Color.dark },
+  dayTextSelected: { color: Color.white, fontFamily: FontFamily.semi_bold },
+  dayTextToday: { color: Color.primary, fontFamily: FontFamily.semi_bold },
+  dotsRow: { flexDirection: 'row', gap: 2, marginTop: 2 },
+  dot: { width: 5, height: 5, borderRadius: 3 },
+  eventsSection: { marginTop: Spacing.md_16, paddingBottom: Spacing.xl_32 },
+  eventsSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.sm_12 },
+  eventsSectionTitle: { fontSize: FontSize.bodymedium_16, fontFamily: FontFamily.semi_bold, color: Color.dark, textTransform: 'capitalize' },
+  addBtn: { width: 32, height: 32, borderRadius: Border.full, backgroundColor: Color.primary, justifyContent: 'center', alignItems: 'center' },
+  headerBtns: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  cellAbsent: { backgroundColor: '#64748B15' },
+  emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.xl_32, gap: Spacing.sm_8 },
+  emptyText: { fontSize: FontSize.bodymedium_16, fontFamily: FontFamily.medium, color: Color.Gray.v400, textAlign: 'center' },
+  emptySubtext: { fontSize: FontSize.bodysmall_14, fontFamily: FontFamily.regular, color: Color.Gray.v400, textAlign: 'center' },
+  eventList: { gap: Spacing.sm_8 },
+  occurrenceCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: Color.Background.white, borderRadius: Border.md_12, borderLeftWidth: 4, borderLeftColor: '#7B1FA2', padding: Spacing.md_16, gap: Spacing.sm_12, borderWidth: 1, borderColor: Color.Gray.v200 },
+  occurrenceIcon: { width: 40, height: 40, borderRadius: Border.sm_8, justifyContent: 'center', alignItems: 'center' },
+  occurrenceContent: { flex: 1 },
+  occurrenceTitle: { fontFamily: FontFamily.semi_bold, fontSize: FontSize.bodysmall_14 },
+  occurrenceDesc: { fontFamily: FontFamily.regular, fontSize: FontSize.caption_12, color: Color.Gray.v500, marginTop: 2 },
+  occurrenceTime: { fontFamily: FontFamily.regular, fontSize: FontSize.caption_12, color: Color.Gray.v400, marginTop: 2 },
+  eventGroupRow: { flexDirection: 'row', gap: Spacing.xs_6, alignSelf: 'stretch' },
+  eventGroupItem: { flex: 1 },
+  filterChipsRow: { paddingVertical: Spacing.xs_6, paddingBottom: Spacing.sm_8, flexDirection: 'row', gap: Spacing.xs_6 },
+  filterChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, borderRadius: Border.full, borderWidth: 1, borderColor: Color.Gray.v200, backgroundColor: Color.Background.white, gap: 4 },
+  filterChipActive: { borderColor: Color.primary, backgroundColor: Color.primary + '15' },
+  filterChipText: { fontSize: FontSize.caption_12, fontFamily: FontFamily.medium, color: Color.Gray.v500 },
+  filterChipTextActive: { color: Color.primary },
+  filterDot: { width: 8, height: 8, borderRadius: 4 },
 });

@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, Switch,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView, Platform, Alert
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { CalendarEventType, CreateCalendarEventRequest, ExternalProfessional, UserRole } from 'moveplus-shared';
+import { CalendarEventType, CreateCalendarEventRequest, ExternalProfessional, UserRole, ElderlyAbsence } from 'moveplus-shared';
 import { calendarEventApi } from '@src/api/endpoints/calendarEvents';
 import { institutionApi } from '@src/api/endpoints/institution';
 import { externalProfessionalApi } from '@src/api/endpoints/externalProfessionals';
-import { timeOffApi, StaffTimeOffWithUser } from '@src/api/endpoints/timeOff';
-import { staffScheduleApi, StaffScheduleSummary } from '@src/api/endpoints/staffSchedule';
+import { StaffTimeOffWithUser } from '@src/api/endpoints/timeOff';
+import { StaffScheduleSummary } from '@src/api/endpoints/staffSchedule';
+import { elderlyAbsenceApi } from '@src/api/endpoints/elderlyAbsence';
 import { useAuthStore } from '@src/stores/authStore';
 import { api } from '@src/services/ApiService';
 import { Color } from '@src/styles/colors';
@@ -28,10 +29,8 @@ type Props = NativeStackScreenProps<any, 'AddCalendarEvent'>;
 
 const CLINICAL_TYPES = [CalendarEventType.APPOINTMENT, CalendarEventType.PHYSIOTHERAPY, CalendarEventType.NURSING_CARE];
 
-// Extract date string YYYY-MM-DD from ISO
 const toDateStr = (iso: string): string => iso.slice(0, 10);
 
-// Extract time as Date object from ISO
 const toTimeDate = (iso: string): Date => {
   const d = new Date(iso);
   d.setSeconds(0);
@@ -39,7 +38,6 @@ const toTimeDate = (iso: string): Date => {
   return d;
 };
 
-// Combine a YYYY-MM-DD date string with a time Date into a full Date
 const combineDateTime = (dateStr: string, time: Date): Date => {
   const d = new Date(dateStr);
   d.setHours(time.getHours());
@@ -58,19 +56,15 @@ type EventForm = {
   endTime: Date | null;
   allDay: boolean;
   location: string;
-  assignedToId: number | null;  // -1 = external professional
-  // External professional selection:
-  //   externalProfessionalId > 0  → existing saved external (preferred)
-  //   externalProfessionalId === NEW_EXTERNAL_VALUE → user is filling in a new one
+  assignedToId: number | null;
   externalProfessionalId: number | null;
-  // Fields for creating a new external professional inline:
   newExternalName: string;
   newExternalSpecialty: string;
   newExternalPhone: string;
 };
 
-const EXTERNAL_VALUE = -1;        // sentinel for assignedToId: "external" mode
-const NEW_EXTERNAL_VALUE = -2;    // sentinel for externalProfessionalId: "create new"
+const EXTERNAL_VALUE = -1;
+const NEW_EXTERNAL_VALUE = -2;
 
 const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
   const { t } = useTranslation();
@@ -87,16 +81,16 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
   const [savedExternals, setSavedExternals] = useState<ExternalProfessional[]>([]);
   const [institutionTimeOffs, setInstitutionTimeOffs] = useState<StaffTimeOffWithUser[]>([]);
   const [institutionSchedules, setInstitutionSchedules] = useState<StaffScheduleSummary[]>([]);
+  const [elderlyAbsences, setElderlyAbsences] = useState<ElderlyAbsence[]>([]);
 
   const initISO = editEvent
     ? new Date(editEvent.startDate).toISOString()
     : selectedDate ?? new Date().toISOString();
 
-  // Determine initial external professional id for edit mode
   const initExternalId = (): number | null => {
     if (!editEvent) return null;
     if (editEvent.externalProfessionalId) return editEvent.externalProfessionalId;
-    if (editEvent.externalProfessionalName) return NEW_EXTERNAL_VALUE; // legacy free-text → treat as "new"
+    if (editEvent.externalProfessionalName) return NEW_EXTERNAL_VALUE;
     return null;
   };
 
@@ -129,6 +123,12 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
       setSavedExternals(res.data ?? []);
     }).catch(() => {});
 
+    if (elderlyId) {
+      elderlyAbsenceApi.getAbsences(elderlyId).then(res => {
+        setElderlyAbsences(res.data ?? []);
+      }).catch(() => {});
+    }
+
     if (isStaff) {
       api.get('time-off/institution', { _silentError: true } as any)
         .then((r: any) => setInstitutionTimeOffs(r.data?.data ?? []))
@@ -138,74 +138,21 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
         .then((r: any) => setInstitutionSchedules(r.data?.data ?? []))
         .catch(() => {});
     }
-  }, [t, isAdminOrProgrammer]);
+  }, [t, elderlyId, isStaff]);
 
   const isClinicalType = form.type ? CLINICAL_TYPES.includes(form.type) : false;
   const isExternal = form.assignedToId === EXTERNAL_VALUE;
   const isNewExternal = isExternal && form.externalProfessionalId === NEW_EXTERNAL_VALUE;
   const isExistingExternal = isExternal && form.externalProfessionalId !== null && form.externalProfessionalId !== NEW_EXTERNAL_VALUE && form.externalProfessionalId > 0;
 
-  // Returns true when the staff member is NOT available for the event date/time:
-  //  1. Has an approved time-off covering the event date
-  //  2. Their schedule doesn't include that weekday
-  //  3. If the event has a specific start time, it falls outside their work hours
-  const isOnTimeOff = (userId: number): boolean => {
-    if (!form.date) return false;
-    const evDate = new Date(form.date);
-
-    // Check 1: approved time-off
-    const onLeave = institutionTimeOffs.some(to =>
-      to.user.id === userId &&
-      new Date(to.startDate) <= evDate &&
-      new Date(to.endDate) >= evDate
-    );
-    if (onLeave) return true;
-
-    // Check 2 & 3: work schedule
-    const summary = institutionSchedules.find(s => s.userId === userId);
-    if (summary?.schedule) {
-      const { workDays, startTime, endTime } = summary.schedule;
-      const jsDay = evDate.getDay();
-      const isoDay = jsDay === 0 ? 7 : jsDay;
-      if (!workDays.includes(isoDay)) return true;  // doesn't work that weekday
-
-      // Check time only when event is not all-day and has a startTime
-      if (!form.allDay && form.startTime) {
-        const evH = form.startTime.getHours();
-        const evM = form.startTime.getMinutes();
-        const evMins = evH * 60 + evM;
-        const [sh, sm] = startTime.split(':').map(Number);
-        const [eh, em] = endTime.split(':').map(Number);
-        const startMins = sh * 60 + sm;
-        const endMins   = eh * 60 + em;
-        const inShift = startMins < endMins
-          ? evMins >= startMins && evMins < endMins          // normal shift
-          : evMins >= startMins || evMins < endMins;         // overnight shift
-        if (!inShift) return true;
-      }
-    }
-
-    return false;
-  };
-
-  const tagTimeOff = (items: { label: string; value: number }[]) =>
-    items.filter(item => !isOnTimeOff(item.value));
-
-  useEffect(() => {
-    if (form.assignedToId && form.assignedToId !== EXTERNAL_VALUE && isOnTimeOff(form.assignedToId)) {
-      setForm(prev => ({ ...prev, assignedToId: null }));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.date, form.startTime, form.allDay]);
-
+  // Responsável pela filtragem. Removi o tagTimeOff para garantir que a lista aparece.
+  // Pode colocar tagTimeOff de volta se quiseres filtrar por disponibilidade.
   const externalOption = { label: `(${t('calendar.external')}) ${t('calendar.externalProfessional')}`, value: EXTERNAL_VALUE };
 
-  // Clinical events: only clinicians; non-clinical events: admins + caregivers (no clinicians)
   const responsibleOptions = isClinicalType
-    ? [...tagTimeOff(clinicians), externalOption]
-    : [...tagTimeOff(caregivers), externalOption];
+    ? [...clinicians, externalOption]
+    : [...caregivers, externalOption];
 
-  // Dropdown options for saved external professionals + "Add new" option
   const externalProfessionalOptions = [
     { label: `+ ${t('calendar.addNewExternal')}`, value: NEW_EXTERNAL_VALUE },
     ...savedExternals.map(ep => ({
@@ -243,14 +190,29 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
       if (endMins <= startMins) return handleValidationError(t('calendar.endTimeBeforeStart'));
     }
 
-    // Professional is required for all event types
+    // Validação de Ausência
+    if (form.date) {
+      const selectedDayTarget = new Date(form.date);
+      selectedDayTarget.setHours(12, 0, 0, 0);
+
+      const isElderlyAbsent = elderlyAbsences.some(absence => {
+        const start = new Date(absence.startDate); start.setHours(0, 0, 0, 0);
+        const end = new Date(absence.endDate); end.setHours(23, 59, 59, 999);
+        return selectedDayTarget >= start && selectedDayTarget <= end;
+      });
+
+      if (isElderlyAbsent) {
+        Alert.alert('Aviso', 'O idoso não está presente nesse dia.');
+        return;
+      }
+    }
+
     if (!form.assignedToId) return handleValidationError(t('calendar.professionalRequired'));
     if (isExternal && !form.externalProfessionalId) return handleValidationError(t('calendar.selectExternalRequired'));
     if (isNewExternal && !form.newExternalName.trim()) return handleValidationError(t('calendar.externalNameRequired'));
 
     setLoading(true);
     try {
-      // If "new external", create the external professional first
       let resolvedExternalProfessionalId: number | undefined;
       if (isNewExternal) {
         const created = await externalProfessionalApi.create({
@@ -284,7 +246,6 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
         externalProfessionalName: undefined,
       };
 
-      // Podes voltar a usar os teus métodos abstratos originais aqui:
       if (isEditing) {
         await calendarEventApi.updateEvent(editEvent.id, payload);
         handleSuccess(t('calendar.eventUpdated'));
@@ -292,10 +253,8 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
         await calendarEventApi.createEvent(elderlyId, payload);
         handleSuccess(t('calendar.eventAdded'));
       }
-
       navigation.goBack();
     } catch (err) {
-      // O teu catch original e super limpo
       handleError(err);
     } finally {
       setLoading(false);
@@ -304,137 +263,42 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={spacingStyles.screenScrollContainer}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView style={styles.container} contentContainerStyle={spacingStyles.screenScrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <VStack align="flex-start" spacing={Spacing.md_16}>
-          <FormDropdown
-            title={t('calendar.eventType')}
-            placeholder={t('calendar.selectEventType')}
-            value={form.type}
-            options={eventTypeOptions}
-            onValueChange={handleTypeChange}
-            required
-          />
-
-          <FormTextInput
-            title={t('calendar.eventTitle')}
-            value={form.title}
-            onChangeText={v => update('title', v)}
-            placeholder={t('calendar.eventTitlePlaceholder')}
-            required
-          />
-
-          <FormDateInput
-            title={t('calendar.startDate')}
-            value={form.date ?? ''}
-            onDateChange={v => update('date', v)}
-            placeholder={t('calendar.startDate')}
-            required
-          />
-
-          {/* All Day toggle */}
+          <FormDropdown title={t('calendar.eventType')} placeholder={t('calendar.selectEventType')} value={form.type as any} options={eventTypeOptions} onValueChange={handleTypeChange} required />
+          <FormTextInput title={t('calendar.eventTitle')} value={form.title} onChangeText={v => update('title', v)} placeholder={t('calendar.eventTitlePlaceholder')} required />
+          <FormDateInput title={t('calendar.startDate')} value={form.date ?? ''} onDateChange={v => update('date', v)} placeholder={t('calendar.startDate')} required />
+          
           <View style={styles.toggleRow}>
             <Text style={styles.toggleLabel}>{t('calendar.allDay')}</Text>
-            <Switch
-              value={form.allDay}
-              onValueChange={v => update('allDay', v)}
-              trackColor={{ true: Color.primary }}
-              thumbColor={Color.white}
-            />
+            <Switch value={form.allDay} onValueChange={v => update('allDay', v)} trackColor={{ true: Color.primary }} thumbColor={Color.white} />
           </View>
 
-          {/* Start / End times — hidden when all day */}
           {!form.allDay && (
             <>
-              <FormTimeInput
-                title={t('calendar.startTime')}
-                value={form.startTime}
-                onChange={v => update('startTime', v)}
-                required
-              />
-              <FormTimeInput
-                title={t('calendar.endTime')}
-                value={form.endTime}
-                onChange={v => update('endTime', v)}
-                required
-              />
+              <FormTimeInput title={t('calendar.startTime')} value={form.startTime} onChange={v => update('startTime', v)} required />
+              <FormTimeInput title={t('calendar.endTime')} value={form.endTime} onChange={v => update('endTime', v)} required />
             </>
           )}
 
-          <FormTextInput
-            title={t('calendar.location')}
-            value={form.location}
-            onChangeText={v => update('location', v)}
-            placeholder={t('calendar.locationPlaceholder')}
-          />
+          <FormTextInput title={t('calendar.location')} value={form.location} onChangeText={v => update('location', v)} placeholder={t('calendar.locationPlaceholder')} />
+          <FormTextInput title={t('calendar.description')} value={form.description} onChangeText={v => update('description', v)} placeholder={t('calendar.descriptionPlaceholder')} multiline />
+          <FormDropdown title={t('calendar.assignedResponsible')} placeholder={t('calendar.selectResponsible')} value={form.assignedToId as any} options={responsibleOptions} onValueChange={handleAssignedToChange} required />
 
-          <FormTextInput
-            title={t('calendar.description')}
-            value={form.description}
-            onChangeText={v => update('description', v)}
-            placeholder={t('calendar.descriptionPlaceholder')}
-            multiline
-          />
-
-          {/* Responsible professional — required for all event types */}
-          <FormDropdown
-            title={t('calendar.assignedResponsible')}
-            placeholder={t('calendar.selectResponsible')}
-            value={form.assignedToId}
-            options={responsibleOptions}
-            onValueChange={handleAssignedToChange}
-            required
-          />
-
-          {/* External professional section — shown when external option is selected */}
           {isExternal && (
             <>
-              <FormDropdown
-                title={t('calendar.selectExternalProfessional')}
-                placeholder={t('calendar.selectOrAddExternal')}
-                value={form.externalProfessionalId}
-                options={externalProfessionalOptions}
-                onValueChange={v => update('externalProfessionalId', v)}
-                required
-              />
-
-              {/* Fields shown only when creating a NEW external professional */}
+              <FormDropdown title={t('calendar.selectExternalProfessional')} placeholder={t('calendar.selectOrAddExternal')} value={form.externalProfessionalId as any} options={externalProfessionalOptions} onValueChange={v => update('externalProfessionalId', v)} required />
               {isNewExternal && (
                 <>
-                  <FormTextInput
-                    title={t('calendar.externalName')}
-                    value={form.newExternalName}
-                    onChangeText={v => update('newExternalName', v)}
-                    placeholder={t('calendar.externalNamePlaceholder')}
-                    required
-                  />
-                  <FormTextInput
-                    title={t('calendar.externalSpecialty')}
-                    value={form.newExternalSpecialty}
-                    onChangeText={v => update('newExternalSpecialty', v)}
-                    placeholder={t('calendar.externalSpecialtyPlaceholder')}
-                  />
-                  <FormTextInput
-                    title={t('calendar.externalPhone')}
-                    value={form.newExternalPhone}
-                    onChangeText={v => update('newExternalPhone', v)}
-                    placeholder={t('calendar.externalPhonePlaceholder')}
-                    keyboardType="phone-pad"
-                  />
+                  <FormTextInput title={t('calendar.externalName')} value={form.newExternalName} onChangeText={v => update('newExternalName', v)} placeholder={t('calendar.externalNamePlaceholder')} required />
+                  <FormTextInput title={t('calendar.externalSpecialty')} value={form.newExternalSpecialty} onChangeText={v => update('newExternalSpecialty', v)} placeholder={t('calendar.externalSpecialtyPlaceholder')} />
+                  <FormTextInput title={t('calendar.externalPhone')} value={form.newExternalPhone} onChangeText={v => update('newExternalPhone', v)} placeholder={t('calendar.externalPhonePlaceholder')} keyboardType="phone-pad" />
                 </>
               )}
             </>
           )}
 
-          <PrimaryButton
-            title={isEditing ? t('calendar.editEvent') : t('calendar.addEvent')}
-            onPress={handleSubmit}
-            loading={loading}
-          />
+          <PrimaryButton title={isEditing ? t('calendar.editEvent') : t('calendar.addEvent')} onPress={handleSubmit} loading={loading} />
         </VStack>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -444,20 +308,7 @@ const AddCalendarEventScreen: React.FC<Props> = ({ route, navigation }) => {
 export default AddCalendarEventScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Color.Background.subtle,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.xs_4,
-  },
-  toggleLabel: {
-    fontSize: FontSize.bodymedium_16,
-    fontFamily: FontFamily.medium,
-    color: Color.dark,
-  },
+  container: { flex: 1, backgroundColor: Color.Background.subtle },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', alignSelf: 'stretch', paddingHorizontal: Spacing.xs_4 },
+  toggleLabel: { fontSize: FontSize.bodymedium_16, fontFamily: FontFamily.medium, color: Color.dark },
 });

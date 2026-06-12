@@ -115,6 +115,8 @@ export const getProfileByToken = async (req: Request, res: Response): Promise<vo
                   take: 5,
                   select: { id: true, date: true, description: true, injured: true, injuryDescription: true },
                 },
+                sosOccurrences: { orderBy: { date: 'desc' }, take: 5 }, 
+                woundTrackings: { orderBy: { createdAt: 'desc' }, take: 5 },
               },
             },
             externalProfessional: {
@@ -160,6 +162,8 @@ export const getProfileByToken = async (req: Request, res: Response): Promise<vo
         medications: elderly.medications,
         measurements: elderly.measurements,
         recentFalls: elderly.fallOccurrences,
+        recentSos: elderly.sosOccurrences,  
+        recentWounds: elderly.woundTrackings,
       },
       visitNote: ev.externalVisitNote
         ? {

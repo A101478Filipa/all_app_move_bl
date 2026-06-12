@@ -21,7 +21,8 @@ interface InvitationData {
   invitationId: string;
 }
 
-const InvitationRegistrationScreen = ({ navigation }) => {
+// 🔥 CORREÇÃO: Adicionada a tipagem explícita 'React.FC<{ navigation: any }>' para eliminar o erro ts(7031)
+const InvitationRegistrationScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [invitationCode, setInvitationCode] = useState('');
   const [validating, setValidating] = useState(false);
   const [invitationData, setInvitationData] = useState<InvitationData | null>(null);
@@ -88,7 +89,6 @@ const InvitationRegistrationScreen = ({ navigation }) => {
       return;
     }
 
-    // Require email from user when invitation doesn't have one
     const needsEmail = !invitationData?.email;
     const resolvedEmail = invitationData?.email || emailInput.trim().toLowerCase();
 

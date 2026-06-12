@@ -16,7 +16,7 @@ import ScreenState from '@src/constants/screenState';
 type Props = NativeStackScreenProps<any, 'ElderlyPathologiesList'>;
 
 const ElderlyPathologiesListScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { elderlyId } = route.params;
+  const { elderlyId } = route.params ?? {};
   const { t } = useTranslation();
   const { elderly, state, refreshElderly, fetchElderly } = useElderlyDetailsStore();
   const { user } = useAuthStore();

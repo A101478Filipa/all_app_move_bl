@@ -97,11 +97,14 @@ export const FormTimeInput: React.FC<FormTimeInputProps> = ({
 
               {/* Minutes */}
               <View style={styles.wheelCol}>
-                <TouchableOpacity onPress={() => changeMinutes(5)} style={styles.arrowBtn}>
+  
+                <TouchableOpacity onPress={() => changeMinutes(1)} style={styles.arrowBtn}>
                   <MaterialIcons name="keyboard-arrow-up" size={32} color={Color.primary} />
                 </TouchableOpacity>
+                
                 <Text style={styles.wheelValue}>{pad(minutes)}</Text>
-                <TouchableOpacity onPress={() => changeMinutes(-5)} style={styles.arrowBtn}>
+                
+                <TouchableOpacity onPress={() => changeMinutes(-1)} style={styles.arrowBtn}>
                   <MaterialIcons name="keyboard-arrow-down" size={32} color={Color.primary} />
                 </TouchableOpacity>
               </View>

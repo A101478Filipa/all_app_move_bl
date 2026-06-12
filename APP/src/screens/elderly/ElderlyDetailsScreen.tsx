@@ -14,7 +14,6 @@ import { useTranslation } from '@src/localization/hooks/useTranslation';
 import { MaterialIcons } from '@expo/vector-icons';
 import { UserRole } from 'moveplus-shared';
 
-// MARK: MenuItem Component
 interface MenuItemProps {
   iconName: keyof typeof MaterialIcons.glyphMap;
   iconColor: string;
@@ -28,7 +27,6 @@ const MenuItem: React.FC<MenuItemProps> = ({ iconName, iconColor, title, subtitl
     <View style={[styles.menuItemIcon, { backgroundColor: `${iconColor}20` }]}>
       <MaterialIcons name={iconName} size={24} color={iconColor} />
     </View>
-
     <View style={styles.menuItemContent}>
       <Text style={styles.menuItemTitle}>{title}</Text>
       <Text style={styles.menuItemSubtitle}>{subtitle}</Text>
@@ -36,8 +34,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ iconName, iconColor, title, subtitl
   </TouchableOpacity>
 );
 
-// MARK: Screen
-const ElderlyDetailsScreen = ({ route, navigation }) => {
+const ElderlyDetailsScreen: React.FC<{ route: any; navigation: any }> = ({ route, navigation }) => {
   const { elderlyId } = route.params;
   const { elderly, state, fetchElderly, refreshElderly, clearData } = useElderlyDetailsStore();
   const { user } = useAuthStore();
@@ -49,7 +46,7 @@ const ElderlyDetailsScreen = ({ route, navigation }) => {
   const open = useCallback(() => sheetRef.current?.snapToIndex(0), []);
   const close = useCallback(() => sheetRef.current?.close(), []);
 
-const userRole = user?.user?.role;
+  const userRole = user?.user?.role;
   const canAddData = [UserRole.INSTITUTION_ADMIN, UserRole.CAREGIVER, UserRole.CLINICIAN, UserRole.PROGRAMMER].includes(userRole as UserRole);
   const canAddMedication = [UserRole.INSTITUTION_ADMIN, UserRole.CLINICIAN, UserRole.PROGRAMMER].includes(userRole as UserRole);
   const canAddPathology = [UserRole.INSTITUTION_ADMIN, UserRole.CLINICIAN, UserRole.PROGRAMMER].includes(userRole as UserRole);
@@ -84,22 +81,22 @@ const userRole = user?.user?.role;
   const handleAddMedication = useCallback(() => {
     close();
     navigation.navigate('AddMedication', { elderlyId });
-  }, [elderlyId, navigation]);
+  }, [elderlyId, navigation, close]);
 
   const handleAddMeasurement = useCallback(() => {
     close();
     navigation.navigate('AddMeasurement', { elderlyId });
-  }, [elderlyId, navigation]);
+  }, [elderlyId, navigation, close]);
 
   const handleAddPathology = useCallback(() => {
     close();
     navigation.navigate('AddPathology', { elderlyId });
-  }, [elderlyId, navigation]);
+  }, [elderlyId, navigation, close]);
 
   const handleAddCalendarEvent = useCallback(() => {
     close();
     navigation.navigate('AddCalendarEvent', { elderlyId });
-  }, [elderlyId, navigation]);
+  }, [elderlyId, navigation, close]);
 
   const handleAddFall = useCallback(() => {
     close();
@@ -113,10 +110,15 @@ const userRole = user?.user?.role;
 
   const handleAddAbsence = useCallback(() => {
     close();
-    navigation.navigate('ElderlyAbsences', { elderlyId, elderlyName: route.params?.name ?? '' });
+    navigation.navigate('ElderlyAbsences', { elderlyId, elderlyName: route.params?.name ?? '', openModal: true });
   }, [elderlyId, navigation, close, route.params?.name]);
+
+  const handleViewAbsencesOnly = useCallback(() => {
+    navigation.navigate('ElderlyAbsences', { elderlyId, elderlyName: route.params?.name ?? '' });
+  }, [elderlyId, navigation, route.params?.name]);
+
   const renderBackdrop = useCallback(
-    (props) => (
+    (props: any) => ( // ── MUDADO: Adicionado : any aqui ──
       <BottomSheetBackdrop
         {...props}
         disappearsOnIndex={-1}
@@ -138,7 +140,6 @@ const userRole = user?.user?.role;
     if (elderlyId) {
       fetchElderly(elderlyId);
     }
-
     return () => {
       clearData();
     };
@@ -158,6 +159,7 @@ const userRole = user?.user?.role;
         onAddFall={canAddFall ? handleAddFall : undefined}
         onAddWound={canAddFall ? handleAddWound : undefined}
         onAddAbsence={canAddAbsence ? handleAddAbsence : undefined}
+        onViewAbsences={handleViewAbsencesOnly} 
       />
 
       <BottomSheet
@@ -170,7 +172,6 @@ const userRole = user?.user?.role;
       >
         <BottomSheetView style={styles.bottomSheetContent}>
           <Text style={styles.sheetTitle}>{t('elderly.addHealthData')}</Text>
-
           <VStack spacing={Spacing.md_16}>
             <MenuItem
               iconName="monitor-heart"
@@ -179,7 +180,6 @@ const userRole = user?.user?.role;
               subtitle={t('measurements.recordVitalSigns')}
               onPress={handleAddMeasurement}
             />
-
             {canAddMedication && (
               <MenuItem
                 iconName="medication"
@@ -189,7 +189,6 @@ const userRole = user?.user?.role;
                 onPress={handleAddMedication}
               />
             )}
-
             {canAddPathology && (
               <MenuItem
                 iconName="local-hospital"
@@ -199,7 +198,6 @@ const userRole = user?.user?.role;
                 onPress={handleAddPathology}
               />
             )}
-
             <MenuItem
               iconName="calendar-month"
               iconColor={Color.primary}
@@ -207,7 +205,6 @@ const userRole = user?.user?.role;
               subtitle={t('calendar.scheduleActivity')}
               onPress={handleAddCalendarEvent}
             />
-
             {canAddFall && (
               <MenuItem
                 iconName="warning"
@@ -217,7 +214,6 @@ const userRole = user?.user?.role;
                 onPress={handleAddFall}
               />
             )}
-
             {canAddFall && (
               <MenuItem
                 iconName="healing"
@@ -227,7 +223,6 @@ const userRole = user?.user?.role;
                 onPress={handleAddWound}
               />
             )}
-
             {canAddAbsence && (
               <MenuItem
                 iconName="person-off"
@@ -246,66 +241,14 @@ const userRole = user?.user?.role;
 
 export default ElderlyDetailsScreen;
 
-// MARK: Styles
 const styles = StyleSheet.create({
-  headerButton: {
-    width: 36,
-    height: 36,
-    borderRadius: Border.sm_8,
-    backgroundColor: Color.Orange.v300,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bottomSheetBackground: {
-    backgroundColor: Color.Background.white,
-    borderWidth: 2,
-    borderColor: Color.primary
-  },
-  bottomSheetContent: {
-    flex: 1,
-    paddingHorizontal: Spacing.lg_24,
-    paddingTop: Spacing.md_16,
-    paddingBottom: Spacing.lg_24,
-    borderLeftWidth: 2,
-    borderRightWidth: 2,
-    borderColor: Color.primary,
-  },
-  sheetTitle: {
-    fontSize: FontSize.subtitle_20,
-    fontFamily: FontFamily.extraBold,
-    color: Color.dark,
-    textAlign: 'center',
-    marginBottom: Spacing.lg_24,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md_16,
-    backgroundColor: Color.Background.white,
-    borderRadius: Border.md_12,
-    borderWidth: 1,
-    borderColor: Color.Gray.v200,
-  },
-  menuItemIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: Border.md_12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md_16,
-  },
-  menuItemContent: {
-    flex: 1,
-  },
-  menuItemTitle: {
-    fontSize: FontSize.bodylarge_18,
-    fontFamily: FontFamily.semi_bold,
-    color: Color.dark,
-    marginBottom: 4,
-  },
-  menuItemSubtitle: {
-    fontSize: FontSize.bodysmall_14,
-    fontFamily: FontFamily.regular,
-    color: Color.Gray.v500,
-  },
+  headerButton: { width: 36, height: 36, borderRadius: Border.sm_8, backgroundColor: Color.Orange.v300, justifyContent: 'center', alignItems: 'center' },
+  bottomSheetBackground: { backgroundColor: Color.Background.white, borderWidth: 2, borderColor: Color.primary },
+  bottomSheetContent: { flex: 1, paddingHorizontal: Spacing.lg_24, paddingTop: Spacing.md_16, paddingBottom: Spacing.lg_24, borderColor: Color.primary },
+  sheetTitle: { fontSize: FontSize.subtitle_20, fontFamily: FontFamily.extraBold, color: Color.dark, textAlign: 'center', marginBottom: Spacing.lg_24 },
+  menuItem: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md_16, backgroundColor: Color.Background.white, borderRadius: Border.md_12, borderWidth: 1, borderColor: Color.Gray.v200 },
+  menuItemIcon: { width: 48, height: 48, borderRadius: Border.md_12, justifyContent: 'center', alignItems: 'center', marginRight: Spacing.md_16 },
+  menuItemContent: { flex: 1 },
+  menuItemTitle: { fontSize: FontSize.bodylarge_18, fontFamily: FontFamily.semi_bold, color: Color.dark, marginBottom: 4 },
+  menuItemSubtitle: { fontSize: FontSize.bodysmall_14, fontFamily: FontFamily.regular, color: Color.Gray.v500 },
 });

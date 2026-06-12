@@ -15,6 +15,7 @@ import ElderlyMeasurementsListScreen from "@src/screens/elderly/ElderlyMeasureme
 import ElderlySOSListScreen from "@src/screens/elderly/ElderlySOSListScreen";
 import { getScreenOptionsWithNavigation } from "@src/utils/navigationHelper";
 import { useTranslation } from "@src/localization/hooks/useTranslation";
+import ElderlyAbsencesScreen from "@src/screens/elderly/ElderlyAbsencesScreen";
 import React from "react";
 
 export type ElderlyProfileStackParamList = {
@@ -56,6 +57,10 @@ export type ElderlyProfileStackParamList = {
   };
   ElderlySOSList: {
     elderlyId: number;
+  };
+  ElderlyAbsences: {
+    elderlyId: number;
+    elderlyName?: string;
   };
 };
 
@@ -142,6 +147,11 @@ export const ElderlyProfileStackNavigator = () => {
         name='ElderlySOSList'
         component={ElderlySOSListScreen}
         options={{ title: t('sosOccurrence.title') }}
+      />
+      <Stack.Screen
+        name='ElderlyAbsences'
+        component={ElderlyAbsencesScreen}
+        options={{ title: t('navigation.absences') }}
       />
     </Stack.Navigator>
   );

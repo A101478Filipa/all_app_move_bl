@@ -71,10 +71,16 @@ type ElderlyDetailsComponentArgs = {
   onAddFall?: () => void;
   onAddWound?: () => void;
   onAddAbsence?: () => void;
+  onViewAbsences?: () => void; // 🔥 CORREÇÃO: Adicionado o tipo da nova propriedade aqui
 }
 
 // MARK: Component
-const ElderlyDetailsComponent = ({ screenState, elderly, onRefresh, navigation, onAddMeasurement, onAddMedication, onAddPathology, onAddCalendarEvent, onAddFall, onAddWound, onAddAbsence }: ElderlyDetailsComponentArgs) => {
+const ElderlyDetailsComponent = ({ 
+  screenState, elderly, onRefresh, navigation, 
+  onAddMeasurement, onAddMedication, onAddPathology, 
+  onAddCalendarEvent, onAddFall, onAddWound, onAddAbsence,
+  onViewAbsences 
+}: ElderlyDetailsComponentArgs) => {
   const { t } = useTranslation();
 
   if (screenState === ScreenState.LOADING) {
@@ -96,9 +102,12 @@ const ElderlyDetailsComponent = ({ screenState, elderly, onRefresh, navigation, 
       >
         { elderly && (
           <VStack align={'flex-start'} spacing={Spacing.lg_24}>
-         
+          
             <HStack spacing={Spacing.lg_24} style={styles.header}>
-              <Image source={{ uri: buildAvatarUrl(elderly.user.avatarUrl, elderly.user.role) }} style={styles.avatar}/>
+              <Image 
+                source={{ uri: buildAvatarUrl(elderly.user.avatarUrl) }} 
+                style={styles.avatar}
+              />
               <VStack align={'flex-start'} spacing={Spacing.xs_4}>
                 <Text style={styles.name}>{elderly.name}</Text>
                 <Text style={styles.institution}>{elderly.institution.name}</Text>
@@ -311,7 +320,8 @@ const ElderlyDetailsComponent = ({ screenState, elderly, onRefresh, navigation, 
                   title="Ausências"
                   onAdd={onAddAbsence}
                   fullWidth
-                  onPress={() => navigation.push('ElderlyAbsences', { elderlyId: elderly.id, elderlyName: elderly.name })}
+                  // 🔥 CORREÇÃO: Usa a função injetada pelo pai, ou faz o push clássico em fallback
+                  onPress={onViewAbsences || (() => navigation.push('ElderlyAbsences', { elderlyId: elderly.id, elderlyName: elderly.name }))}
                 />
               </HStack>
             </VStack>
@@ -324,176 +334,35 @@ const ElderlyDetailsComponent = ({ screenState, elderly, onRefresh, navigation, 
 
 // MARK: Styles
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Color.Background.subtle,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    ...spacingStyles.screenScrollContainer,
-  },
-  header: {
-    alignItems: 'center',
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: Border.full,
-  },
-  name: {
-    fontSize: FontSize.large,
-    fontFamily: FontFamily.bold
-  },
-  institution: {
-    fontSize: 16,
-    color: 'gray',
-  },
-  infoRowContainer: {
-    alignSelf: 'stretch'
-  },
-  infoCardContainer: {
-    alignSelf: 'stretch',
-  },
-  infoCard: {
-    backgroundColor: Color.Background.white,
-    borderRadius: Border.md_12,
-    padding: Spacing.md_16,
-    shadowColor: Color.dark,
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-    borderWidth: 1,
-    borderColor: Color.Gray.v200,
-  },
-  emergencyCard: {
-    borderColor: Color.Error.default + '30',
-    borderWidth: 1.5,
-  },
-  infoCardRow: {
-    alignItems: 'center',
-    minHeight: 44,
-  },
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: Border.sm_8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  infoTextContainer: {
-    flex: 1,
-  },
-  infoLabel: {
-    fontSize: FontSize.bodysmall_14,
-    fontFamily: FontFamily.medium,
-    color: Color.Gray.v400,
-    marginBottom: 2,
-  },
-  infoValue: {
-    fontSize: FontSize.bodymedium_16,
-    fontFamily: FontFamily.semi_bold,
-    color: Color.dark,
-  },
-  infoSubtext: {
-    fontSize: FontSize.bodysmall_14,
-    fontFamily: FontFamily.regular,
-    color: Color.Gray.v400,
-    marginTop: 2,
-  },
-  infoDivider: {
-    height: 1,
-    backgroundColor: Color.Gray.v200,
-    marginVertical: Spacing.sm_8,
-    marginHorizontal: Spacing.xs_4,
-  },
-  itemEmptyText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSize.bodymedium_16,
-    color: Color.Gray.v500
-  },
-  gridContainer: {
-    alignSelf: 'stretch',
-  },
-  gridRow: {
-    alignSelf: 'stretch',
-  },
-  categoryCard: {
-    flex: 1,
-    backgroundColor: Color.Background.white,
-    borderRadius: Border.md_12,
-    padding: Spacing.md_16,
-    minHeight: 100,
-    borderWidth: 1,
-    borderColor: Color.Gray.v200,
-    shadowColor: Color.dark,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 2,
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    position: 'relative',
-  },
-  categoryCardFull: {
-    flex: undefined,
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 72,
-    paddingVertical: Spacing.sm_12,
-    gap: Spacing.sm_12,
-  },
-  categoryIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: Border.sm_8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  categoryTitle: {
-    marginTop: Spacing.sm_8,
-    fontSize: FontSize.bodysmall_14,
-    fontFamily: FontFamily.semi_bold,
-    color: Color.dark,
-    flex: 1,
-  },
-  categoryBadge: {
-    position: 'absolute',
-    top: Spacing.sm_8,
-    right: Spacing.sm_8,
-    minWidth: 24,
-    height: 24,
-    borderRadius: Border.full,
-    paddingHorizontal: Spacing.xs_4,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  categoryBadgeText: {
-    fontSize: FontSize.caption_12,
-    fontFamily: FontFamily.bold,
-    color: Color.white,
-  },
-  categoryChevron: {
-    position: 'absolute',
-    bottom: Spacing.sm_8,
-    right: Spacing.sm_8,
-  },
-  categoryIconContainer: {
-    position: 'relative',
-  },
-  cardAddButton: {
-    position: 'absolute',
-    top: -6,
-    left: -6,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  safeArea: { flex: 1, backgroundColor: Color.Background.subtle },
+  scrollContainer: { flexGrow: 1, ...spacingStyles.screenScrollContainer },
+  header: { alignItems: 'center' },
+  avatar: { width: 100, height: 100, borderRadius: Border.full },
+  name: { fontSize: FontSize.large, fontFamily: FontFamily.bold },
+  institution: { fontSize: 16, color: 'gray' },
+  infoRowContainer: { alignSelf: 'stretch' },
+  infoCardContainer: { alignSelf: 'stretch' },
+  infoCard: { backgroundColor: Color.Background.white, borderRadius: Border.md_12, padding: Spacing.md_16, shadowColor: Color.dark, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1, borderWidth: 1, borderColor: Color.Gray.v200 },
+  emergencyCard: { borderColor: Color.Error.default + '30', borderWidth: 1.5 },
+  infoCardRow: { alignItems: 'center', minHeight: 44 },
+  iconContainer: { width: 36, height: 36, borderRadius: Border.sm_8, justifyContent: 'center', alignItems: 'center' },
+  infoTextContainer: { flex: 1 },
+  infoLabel: { fontSize: FontSize.bodysmall_14, fontFamily: FontFamily.medium, color: Color.Gray.v400, marginBottom: 2 },
+  infoValue: { fontSize: FontSize.bodymedium_16, fontFamily: FontFamily.semi_bold, color: Color.dark },
+  infoSubtext: { fontSize: FontSize.bodysmall_14, fontFamily: FontFamily.regular, color: Color.Gray.v400, marginTop: 2 },
+  infoDivider: { height: 1, backgroundColor: Color.Gray.v200, marginVertical: Spacing.sm_8, marginHorizontal: Spacing.xs_4 },
+  itemEmptyText: { fontFamily: FontFamily.medium, fontSize: FontSize.bodymedium_16, color: Color.Gray.v500 },
+  gridContainer: { alignSelf: 'stretch' },
+  gridRow: { alignSelf: 'stretch' },
+  categoryCard: { flex: 1, backgroundColor: Color.Background.white, borderRadius: Border.md_12, padding: Spacing.md_16, minHeight: 100, borderWidth: 1, borderColor: Color.Gray.v200, shadowColor: Color.dark, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 2, alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' },
+  categoryCardFull: { flex: undefined, flexDirection: 'row', alignItems: 'center', minHeight: 72, paddingVertical: Spacing.sm_12, gap: Spacing.sm_12 },
+  categoryIconWrap: { width: 52, height: 52, borderRadius: Border.sm_8, justifyContent: 'center', alignItems: 'center' },
+  categoryTitle: { marginTop: Spacing.sm_8, fontSize: FontSize.bodysmall_14, fontFamily: FontFamily.semi_bold, color: Color.dark, flex: 1 },
+  categoryBadge: { position: 'absolute', top: Spacing.sm_8, right: Spacing.sm_8, minWidth: 24, height: 24, borderRadius: Border.full, paddingHorizontal: Spacing.xs_4, justifyContent: 'center', alignItems: 'center' },
+  categoryBadgeText: { fontSize: FontSize.caption_12, fontFamily: FontFamily.bold, color: Color.white },
+  categoryChevron: { position: 'absolute', bottom: Spacing.sm_8, right: Spacing.sm_8 },
+  categoryIconContainer: { position: 'relative' },
+  cardAddButton: { position: 'absolute', top: -6, left: -6, width: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
 });
 
 export default ElderlyDetailsComponent;

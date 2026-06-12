@@ -890,7 +890,8 @@
     "calendar": "Calendar",
     "addCalendarEvent": "Add Event",
     "editCalendarEvent": "Edit Event",
-    "editElderly": "Edit Elderly Profile"
+    "editElderly": "Edit Elderly Profile",
+    "absences": "Absences"
   },
   "searchElderly": {
     "title": "Search Elderly",

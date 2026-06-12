@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Alert, Modal, TextInput, KeyboardAvoidingView, Platform,
@@ -58,7 +58,7 @@ function formatShortDate(d: string | Date): string {
 }
 
 function formatPresenceDate(d: Date): string {
-  return d.toLocaleDateString('pt-PT', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+  return d.toLocaleDateString('pt-PT', { weekday: 'long', day: '2-digit', month: 'long' });
 }
 
 function isDateInRange(date: Date, startStr: string, endStr: string): boolean {
@@ -68,23 +68,10 @@ function isDateInRange(date: Date, startStr: string, endStr: string): boolean {
   return d >= start && d <= end;
 }
 
-type ShiftType = 'morning' | 'afternoon' | 'night';
-const SHIFT_LABELS: Record<ShiftType, string> = { morning: 'Manhã', afternoon: 'Tarde', night: 'Noite' };
-const SHIFT_COLORS: Record<ShiftType, string> = { morning: '#F59E0B', afternoon: '#3B82F6', night: '#7C3AED' };
-const SHIFT_ICONS: Record<ShiftType, string> = { morning: 'wb-sunny', afternoon: 'wb-twilight', night: 'nightlight-round' };
-
-function getShiftType(startTime: string): ShiftType {
-  const h = parseInt(startTime.split(':')[0], 10);
-  if (h >= 6 && h < 14) return 'morning';
-  if (h >= 14 && h < 22) return 'afternoon';
-  return 'night';
-}
-
 type PresenceInfo =
   | { status: 'absent' | 'no-schedule' }
-  | { status: 'present'; shift: ShiftType; timeRange: string };
+  | { status: 'present'; timeRange: string; startTimeStr: string };
 
-// Mapeia a presença diária avaliando os novos slots dinâmicos por dia da semana
 function getPresenceInfo(s: StaffScheduleSummary, date: Date): PresenceInfo {
   const hasTimeOff = s.timeOffs.some(t =>
     isDateInRange(date, t.startDate as string, t.endDate as string)
@@ -95,12 +82,64 @@ function getPresenceInfo(s: StaffScheduleSummary, date: Date): PresenceInfo {
   const jsDay = date.getDay();
   const isoDay = jsDay === 0 ? 7 : jsDay;
 
-  // Encontra o slot específico para o dia da semana analisado
   const activeSlot = s.schedule.slots.find((slot: any) => slot.dayIso === isoDay);
   if (!activeSlot || !activeSlot.isActive) return { status: 'absent' };
 
-  const shift = getShiftType(activeSlot.startTime);
-  return { status: 'present', shift, timeRange: `${activeSlot.startTime}–${activeSlot.endTime}` };
+  return { 
+    status: 'present', 
+    timeRange: `${activeSlot.startTime}–${activeSlot.endTime}`,
+    startTimeStr: activeSlot.startTime 
+  };
+}
+
+function calculateTimelineBars(timeRange: string) {
+  const defaultProps = { isNightSplit: false, left1: 0, width1: 0, left2: 0, width2: 0 };
+  
+  if (!timeRange) return defaultProps;
+  
+  const [startStr, endStr] = timeRange.split('–');
+  if (!startStr || !endStr) return defaultProps;
+  
+  const [sh, sm] = startStr.split(':').map(Number);
+  const [eh, em] = endStr.split(':').map(Number);
+  
+  if (isNaN(sh) || isNaN(sm) || isNaN(eh) || isNaN(em)) return defaultProps;
+  
+  const startMins = sh * 60 + sm;
+  const endMins = eh * 60 + em;
+
+  // Turno da noite (Passa da meia-noite)
+  if (endMins < startMins) {
+    return {
+      isNightSplit: true,
+      left1: (startMins / 1440) * 100,
+      width1: ((1440 - startMins) / 1440) * 100,
+      left2: 0,
+      width2: (endMins / 1440) * 100
+    };
+  }
+
+  // Turno normal diurno
+  return {
+    isNightSplit: false,
+    left1: (startMins / 1440) * 100,
+    width1: ((endMins - startMins) / 1440) * 100,
+    left2: 0,
+    width2: 0 // Definido explicitamente como 0 em vez de ficar ausente
+  };
+}
+
+// HELPER HOSPITALAR: Gera os 7 dias da semana com base no dia selecionado
+function getDaysOfCurrentWeek(baseDate: Date): Date[] {
+  const start = new Date(baseDate);
+  const day = start.getDay();
+  const diff = day === 0 ? -6 : 1 - day; // Força início a uma Segunda-feira
+  start.setDate(start.getDate() + diff);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    return d;
+  });
 }
 
 type StaffMember = { id: number; userId: number; name: string; role: string };
@@ -204,6 +243,8 @@ const AdminTeamSchedulesScreen: React.FC<Props> = ({ navigation }) => {
       setSaving(false);
     }
   };
+
+  const currentWeekDays = useMemo(() => getDaysOfCurrentWeek(presenceDate), [presenceDate]);
 
   const displayedTimeOffs = filter === 'pending'
     ? timeOffs.filter(t => t.status === TimeOffStatus.PENDING)
@@ -327,89 +368,136 @@ const AdminTeamSchedulesScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
 
-        {/* ── Daily Presence Calendar ── */}
+        {/* ── 🏥 DAILY PRESENCE SECTION (REMODELAÇÃO ESTILO HOSPITALAR) ── */}
         {institutionSchedules.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <MaterialIcons name="today" size={20} color={Color.primary} />
-              <Text style={styles.sectionTitle}>Presença por Dia</Text>
-            </View>
-            <View style={styles.presenceNav}>
-              <TouchableOpacity
-                style={styles.presenceNavBtn}
-                onPress={() => setPresenceDate(d => { const n = new Date(d); n.setDate(n.getDate() - 1); return n; })}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <MaterialIcons name="chevron-left" size={24} color={Color.primary} />
-              </TouchableOpacity>
-              <Text style={styles.presenceDateText}>{formatPresenceDate(presenceDate)}</Text>
-              <TouchableOpacity
-                style={styles.presenceNavBtn}
-                onPress={() => setPresenceDate(d => { const n = new Date(d); n.setDate(n.getDate() + 1); return n; })}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <MaterialIcons name="chevron-right" size={24} color={Color.primary} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.presenceTodayBtn}
-                onPress={() => setPresenceDate(new Date())}
-              >
+              <MaterialIcons name="dashboard" size={20} color={Color.primary} />
+              <Text style={styles.sectionTitle}>Quadro de Escala Diária</Text>
+              <TouchableOpacity style={styles.presenceTodayBtn} onPress={() => setPresenceDate(new Date())}>
                 <Text style={styles.presenceTodayText}>Hoje</Text>
               </TouchableOpacity>
             </View>
-            
+
+            {/* 🗓️ HOSPITAL SLIDER: Fita de calendário semanal deslizante rápida */}
+            <View style={styles.calendarStripContainer}>
+              {currentWeekDays.map((day, idx) => {
+                const isSelected = day.getDate() === presenceDate.getDate() && day.getMonth() === presenceDate.getMonth();
+                const isToday = new Date().getDate() === day.getDate() && new Date().getMonth() === day.getMonth();
+                const weekdaysShort = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    style={[styles.stripDayButton, isSelected && styles.stripDayButtonActive]}
+                    onPress={() => setPresenceDate(day)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.stripDayLabel, isSelected && styles.stripDayLabelActive]}>
+                      {weekdaysShort[day.getDay()]}
+                    </Text>
+                    <View style={[styles.stripDayCircle, isToday && !isSelected && styles.stripTodayBorder, isSelected && styles.stripDayCircleActive]}>
+                      <Text style={[styles.stripDayNum, isSelected && styles.stripDayNumActive, isToday && !isSelected && { color: Color.primary, fontFamily: FontFamily.bold }]}>
+                        {day.getDate()}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={styles.presenceTextTitle}>{formatPresenceDate(presenceDate)}</Text>
+
             {(() => {
               const infos = institutionSchedules.map(s => ({ s, info: getPresenceInfo(s, presenceDate) }));
-              const shiftOrder: ShiftType[] = ['morning', 'afternoon', 'night'];
               const present = infos.filter(x => x.info.status === 'present') as { s: StaffScheduleSummary; info: Extract<PresenceInfo, { status: 'present' }> }[];
               const absent  = infos.filter(x => x.info.status !== 'present');
 
+              // Ordena do trabalhador que entra mais cedo para o mais tardio
+              present.sort((a, b) => a.info.startTimeStr.localeCompare(b.info.startTimeStr));
+
               return (
                 <>
-                  {shiftOrder.map(shift => {
-                    const members = present.filter(x => x.info.shift === shift);
-                    if (members.length === 0) return null;
-                    const shiftColor = SHIFT_COLORS[shift];
-                    return (
-                      <View key={shift}>
-                        <View style={[styles.shiftHeader, { borderLeftColor: shiftColor }]}>
-                          <MaterialIcons name={SHIFT_ICONS[shift] as any} size={16} color={shiftColor} />
-                          <Text style={[styles.shiftHeaderText, { color: shiftColor }]}>
-                            {SHIFT_LABELS[shift]} · {members[0].info.timeRange}
-                          </Text>
-                        </View>
-                        {members.map(({ s }) => (
-                          <View key={s.userId} style={styles.presenceMemberRow}>
-                            <MaterialIcons name="check-circle" size={20} color="#22C55E" />
-                            <Text style={styles.presenceMemberName}>{s.name}</Text>
-                            <View style={[styles.presenceStatusBadge, { backgroundColor: '#22C55E22' }]}>
-                              <Text style={[styles.presenceStatusText, { color: '#22C55E' }]}>Presente</Text>
-                            </View>
-                          </View>
-                        ))}
+                  {/* GRÁFICO DE TIMELINE: EQUIPA EM SERVIÇO */}
+                  {present.length > 0 && (
+                    <View style={{ marginBottom: Spacing.xs_6 }}>
+                      <View style={[styles.shiftHeader, { borderLeftColor: '#22C55E', marginBottom: 12 }]}>
+                        <MaterialIcons name="people" size={16} color="#22C55E" />
+                        <Text style={[styles.shiftHeaderText, { color: '#22C55E' }]}>Equipa ao Serviço ({present.length})</Text>
                       </View>
-                    );
-                  })}
-                  {absent.length > 0 && (
-                    <View>
-                      <View style={[styles.shiftHeader, { borderLeftColor: '#94A3B8' }]}>
-                        <MaterialIcons name="cancel" size={16} color="#94A3B8" />
-                        <Text style={[styles.shiftHeaderText, { color: '#94A3B8' }]}>Ausentes / Sem horário</Text>
+
+                      {/* Legenda de marcas temporais da escala */}
+                      <View style={styles.timelineLegend}>
+                        <Text style={styles.legendTick}>00h</Text>
+                        <Text style={styles.legendTick}>06h</Text>
+                        <Text style={styles.legendTick}>12h</Text>
+                        <Text style={styles.legendTick}>18h</Text>
+                        <Text style={styles.legendTick}>24h</Text>
                       </View>
-                      {absent.map(({ s, info }) => {
-                        const color = info.status === 'absent' ? '#EF4444' : '#94A3B8';
-                        const icon  = info.status === 'absent' ? 'cancel' : 'help-outline';
-                        const label = info.status === 'absent' ? 'Ausente' : 'Sem horário';
+                      
+                      {present.map(({ s, info }) => {
+                        const tProps = calculateTimelineBars(info.timeRange);
                         return (
-                          <View key={s.userId} style={styles.presenceMemberRow}>
-                            <MaterialIcons name={icon as any} size={20} color={color} />
-                            <Text style={styles.presenceMemberName}>{s.name}</Text>
-                            <View style={[styles.presenceStatusBadge, { backgroundColor: color + '22' }]}>
-                              <Text style={[styles.presenceStatusText, { color }]}>{label}</Text>
+                          <View key={s.userId} style={styles.hospitalStaffCard}>
+                            <View style={styles.hospitalCardMeta}>
+                              <Text style={styles.hospitalStaffName} numberOfLines={1}>{s.name}</Text>
+                              <Text style={styles.hospitalStaffHours}>{info.timeRange}</Text>
                             </View>
+
+                            
+                            <TouchableOpacity 
+                              style={styles.ganttTrackContainer}
+                              activeOpacity={0.7}
+                              onPress={() => Alert.alert(
+                                'Escala de Serviço',
+                                `Funcionário: ${s.name}\nHorário de Trabalho: ${info.timeRange}`
+                              )}
+                            >
+                              <View style={styles.ganttTrackGridLine} />
+                              <View style={[styles.ganttTrackGridLine, { left: '25%' }]} />
+                              <View style={[styles.ganttTrackGridLine, { left: '50%' }]} />
+                              <View style={[styles.ganttTrackGridLine, { left: '75%' }]} />
+
+                              {tProps.isNightSplit ? (
+                                <>
+                                  <View style={[styles.ganttActiveFill, { left: `${tProps.left1}%`, width: `${tProps.width1}%` }]} />
+                                  <View style={[styles.ganttActiveFill, { left: `${tProps.left2}%`, width: `${tProps.width2}%` }]} />
+                                </>
+                              ) : (
+                                <View style={[styles.ganttActiveFill, { left: `${tProps.left1}%`, width: `${tProps.width1}%` }]} />
+                              )}
+                            </TouchableOpacity>
                           </View>
                         );
                       })}
+                    </View>
+                  )}
+
+                  {/* ⚪ LISTAGEM: INDISPONÍVEIS / FOLGAS / BAIXAS */}
+                  {absent.length > 0 && (
+                    <View style={{ marginTop: Spacing.sm_8 }}>
+                      <View style={[styles.shiftHeader, { borderLeftColor: '#94A3B8', marginBottom: Spacing.xs_4 }]}>
+                        <MaterialIcons name="block" size={16} color="#94A3B8" />
+                        <Text style={[styles.shiftHeaderText, { color: '#94A3B8' }]}>Ausentes ou de Folga ({absent.length})</Text>
+                      </View>
+                      
+                      <View style={styles.absentGridRow}>
+                        {absent.map(({ s, info }) => {
+                          const isRealAbsent = info.status === 'absent';
+                          const badgeColor = isRealAbsent ? '#EF4444' : '#64748B';
+                          return (
+                            <View key={s.userId} style={styles.hospitalAbsentCard}>
+                              <MaterialIcons name={isRealAbsent ? "event-busy" : "nights-stay"} size={16} color={badgeColor} />
+                              <Text style={styles.hospitalAbsentName} numberOfLines={1}>{s.name}</Text>
+                              <View style={[styles.hospitalAbsentBadge, { backgroundColor: badgeColor + '15' }]}>
+                                <Text style={[styles.hospitalAbsentBadgeText, { color: badgeColor }]}>
+                                  {isRealAbsent ? 'Ausente/Férias' : 'Folga'}
+                                </Text>
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
                     </View>
                   )}
                 </>
@@ -467,7 +555,7 @@ const AdminTeamSchedulesScreen: React.FC<Props> = ({ navigation }) => {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ── Custom Pop-up da Política de Férias (Sem usar Modal para evitar bugs no iPhone) ── */}
+      {/* ── Custom Pop-up da Política de Férias ── */}
       {showPolicyModal && (
         <View style={styles.popupOverlay}>
           <TouchableOpacity 
@@ -600,6 +688,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm_12, marginTop: 4,
   },
   saveBtnText: { fontFamily: FontFamily.semi_bold, fontSize: FontSize.bodysmall_14, color: '#fff' },
+  
+  // ── ESCALA CLINICA ──
   presenceNav: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   presenceNavBtn: { padding: 4 },
   presenceDateText: {
@@ -607,25 +697,16 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semi_bold, fontSize: FontSize.bodysmall_14, color: Color.dark,
   },
   presenceTodayBtn: {
-    paddingHorizontal: 10, paddingVertical: 4,
+    paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 8, backgroundColor: Color.primary + '18',
   },
   presenceTodayText: { fontFamily: FontFamily.medium, fontSize: FontSize.caption_12, color: Color.primary },
-  presenceMemberRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: Color.Gray.v100,
-  },
-  presenceMemberName: {
-    flex: 1, fontFamily: FontFamily.medium, fontSize: FontSize.bodysmall_14, color: Color.dark,
-  },
-  presenceStatusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  presenceStatusText: { fontFamily: FontFamily.semi_bold, fontSize: 11 },
   shiftHeader: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    borderLeftWidth: 3, paddingLeft: 8, paddingVertical: 4,
-    marginTop: 8, marginBottom: 2,
+    borderLeftWidth: 3.5, paddingLeft: 8, paddingVertical: 2,
+    marginTop: 6, marginBottom: 4,
   },
-  shiftHeaderText: { fontFamily: FontFamily.semi_bold, fontSize: FontSize.caption_12 },
+  shiftHeaderText: { fontFamily: FontFamily.bold, fontSize: FontSize.caption_12 },
   popupOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 999, 
@@ -654,5 +735,156 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 6,
+  },
+  calendarStripContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: Color.Background.subtle,
+    borderRadius: 12,
+    padding: 6,
+    marginVertical: 4,
+  },
+  stripDayButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderRadius: 10,
+    gap: 4,
+  },
+  stripDayButtonActive: {
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  stripDayLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: 10,
+    color: Color.Gray.v400,
+  },
+  stripDayLabelActive: {
+    color: Color.primary,
+    fontFamily: FontFamily.bold,
+  },
+  stripDayCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stripDayCircleActive: {
+    backgroundColor: Color.primary,
+  },
+  stripTodayBorder: {
+    borderWidth: 1.5,
+    borderColor: Color.primary + '60',
+  },
+  stripDayNum: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    color: Color.dark,
+  },
+  stripDayNumActive: {
+    color: '#fff',
+    fontFamily: FontFamily.bold,
+  },
+  presenceTextTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.bodysmall_14,
+    color: Color.dark,
+    textTransform: 'capitalize',
+    marginTop: 6,
+    marginBottom: 2,
+    paddingLeft: 2,
+  },
+  timelineLegend: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingLeft: 96, // Alinha perfeitamente com a Gantt chart pulando os nomes
+    paddingRight: 4,
+    marginBottom: 4,
+  },
+  legendTick: {
+    fontFamily: FontFamily.regular,
+    fontSize: 9,
+    color: Color.Gray.v400,
+  },
+  hospitalStaffCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: Color.Gray.v100,
+    gap: 12,
+  },
+  hospitalCardMeta: {
+    width: 84,
+  },
+  hospitalStaffName: {
+    fontFamily: FontFamily.semi_bold,
+    fontSize: 12,
+    color: Color.dark,
+  },
+  hospitalStaffHours: {
+    fontFamily: FontFamily.medium,
+    fontSize: 10,
+    color: Color.Gray.v400,
+    marginTop: 1,
+  },
+  ganttTrackContainer: {
+    flex: 1,
+    height: 16,
+    backgroundColor: Color.Background.muted,
+    borderRadius: 4,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  ganttTrackGridLine: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 1,
+    backgroundColor: 'rgba(0,0,0,0.04)',
+  },
+  ganttActiveFill: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    backgroundColor: Color.primary + 'cc',
+    borderRadius: 3,
+  },
+  absentGridRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  hospitalAbsentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Color.Background.subtle,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    gap: 6,
+    width: '48.5%', 
+  },
+  hospitalAbsentName: {
+    flex: 1,
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
+    color: Color.dark,
+  },
+  hospitalAbsentBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  hospitalAbsentBadgeText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 8,
   },
 });

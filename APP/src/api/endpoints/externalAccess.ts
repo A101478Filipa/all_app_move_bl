@@ -42,6 +42,20 @@ export interface ExternalElderlyFall {
   injuryDescription: string | null;
 }
 
+export interface ExternalElderlySos {
+  id: number;
+  date: string;
+  description: string | null;
+  status: string | null;
+}
+
+export interface ExternalElderlyWound {
+  id: number;
+  location: string;
+  status: string | null;
+  lastUpdate: string;
+}
+
 export interface ExternalElderlyProfile {
   id: number;
   name: string;
@@ -53,6 +67,8 @@ export interface ExternalElderlyProfile {
   medications: ExternalElderlyMedication[];
   measurements: ExternalElderlyMeasurement[];
   recentFalls: ExternalElderlyFall[];
+  recentSos: ExternalElderlySos[];
+  recentWounds: ExternalElderlyWound[];
 }
 
 export interface ExternalVisitNote {
@@ -139,4 +155,10 @@ export const externalAccessApi = {
 
   addFall: (token: string, body: CreateExternalFallBody): Promise<ApiResponse<ExternalElderlyFall>> =>
     api.post(`external-access/${token}/falls`, body).then(r => r.data),
+
+  addSos: (token: string, body: { date: string; description?: string | null; status?: string | null }): Promise<ApiResponse<ExternalElderlySos>> =>
+    api.post(`external-access/${token}/sos`, body).then(r => r.data),
+
+  addWound: (token: string, body: { location: string; status?: string | null; lastUpdate: string }): Promise<ApiResponse<ExternalElderlyWound>> =>
+    api.post(`external-access/${token}/wounds`, body).then(r => r.data),
 };

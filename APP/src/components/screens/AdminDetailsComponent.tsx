@@ -57,7 +57,7 @@ const InstitutionAdminDetailsComponent = ({
         {admin && (
           <VStack align="flex-start" spacing={Spacing.lg_24}>
             <HStack spacing={Spacing.lg_24} style={styles.header}>
-              <Image source={{ uri: buildAvatarUrl(admin.user.avatarUrl, admin.user.role) }} style={styles.avatar} />
+              <Image source={{ uri: buildAvatarUrl(admin.user.avatarUrl) }} style={styles.avatar} />
               <VStack align="flex-start" spacing={Spacing.xs_4}>
                 <Text style={styles.name}>{admin.name}</Text>
                 {admin.institution?.name && <Text style={styles.institution}>{admin.institution.name}</Text>}

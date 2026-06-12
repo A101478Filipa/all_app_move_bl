@@ -16,6 +16,8 @@ const ElderlyHomepageScreen: React.FC<Props> = ({ navigation }) => {
   const [state, setState] = useState<ScreenState>(ScreenState.LOADING);
 
   const fetchElderlyData = useCallback(async () => {
+    if (!config || !config.baseUrl) return;
+
     try {
       await refreshUser({
         id: elderly.id,
@@ -25,7 +27,7 @@ const ElderlyHomepageScreen: React.FC<Props> = ({ navigation }) => {
     } catch (error) {
       console.error('Error refreshing elderly data:', error);
     }
-  }, [elderly.id, config.baseUrl, refreshUser]);
+  }, [elderly.id, config, refreshUser]); // Adicionado 'config' às dependências
 
   useFocusEffect(
     useCallback(() => {
@@ -34,14 +36,12 @@ const ElderlyHomepageScreen: React.FC<Props> = ({ navigation }) => {
         await fetchElderlyData();
         setState(ScreenState.IDLE);
       };
-
       loadData();
     }, [fetchElderlyData])
   );
 
   const onRefresh = useCallback(async () => {
     if (state === ScreenState.REFRESHING) return;
-
     setState(ScreenState.REFRESHING);
     await fetchElderlyData();
     setState(ScreenState.IDLE);
@@ -54,6 +54,7 @@ const ElderlyHomepageScreen: React.FC<Props> = ({ navigation }) => {
         screenState={state}
         onRefresh={onRefresh}
         navigation={navigation}
+        onViewAbsences={() => (navigation as any).navigate('ElderlyAbsences', { elderlyId: elderly.id, elderlyName: elderly.name })}
       />
     </SafeAreaView>
   );

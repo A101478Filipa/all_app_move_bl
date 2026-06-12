@@ -26,7 +26,7 @@ import { Image } from 'react-native';
 type Props = NativeStackScreenProps<any, 'ElderlyFallsList'>;
 
 const ElderlyFallsListScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { elderlyId } = route.params;
+  const { elderlyId } = route.params ?? {};
   const { t } = useTranslation();
   const { elderly, state, refreshElderly, fetchElderly } = useElderlyDetailsStore();
   const { user } = useAuthStore();

@@ -10,8 +10,8 @@ import { Spacing } from '@src/styles/spacings';
 import { shadowStyles } from '@src/styles/shadow';
 
 // MARK: Screen
-const InstitutionAdminDetailsScreen = ({ route, navigation }) => {
-  const { adminId, hideProfessionalCalendar } = route.params;
+const InstitutionAdminDetailsScreen: React.FC<{ route: any; navigation: any }> = ({ route, navigation }) => {
+  const { adminId, hideProfessionalCalendar } = route.params ?? {};
   const [admin, setAdmin] = useState<InstitutionAdmin | null>(null);
   const [state, setState] = useState<ScreenState>(ScreenState.LOADING);
 
@@ -30,7 +30,7 @@ const InstitutionAdminDetailsScreen = ({ route, navigation }) => {
     setState(ScreenState.REFRESHING);
     await fetchAdminData();
     setState(ScreenState.IDLE);
-  }, []);
+  }, [adminId]); // Adicionado adminId às dependências do useCallback por segurança
 
   useEffect(() => {
     const loadData = async () => {
@@ -40,7 +40,7 @@ const InstitutionAdminDetailsScreen = ({ route, navigation }) => {
     };
 
     loadData();
-  }, []);
+  }, [adminId]); // Sincronizado com o adminId
 
   return (
     <View style={{ flex: 1, backgroundColor: Color.Background.subtle }}>

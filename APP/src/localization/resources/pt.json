@@ -891,7 +891,8 @@
     "calendar": "Calendário",
     "addCalendarEvent": "Adicionar Evento",
     "editCalendarEvent": "Editar Evento",
-    "editElderly": "Editar Perfil do Idoso"
+    "editElderly": "Editar Perfil do Idoso",
+    "absences": "Ausências"
   },
   "searchElderly": {
     "title": "Pesquisar Idoso",

@@ -24,14 +24,13 @@ type HeaderComponentProps = {
 
 const HeaderComponent = ({ user, onSettingsPress }: HeaderComponentProps) => {
   const institution = (user as InstitutionMember).institution;
-
   const { t } = useTranslation();
 
   const getRoleTranslation = (role: string) => {
     switch (role) {
       case UserRole.ELDERLY: return t('userRole.elderly');
       case UserRole.CAREGIVER: return t('userRole.caregiver');
-      case UserRole.INSTITUTION_ADMIN: return t('userRole.admin'); // Aqui usas a tua chave "admin"
+      case UserRole.INSTITUTION_ADMIN: return t('userRole.admin');
       case UserRole.CLINICIAN: return t('userRole.clinician');
       case UserRole.PROGRAMMER: return t('userRole.programmer');
       default: return t('userRole.unknown');
@@ -41,7 +40,7 @@ const HeaderComponent = ({ user, onSettingsPress }: HeaderComponentProps) => {
   return (
     <TouchableOpacity style={styles.headerContainer} onPress={onSettingsPress}>
       <HStack spacing={Spacing.md_16}>
-        <Image source={{ uri: buildAvatarUrl(user.user.avatarUrl, user.user.role) }} style={styles.avatar}/>
+        <Image source={{ uri: buildAvatarUrl(user.user.avatarUrl) }} style={styles.avatar}/>
 
         <VStack spacing={Spacing.xs_4} align='flex-start' style={styles.userInfo}>
           <Text
@@ -75,7 +74,12 @@ const HeaderComponent = ({ user, onSettingsPress }: HeaderComponentProps) => {
   );
 };
 
-const MenuSection = ({ title, children }) => {
+type MenuSectionProps = {
+  title: string;
+  children: React.ReactNode;
+};
+
+const MenuSection = ({ title, children }: MenuSectionProps) => {
   return (
     <VStack spacing={Spacing.sm_8} style={{ alignSelf: 'stretch' }}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -86,7 +90,23 @@ const MenuSection = ({ title, children }) => {
   );
 };
 
-const MenuOption = ({ iconName, title, onPress, iconColor = Color.primary, hasNavigation = true, isLast = false, badge = null }) => {
+type MenuOptionProps = {
+  iconName: keyof typeof MaterialIcons.glyphMap;
+  title: string;
+  onPress: () => void;
+  iconColor?: string;
+  hasNavigation?: boolean;
+  isLast?: boolean;
+  badge?: number | null;
+};
+
+const MenuOption = ({ 
+  iconName, title, onPress, 
+  iconColor = Color.primary, 
+  hasNavigation = true, 
+  isLast = false, 
+  badge = null 
+}: MenuOptionProps) => {
   return (
     <TouchableOpacity
       style={[styles.menuOption, !isLast && styles.menuOptionBorder]}
@@ -118,7 +138,7 @@ const UserMenuScreen: React.FC<Props> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
-    if (!user) return;
+    if (!user || !config || !config.baseUrl) return;
 
     setRefreshing(true);
     try {
@@ -132,7 +152,7 @@ const UserMenuScreen: React.FC<Props> = ({ navigation }) => {
     } finally {
       setRefreshing(false);
     }
-  }, [user, refreshUser]);
+  }, [user, config, refreshUser]);
 
   const onLogout = async () => {
     await unregisterPushNotifications();
@@ -266,91 +286,21 @@ const UserMenuScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flex: 1,
-    backgroundColor: Color.Background.subtle
-  },
-  contentContainer: {
-    flex: 1,
-    ...spacingStyles.screenScrollContainer,
-  },
-  avatar: {
-    width: 75,
-    height: 75,
-    borderRadius: Border.full,
-  },
-  name: {
-    fontSize: FontSize.large,
-    fontFamily: FontFamily.bold
-  },
-  roleText: {
-    fontSize: FontSize.bodysmall_14,
-    fontFamily: FontFamily.medium,
-    color: Color.primary
-  },
-  institution: {
-    fontSize: FontSize.bodymedium_16,
-    color: Color.Gray.v400,
-    fontFamily: FontFamily.medium
-  },
-  headerContainer: {
-    flex: 1,
-    alignSelf:'stretch',
-    paddingVertical: Spacing.sm_8,
-    paddingHorizontal: Spacing.md_16,
-    backgroundColor: Color.white,
-    borderRadius: Border.lg_16,
-    borderColor: Color.Gray.v100,
-    borderWidth: 1,
-    ...shadowStyles.cardShadow,
-  },
-  userInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  sectionTitle: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSize.bodymedium_16,
-    color: Color.Gray.v500,
-    marginBottom: Spacing.xs_4,
-    alignSelf: 'flex-start'
-  },
-  sectionCard: {
-    backgroundColor: Color.white,
-    borderRadius: Border.lg_16,
-    borderColor: Color.Gray.v100,
-    borderWidth: 1,
-    alignSelf: 'stretch',
-    ...shadowStyles.cardShadow,
-  },
-  menuOption: {
-    padding: Spacing.md_16,
-    alignSelf: 'stretch',
-  },
-  menuOptionBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: Color.Gray.v100,
-  },
-  entryText: {
-    fontSize: FontSize.bodymedium_16,
-    fontFamily: FontFamily.medium,
-    flex: 1,
-  },
-  badge: {
-    backgroundColor: Color.Error.default,
-    borderRadius: Border.full,
-    minWidth: 20,
-    height: 20,
-    paddingHorizontal: Spacing.xs_6,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.sm_8,
-  },
-  badgeText: {
-    color: Color.white,
-    fontSize: FontSize.caption_12,
-    fontFamily: FontFamily.bold,
-  },
+  scrollContainer: { flex: 1, backgroundColor: Color.Background.subtle },
+  contentContainer: { flex: 1, ...spacingStyles.screenScrollContainer },
+  avatar: { width: 75, height: 75, borderRadius: Border.full },
+  name: { fontSize: FontSize.large, fontFamily: FontFamily.bold },
+  roleText: { fontSize: FontSize.bodysmall_14, fontFamily: FontFamily.medium, color: Color.primary },
+  institution: { fontSize: FontSize.bodymedium_16, color: Color.Gray.v400, fontFamily: FontFamily.medium },
+  headerContainer: { flex: 1, alignSelf:'stretch', paddingVertical: Spacing.sm_8, paddingHorizontal: Spacing.md_16, backgroundColor: Color.white, borderRadius: Border.lg_16, borderColor: Color.Gray.v100, borderWidth: 1, ...shadowStyles.cardShadow },
+  userInfo: { flex: 1, minWidth: 0 },
+  sectionTitle: { fontFamily: FontFamily.bold, fontSize: FontSize.bodymedium_16, color: Color.Gray.v500, marginBottom: Spacing.xs_4, alignSelf: 'flex-start' },
+  sectionCard: { backgroundColor: Color.white, borderRadius: Border.lg_16, borderColor: Color.Gray.v100, borderWidth: 1, alignSelf: 'stretch', ...shadowStyles.cardShadow },
+  menuOption: { padding: Spacing.md_16, alignSelf: 'stretch' },
+  menuOptionBorder: { borderBottomWidth: 1, borderBottomColor: Color.Gray.v100 },
+  entryText: { fontSize: FontSize.bodymedium_16, fontFamily: FontFamily.medium, flex: 1 },
+  badge: { backgroundColor: Color.Error.default, borderRadius: Border.full, minWidth: 20, height: 20, paddingHorizontal: Spacing.xs_6, justifyContent: 'center', alignItems: 'center', marginRight: Spacing.sm_8 },
+  badgeText: { color: Color.white, fontSize: FontSize.caption_12, fontFamily: FontFamily.bold },
 });
 
 export default UserMenuScreen;

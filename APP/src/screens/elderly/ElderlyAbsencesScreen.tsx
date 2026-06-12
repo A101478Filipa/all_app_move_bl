@@ -1,10 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  Modal, TextInput, Alert, RefreshControl,
-  KeyboardAvoidingView, Platform,
+  View, Text, ScrollView, StyleSheet, RefreshControl,
+  TouchableOpacity, Modal, TextInput, Alert, KeyboardAvoidingView, Platform
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { ElderlyAbsence, UserRole } from 'moveplus-shared';
@@ -14,17 +13,14 @@ import { ActivityIndicatorOverlay } from '@components/ActivityIndicatorOverlay';
 import { DatePickerInput } from '@components/DatePickerInput';
 import { Color } from '@src/styles/colors';
 import { FontFamily, FontSize } from '@src/styles/fonts';
-import { Spacing } from '@src/styles/spacings';
+import { Spacing, spacingStyles } from '@src/styles/spacings';
 import { Border } from '@src/styles/borders';
 import { useErrorHandler } from '@src/hooks/useErrorHandler';
 
-interface Props {
-  route: any;
-  navigation: any;
-}
+type Props = NativeStackScreenProps<any, 'ElderlyAbsences'>;
 
 const ElderlyAbsencesScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { elderlyId, elderlyName } = route.params ?? {};
+  const { elderlyId } = route.params ?? {};
   const { user } = useAuthStore();
   const { handleError } = useErrorHandler();
   const userRole = user?.user?.role;
@@ -34,7 +30,6 @@ const ElderlyAbsencesScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Add modal state
   const [showModal, setShowModal] = useState(false);
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
@@ -56,6 +51,18 @@ const ElderlyAbsencesScreen: React.FC<Props> = ({ route, navigation }) => {
 
   useFocusEffect(useCallback(() => { fetchAbsences(); }, [fetchAbsences]));
 
+  // Auto-abrir modal se vier o parâmetro de gatilho
+  useEffect(() => {
+    if (route.params?.openModal && canEdit && !loading) {
+      const today = new Date();
+      setStartDate(today);
+      setEndDate(today);
+      setReason('');
+      setShowModal(true);
+      navigation.setParams({ openModal: undefined });
+    }
+  }, [route.params?.openModal, canEdit, loading, navigation]);
+
   const openModal = () => {
     const today = new Date();
     setStartDate(today);
@@ -72,6 +79,7 @@ const ElderlyAbsencesScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       setSaving(true);
       const res = await elderlyAbsenceApi.createAbsence(elderlyId, {
+        addDate: new Date(),
         startDate,
         endDate,
         reason: reason.trim() || null,
@@ -111,16 +119,21 @@ const ElderlyAbsencesScreen: React.FC<Props> = ({ route, navigation }) => {
   if (loading) return <ActivityIndicatorOverlay />;
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <View style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchAbsences(true); }} />}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); fetchAbsences(true); }}
+          />
+        }
       >
         {absences.length === 0 ? (
-          <View style={styles.empty}>
+          <View style={styles.emptyState}>
             <MaterialIcons name="person-off" size={48} color={Color.Gray.v300} />
-            <Text style={styles.emptyTitle}>Sem ausências registadas</Text>
-            <Text style={styles.emptySubtitle}>Nenhuma ausência foi registada para este utente.</Text>
+            <Text style={styles.emptyText}>Sem ausências registadas</Text>
           </View>
         ) : (
           absences
@@ -172,7 +185,7 @@ const ElderlyAbsencesScreen: React.FC<Props> = ({ route, navigation }) => {
         </TouchableOpacity>
       )}
 
-      {/* Add absence modal */}
+      {/* Modal de criação */}
       <Modal visible={showModal} transparent animationType="fade" onRequestClose={() => setShowModal(false)}>
         <KeyboardAvoidingView
           style={styles.overlayContainer}
@@ -225,7 +238,7 @@ const ElderlyAbsencesScreen: React.FC<Props> = ({ route, navigation }) => {
           </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -237,160 +250,43 @@ const styles = StyleSheet.create({
     backgroundColor: Color.Background.subtle,
   },
   content: {
-    padding: Spacing.md_16,
+    ...spacingStyles.screenScrollContainer,
     paddingBottom: 90,
-    gap: Spacing.sm_12,
-  },
-  empty: {
-    alignItems: 'center',
-    paddingTop: 80,
-    gap: Spacing.sm_8,
-  },
-  emptyTitle: {
-    fontFamily: FontFamily.semi_bold,
-    fontSize: FontSize.bodylarge_18,
-    color: Color.Gray.v500,
-    marginTop: Spacing.sm_8,
-  },
-  emptySubtitle: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.bodysmall_14,
-    color: Color.Gray.v400,
-    textAlign: 'center',
-    paddingHorizontal: Spacing.lg_24,
-  },
-  card: {
-    flexDirection: 'row',
-    backgroundColor: Color.Background.white,
-    borderRadius: Border.md_12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Color.Gray.v200,
-  },
-  statusBar: {
-    width: 4,
-    backgroundColor: Color.primary,
-  },
-  cardContent: {
-    flex: 1,
-    padding: Spacing.md_16,
-    gap: 4,
-  },
-  cardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm_8,
-  },
-  dateText: {
-    fontFamily: FontFamily.semi_bold,
-    fontSize: FontSize.bodymedium_16,
-    color: Color.dark,
-    flex: 1,
-  },
-  activeBadge: {
-    backgroundColor: `${Color.primary}20`,
-    borderRadius: 100,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  activeBadgeText: {
-    fontFamily: FontFamily.medium,
-    fontSize: 11,
-    color: Color.primary,
-  },
-  reasonText: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.bodysmall_14,
-    color: Color.Gray.v500,
-    marginTop: 2,
-  },
-  createdByText: {
-    fontFamily: FontFamily.regular,
-    fontSize: 12,
-    color: Color.Gray.v400,
-    marginTop: 4,
-  },
-  deleteBtn: {
-    padding: Spacing.md_16,
-    justifyContent: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    right: Spacing.lg_24,
-    bottom: 32,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Color.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 6,
-    shadowColor: Color.dark,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-  },
-  overlayContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalBox: {
-    width: '90%',
-    backgroundColor: Color.Background.white,
-    borderRadius: Border.md_12,
-    padding: Spacing.lg_24,
     gap: Spacing.md_16,
   },
-  modalTitle: {
-    fontFamily: FontFamily.extraBold,
-    fontSize: FontSize.subtitle_20,
-    color: Color.dark,
-    textAlign: 'center',
-    marginBottom: Spacing.sm_8,
-  },
-  fieldGap: {
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xl_32,
     gap: Spacing.sm_8,
   },
-  reasonInput: {
-    borderWidth: 1,
-    borderColor: Color.Gray.v200,
-    borderRadius: Border.sm_8,
-    paddingHorizontal: Spacing.md_16,
-    paddingVertical: Spacing.sm_12,
-    fontFamily: FontFamily.regular,
+  emptyText: {
     fontSize: FontSize.bodymedium_16,
-    color: Color.dark,
-    minHeight: 80,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: Spacing.md_16,
-    marginTop: Spacing.sm_8,
-  },
-  cancelBtn: {
-    paddingVertical: Spacing.sm_8,
-    paddingHorizontal: Spacing.md_16,
-  },
-  cancelBtnText: {
     fontFamily: FontFamily.medium,
-    fontSize: FontSize.bodymedium_16,
-    color: Color.Gray.v500,
+    color: Color.Gray.v400,
+    textAlign: 'center',
   },
-  saveBtn: {
-    backgroundColor: Color.primary,
-    paddingVertical: Spacing.sm_8,
-    paddingHorizontal: Spacing.lg_24,
-    borderRadius: Border.sm_8,
-  },
-  saveBtnDisabled: {
-    opacity: 0.6,
-  },
-  saveBtnText: {
-    fontFamily: FontFamily.semi_bold,
-    fontSize: FontSize.bodymedium_16,
-    color: Color.white,
-  },
+  card: { flexDirection: 'row', backgroundColor: Color.Background.white, borderRadius: Border.md_12, overflow: 'hidden', borderWidth: 1, borderColor: Color.Gray.v200 },
+  statusBar: { width: 4, backgroundColor: Color.primary },
+  cardContent: { flex: 1, padding: Spacing.md_16, gap: 4 },
+  cardRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm_8 },
+  dateText: { fontFamily: FontFamily.semi_bold, fontSize: FontSize.bodymedium_16, color: Color.dark, flex: 1 },
+  activeBadge: { backgroundColor: `${Color.primary}20`, borderRadius: 100, paddingHorizontal: 8, paddingVertical: 2 },
+  activeBadgeText: { fontFamily: FontFamily.medium, fontSize: 11, color: Color.primary },
+  reasonText: { fontFamily: FontFamily.regular, fontSize: FontSize.bodysmall_14, color: Color.Gray.v500, marginTop: 2 },
+  createdByText: { fontFamily: FontFamily.regular, fontSize: 12, color: Color.Gray.v400, marginTop: 4 },
+  deleteBtn: { padding: Spacing.md_16, justifyContent: 'center' },
+  fab: { position: 'absolute', right: Spacing.lg_24, bottom: 32, width: 56, height: 56, borderRadius: 28, backgroundColor: Color.primary, justifyContent: 'center', alignItems: 'center', elevation: 6, shadowColor: Color.dark, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 6 },
+  overlayContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
+  modalBox: { width: '90%', backgroundColor: Color.Background.white, borderRadius: Border.md_12, padding: Spacing.lg_24, gap: Spacing.md_16 },
+  modalTitle: { fontFamily: FontFamily.extraBold, fontSize: FontSize.subtitle_20, color: Color.dark, textAlign: 'center', marginBottom: Spacing.sm_8 },
+  fieldGap: { gap: Spacing.sm_8 },
+  reasonInput: { borderWidth: 1, borderColor: Color.Gray.v200, borderRadius: Border.sm_8, paddingHorizontal: Spacing.md_16, paddingVertical: Spacing.sm_12, fontFamily: FontFamily.regular, fontSize: FontSize.bodymedium_16, color: Color.dark, minHeight: 80 },
+  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.md_16, marginTop: Spacing.sm_8 },
+  cancelBtn: { paddingVertical: Spacing.sm_8, paddingHorizontal: Spacing.md_16 },
+  cancelBtnText: { fontFamily: FontFamily.medium, fontSize: FontSize.bodymedium_16, color: Color.Gray.v500 },
+  saveBtn: { backgroundColor: Color.primary, paddingVertical: Spacing.sm_8, paddingHorizontal: Spacing.lg_24, borderRadius: Border.sm_8 },
+  saveBtnDisabled: { opacity: 0.6 },
+  saveBtnText: { fontFamily: FontFamily.semi_bold, fontSize: FontSize.bodymedium_16, color: Color.white },
 });

@@ -40,7 +40,7 @@ interface ElderlyCardProps {
   onPress: (elderly: Elderly) => void;
 }
 
-const ElderlyCard: React.FC<ElderlyCardProps> = ({ elderly, t,onPress }) => {
+const ElderlyCard: React.FC<ElderlyCardProps> = ({ elderly, t, onPress }) => {
   return (
     <TouchableOpacity
       style={styles.elderlyCard}
@@ -48,8 +48,9 @@ const ElderlyCard: React.FC<ElderlyCardProps> = ({ elderly, t,onPress }) => {
       activeOpacity={0.7}
     >
       <HStack spacing={Spacing.md_16} align="center">
+        {/* 🔥 CORREÇÃO AQUI: Passamos apenas 1 argumento para o buildAvatarUrl */}
         <Image
-          source={{ uri: buildAvatarUrl(elderly.user.avatarUrl, elderly.user.role) }}
+          source={{ uri: buildAvatarUrl(elderly.user.avatarUrl) }}
           style={styles.avatar}
         />
         <VStack align="flex-start" style={{ flex: 1 }}>

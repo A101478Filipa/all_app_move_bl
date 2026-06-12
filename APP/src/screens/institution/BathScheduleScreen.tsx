@@ -39,7 +39,6 @@ type Props = NativeStackScreenProps<InstitutionDashboardNavigationStackParamList
 const BATH_COLOR = '#0288D1';
 const COL_WIDTH = 148;
 
-// Paleta de cores por paciente (cicla automaticamente)
 const PATIENT_PALETTE = [
   '#0288D1', 
   '#2E7D32', 
@@ -79,7 +78,6 @@ const isSameDay = (a: Date, b: Date) =>
 const formatTime = (date: Date | string) =>
   new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-// Day abbreviations: Mon-first, two langs
 const DAY_ABBR: Record<string, string[]> = {
   pt: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
   en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -100,12 +98,10 @@ const BathScheduleScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Elderly picker
   const [pickVisible, setPickVisible] = useState(false);
   const [pickTargetDate, setPickTargetDate] = useState<Date | null>(null);
   const [search, setSearch] = useState('');
 
-  // Event detail modal
   const [detailEvent, setDetailEvent] = useState<InstitutionCalendarEvent | null>(null);
   const { users: memberUsers, fetchUsers } = useInstitutionMembersStore();
 
@@ -130,7 +126,6 @@ const BathScheduleScreen: React.FC<Props> = ({ navigation }) => {
     }, [fetchEvents, fetchUsers])
   );
 
-  // Week navigation
   const prevWeek = () => setWeekStart(d => addDays(d, -7));
   const nextWeek = () => setWeekStart(d => addDays(d, 7));
   const goToday = () => setWeekStart(getWeekStart(new Date()));
@@ -167,13 +162,12 @@ const BathScheduleScreen: React.FC<Props> = ({ navigation }) => {
     [isThisWeek]
   );
 
-  // Scroll when week changes (ScrollView already mounted)
   useEffect(() => {
     const timer = setTimeout(() => {
       scrollRef.current?.scrollTo({ x: getTargetOffset(), animated: false });
     }, 100);
     return () => clearTimeout(timer);
-  }, [weekStart]);
+  }, [weekStart, getTargetOffset]);
 
   const canEditEvent = (event: InstitutionCalendarEvent) => {
     if (isAdmin) return true;
@@ -371,7 +365,6 @@ const BathScheduleScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.modalSheet}>
                 <View style={styles.modalHandle} />
 
-                {/* Header com cor do residente */}
                 <View style={[styles.detailHeader, { borderLeftColor: detailColor }]}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.detailTitle} numberOfLines={2}>
@@ -386,15 +379,12 @@ const BathScheduleScreen: React.FC<Props> = ({ navigation }) => {
                   </TouchableOpacity>
                 </View>
 
-                {/* Linhas de info */}
                 <View style={styles.detailRows}>
-                  {/* Data */}
                   <View style={styles.detailRow}>
                     <MaterialIcons name="event" size={18} color={detailColor} />
                     <Text style={styles.detailRowText} numberOfLines={2}>{dateStr}</Text>
                   </View>
 
-                  {/* Hora */}
                   <View style={styles.detailRow}>
                     <MaterialIcons name="schedule" size={18} color={detailColor} />
                     <Text style={styles.detailRowText}>
@@ -406,7 +396,6 @@ const BathScheduleScreen: React.FC<Props> = ({ navigation }) => {
                     </Text>
                   </View>
 
-                  {/* Cuidador atribuído */}
                   {(detailEvent as any).assignedTo?.name && (
                     <View style={styles.detailRow}>
                       <MaterialIcons name="person" size={18} color={detailColor} />
@@ -416,7 +405,6 @@ const BathScheduleScreen: React.FC<Props> = ({ navigation }) => {
                     </View>
                   )}
 
-                  {/* Notas / descrição */}
                   {detailEvent.description ? (
                     <View style={styles.detailRow}>
                       <MaterialIcons name="notes" size={18} color={detailColor} />
@@ -425,7 +413,6 @@ const BathScheduleScreen: React.FC<Props> = ({ navigation }) => {
                   ) : null}
                 </View>
 
-                {/* Ações (só se editável) */}
                 {editable && (
                   <View style={styles.detailActions}>
                     <TouchableOpacity
@@ -511,8 +498,9 @@ const BathScheduleScreen: React.FC<Props> = ({ navigation }) => {
                   onPress={() => handleSelectElderly(item)}
                   activeOpacity={0.7}
                 >
+            
                   <Image
-                    source={{ uri: buildAvatarUrl(item.user.avatarUrl, item.user.role) }}
+                    source={{ uri: buildAvatarUrl(item.user.avatarUrl) }}
                     style={styles.avatar}
                   />
                   <Text style={styles.elderlyName} numberOfLines={1}>
@@ -535,319 +523,55 @@ const BathScheduleScreen: React.FC<Props> = ({ navigation }) => {
 export default BathScheduleScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Color.Background.subtle,
-  },
-  // ── Week header ─────────────────────────────────────────────────────────
-  weekHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md_16,
-    paddingVertical: Spacing.sm_12,
-    backgroundColor: Color.Background.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Color.Gray.v200,
-  },
-  navBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: Border.sm_8,
-    backgroundColor: Color.Background.subtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  weekLabelBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs_4,
-  },
-  weekLabel: {
-    fontSize: FontSize.bodymedium_16,
-    fontFamily: FontFamily.semi_bold,
-    color: Color.dark,
-  },
-  todayChip: {
-    fontSize: FontSize.caption_12,
-    fontFamily: FontFamily.medium,
-    color: BATH_COLOR,
-    backgroundColor: BATH_COLOR + '18',
-    borderRadius: Border.full,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    overflow: 'hidden',
-  },
-  // ── Columns ─────────────────────────────────────────────────────────────
-  columnsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.sm_8,
-    paddingTop: Spacing.sm_8,
-    paddingBottom: Spacing.xl_32,
-    gap: Spacing.sm_8,
-  },
-  dayColumn: {
-    width: COL_WIDTH,
-    borderRadius: Border.md_12,
-    backgroundColor: Color.Background.white,
-    overflow: 'hidden',
-  },
-  dayColumnToday: {
-    borderWidth: 1.5,
-    borderColor: BATH_COLOR,
-  },
-  // ── Day header inside column ─────────────────────────────────────────────
-  dayHeader: {
-    paddingVertical: Spacing.sm_12,
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: Color.Gray.v100,
-  },
-  dayHeaderToday: {
-    backgroundColor: BATH_COLOR + '18',
-  },
-  dayAbbr: {
-    fontSize: FontSize.caption_12,
-    fontFamily: FontFamily.medium,
-    color: Color.Gray.v400,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  dayAbbrToday: {
-    color: BATH_COLOR,
-    fontFamily: FontFamily.bold,
-  },
-  dayNumCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayNumCircleToday: {
-    backgroundColor: BATH_COLOR,
-  },
-  dayNum: {
-    fontSize: FontSize.bodymedium_16,
-    fontFamily: FontFamily.semi_bold,
-    color: Color.dark,
-  },
-  dayNumToday: {
-    color: Color.white,
-  },
-  // ── Add button inside column ─────────────────────────────────────────────
-  addDayBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-    paddingVertical: Spacing.xs_4,
-    marginHorizontal: Spacing.sm_8,
-    marginTop: Spacing.sm_8,
-    borderRadius: Border.sm_8,
-    borderWidth: 1,
-    borderColor: BATH_COLOR + '60',
-    borderStyle: 'dashed',
-  },
-  addDayBtnText: {
-    fontSize: FontSize.caption_12,
-    fontFamily: FontFamily.medium,
-    color: BATH_COLOR,
-  },
-  // ── Cards list ───────────────────────────────────────────────────────────
-  cardsList: {
-    padding: Spacing.sm_8,
-    gap: Spacing.sm_8,
-  },
-  emptyDay: {
-    alignItems: 'center',
-    paddingVertical: Spacing.lg_24,
-    opacity: 0.5,
-  },
-  bathCard: {
-    backgroundColor: BATH_COLOR + '0E',
-    borderRadius: Border.sm_8,
-    borderLeftWidth: 3,
-    borderLeftColor: BATH_COLOR,
-    padding: Spacing.sm_8,
-    gap: 3,
-  },
-  bathCardPast: {
-    opacity: 0.55,
-  },
-  bathCardTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  bathCardTime: {
-    fontSize: FontSize.caption_12,
-    fontFamily: FontFamily.semi_bold,
-    color: BATH_COLOR,
-    flex: 1,
-  },
-  moreIcon: {
-    marginLeft: 'auto',
-  },
-  bathCardResident: {
-    fontSize: FontSize.caption_12,
-    fontFamily: FontFamily.medium,
-    color: Color.dark,
-  },
-  assignedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    marginTop: 1,
-  },
-  assignedName: {
-    fontSize: 10,
-    fontFamily: FontFamily.regular,
-    color: Color.Gray.v400,
-    flex: 1,
-  },
-  // ── Modal ────────────────────────────────────────────────────────────────
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: Color.Background.white,
-    borderTopLeftRadius: Border.lg_16,
-    borderTopRightRadius: Border.lg_16,
-    paddingHorizontal: Spacing.md_16,
-    paddingBottom: Spacing.xl_32,
-    maxHeight: '80%',
-  },
-  modalHandle: {
-    alignSelf: 'center',
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Color.Gray.v200,
-    marginTop: Spacing.sm_8,
-    marginBottom: Spacing.md_16,
-  },
-  modalHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.md_16,
-  },
-  modalTitle: {
-    fontSize: FontSize.bodylarge_18,
-    fontFamily: FontFamily.semi_bold,
-    color: Color.dark,
-  },
-  modalSubtitle: {
-    fontSize: FontSize.caption_12,
-    fontFamily: FontFamily.regular,
-    color: Color.Gray.v400,
-    marginTop: 2,
-    textTransform: 'capitalize',
-  },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Color.Background.subtle,
-    borderRadius: Border.sm_8,
-    paddingHorizontal: Spacing.sm_12,
-    paddingVertical: Spacing.sm_8,
-    gap: Spacing.xs_4,
-    marginBottom: Spacing.md_16,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: FontSize.bodysmall_14,
-    fontFamily: FontFamily.regular,
-    color: Color.dark,
-    padding: 0,
-  },
-  elderlyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm_12,
-    gap: Spacing.sm_12,
-    borderBottomWidth: 1,
-    borderBottomColor: Color.Gray.v100,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Color.Gray.v100,
-  },
-  elderlyName: {
-    flex: 1,
-    fontSize: FontSize.bodysmall_14,
-    fontFamily: FontFamily.medium,
-    color: Color.dark,
-  },
-  emptyPickerText: {
-    fontSize: FontSize.bodysmall_14,
-    fontFamily: FontFamily.regular,
-    color: Color.Gray.v400,
-    textAlign: 'center',
-    marginTop: Spacing.lg_24,
-  },
-  // ── Event detail modal ───────────────────────────────────────────────────
-  detailHeader: {
-    borderLeftWidth: 4,
-    borderRadius: 2,
-    paddingLeft: Spacing.sm_12,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.md_16,
-    gap: Spacing.sm_8,
-  },
-  detailTitle: {
-    fontSize: FontSize.bodylarge_18,
-    fontFamily: FontFamily.semi_bold,
-    color: Color.dark,
-  },
-  detailResidentName: {
-    fontSize: FontSize.bodysmall_14,
-    fontFamily: FontFamily.medium,
-    marginTop: 2,
-  },
-  detailRows: {
-    gap: Spacing.sm_12,
-    marginBottom: Spacing.lg_24,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm_8,
-  },
-  detailRowText: {
-    flex: 1,
-    fontSize: FontSize.bodysmall_14,
-    fontFamily: FontFamily.regular,
-    color: Color.dark,
-    textTransform: 'capitalize',
-  },
-  detailActions: {
-    flexDirection: 'row',
-    gap: Spacing.sm_8,
-  },
-  detailActionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs_4,
-    paddingVertical: Spacing.sm_12,
-    borderRadius: Border.sm_8,
-    borderWidth: 1,
-    borderColor: Color.Gray.v200,
-  },
-  detailActionBtnDanger: {
-    borderColor: '#FFCDD2',
-    backgroundColor: '#FFF5F5',
-  },
-  detailActionBtnText: {
-    fontSize: FontSize.bodysmall_14,
-    fontFamily: FontFamily.medium,
-  },
+  container: { flex: 1, backgroundColor: Color.Background.subtle },
+  weekHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.md_16, paddingVertical: Spacing.sm_12, backgroundColor: Color.Background.white, borderBottomWidth: 1, borderBottomColor: Color.Gray.v200 },
+  navBtn: { width: 36, height: 36, borderRadius: Border.sm_8, backgroundColor: Color.Background.subtle, justifyContent: 'center', alignItems: 'center' },
+  weekLabelBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs_4 },
+  weekLabel: { fontSize: FontSize.bodymedium_16, fontFamily: FontFamily.semi_bold, color: Color.dark },
+  todayChip: { fontSize: FontSize.caption_12, fontFamily: FontFamily.medium, color: BATH_COLOR, backgroundColor: BATH_COLOR + '18', borderRadius: Border.full, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden' },
+  columnsContainer: { flexDirection: 'row', paddingHorizontal: Spacing.sm_8, paddingTop: Spacing.sm_8, paddingBottom: Spacing.xl_32, gap: Spacing.sm_8 },
+  dayColumn: { width: COL_WIDTH, borderRadius: Border.md_12, backgroundColor: Color.Background.white, overflow: 'hidden' },
+  dayColumnToday: { borderWidth: 1.5, borderColor: BATH_COLOR },
+  dayHeader: { paddingVertical: Spacing.sm_12, alignItems: 'center', gap: 4, backgroundColor: Color.Gray.v100 },
+  dayHeaderToday: { backgroundColor: BATH_COLOR + '18' },
+  dayAbbr: { fontSize: FontSize.caption_12, fontFamily: FontFamily.medium, color: Color.Gray.v400, textTransform: 'uppercase', letterSpacing: 0.5 },
+  dayAbbrToday: { color: BATH_COLOR, fontFamily: FontFamily.bold },
+  dayNumCircle: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  dayNumCircleToday: { backgroundColor: BATH_COLOR },
+  dayNum: { fontSize: FontSize.bodymedium_16, fontFamily: FontFamily.semi_bold, color: Color.dark },
+  dayNumToday: { color: Color.white },
+  addDayBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, paddingVertical: Spacing.xs_4, marginHorizontal: Spacing.sm_8, marginTop: Spacing.sm_8, borderRadius: Border.sm_8, borderWidth: 1, borderColor: BATH_COLOR + '60', borderStyle: 'dashed' },
+  addDayBtnText: { fontSize: FontSize.caption_12, fontFamily: FontFamily.medium, color: BATH_COLOR },
+  cardsList: { padding: Spacing.sm_8, gap: Spacing.sm_8 },
+  emptyDay: { alignItems: 'center', paddingVertical: Spacing.lg_24, opacity: 0.5 },
+  bathCard: { backgroundColor: BATH_COLOR + '0E', borderRadius: Border.sm_8, borderLeftWidth: 3, borderLeftColor: BATH_COLOR, padding: Spacing.sm_8, gap: 3 },
+  bathCardPast: { opacity: 0.55 },
+  bathCardTopRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  bathCardTime: { fontSize: FontSize.caption_12, fontFamily: FontFamily.semi_bold, color: BATH_COLOR, flex: 1 },
+  moreIcon: { marginLeft: 'auto' },
+  bathCardResident: { fontSize: FontSize.caption_12, fontFamily: FontFamily.medium, color: Color.dark },
+  assignedRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 1 },
+  assignedName: { fontSize: 10, fontFamily: FontFamily.regular, color: Color.Gray.v400, flex: 1 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: Color.Background.white, borderTopLeftRadius: Border.lg_16, borderTopRightRadius: Border.lg_16, paddingHorizontal: Spacing.md_16, paddingBottom: Spacing.xl_32, maxHeight: '80%' },
+  modalHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Color.Gray.v200, marginTop: Spacing.sm_8, marginBottom: Spacing.md_16 },
+  modalHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: Spacing.md_16 },
+  modalTitle: { fontSize: FontSize.bodylarge_18, fontFamily: FontFamily.semi_bold, color: Color.dark },
+  modalSubtitle: { fontSize: FontSize.caption_12, fontFamily: FontFamily.regular, color: Color.Gray.v400, marginTop: 2, textTransform: 'capitalize' },
+  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: Color.Background.subtle, borderRadius: Border.sm_8, paddingHorizontal: Spacing.sm_12, paddingVertical: Spacing.sm_8, gap: Spacing.xs_4, marginBottom: Spacing.md_16 },
+  searchInput: { flex: 1, fontSize: FontSize.bodysmall_14, fontFamily: FontFamily.regular, color: Color.dark, padding: 0 },
+  elderlyRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm_12, gap: Spacing.sm_12, borderBottomWidth: 1, borderBottomColor: Color.Gray.v100 },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: Color.Gray.v100 },
+  elderlyName: { flex: 1, fontSize: FontSize.bodysmall_14, fontFamily: FontFamily.medium, color: Color.dark },
+  emptyPickerText: { fontSize: FontSize.bodysmall_14, fontFamily: FontFamily.regular, color: Color.Gray.v400, textAlign: 'center', marginTop: Spacing.lg_24 },
+  detailHeader: { borderLeftWidth: 4, borderRadius: 2, paddingLeft: Spacing.sm_12, flexDirection: 'row', alignItems: 'flex-start', marginBottom: Spacing.md_16, gap: Spacing.sm_8 },
+  detailTitle: { fontSize: FontSize.bodylarge_18, fontFamily: FontFamily.semi_bold, color: Color.dark },
+  detailResidentName: { fontSize: FontSize.bodysmall_14, fontFamily: FontFamily.medium, marginTop: 2 },
+  detailRows: { gap: Spacing.sm_12, marginBottom: Spacing.lg_24 },
+  detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm_8 },
+  detailRowText: { flex: 1, fontSize: FontSize.bodysmall_14, fontFamily: FontFamily.regular, color: Color.dark, textTransform: 'capitalize' },
+  detailActions: { flexDirection: 'row', gap: Spacing.sm_8 },
+  detailActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs_4, paddingVertical: Spacing.sm_12, borderRadius: Border.sm_8, borderWidth: 1, borderColor: Color.Gray.v200 },
+  detailActionBtnDanger: { borderColor: '#FFCDD2', backgroundColor: '#FFF5F5' },
+  detailActionBtnText: { fontSize: FontSize.bodysmall_14, fontFamily: FontFamily.medium },
 });
