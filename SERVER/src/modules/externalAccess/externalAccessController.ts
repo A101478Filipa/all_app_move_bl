@@ -94,34 +94,20 @@ export const getProfileByToken = async (req: Request, res: Response): Promise<vo
     const accessToken = await prisma.externalAccessToken.findUnique({
       where: { token: token.toLowerCase().trim() },
       include: {
-        calendarEvent: {
+        calendarEvent: { // ISTO TEM DE ESTAR AQUI PARA O EV.CALENDAREVENT FUNCIONAR
           include: {
             elderly: {
               include: {
-                pathologies: {
-                  orderBy: { createdAt: 'desc' },
-                  select: { id: true, name: true, status: true, diagnosisDate: true, notes: true },
-                },
-                medications: {
-                  orderBy: { createdAt: 'desc' },
-                  select: { id: true, name: true, dosage: true, frequency: true, administration: true, status: true },
-                },
-                measurements: {
-                  orderBy: { createdAt: 'desc' },
-                  select: { id: true, type: true, value: true, unit: true, status: true, createdAt: true },
-                },
-                fallOccurrences: {
-                  orderBy: { date: 'desc' },
-                  take: 5,
-                  select: { id: true, date: true, description: true, injured: true, injuryDescription: true },
-                },
-                sosOccurrences: { orderBy: { date: 'desc' }, take: 5, select: { id: true, date: true, description: true, createdAt: true } }, 
-                woundTrackings: { orderBy: { createdAt: 'desc' }, take: 5, select: { id: true, location: true, status: true, notes: true, createdAt: true } },
+                pathologies: { orderBy: { createdAt: 'desc' }, take: 5 },
+                medications: { orderBy: { createdAt: 'desc' }, take: 5 },
+                measurements: { orderBy: { createdAt: 'desc' }, take: 5 },
+                fallOccurrences: { orderBy: { date: 'desc' }, take: 5 },
+                // CORREÇÃO: Usa apenas os nomes que existem no schema
+                sosOccurrences: { orderBy: { date: 'desc' }, take: 5 }, 
+                woundTrackings: { orderBy: { createdAt: 'desc' }, take: 5 },
               },
             },
-            externalProfessional: {
-              select: { id: true, name: true, specialty: true },
-            },
+            externalProfessional: true,
             externalVisitNote: true,
           },
         },
@@ -138,98 +124,28 @@ export const getProfileByToken = async (req: Request, res: Response): Promise<vo
       return;
     }
 
+    // Agora o accessToken.calendarEvent existe porque o incluímos acima
     const ev = accessToken.calendarEvent;
     const elderly = ev.elderly;
 
     sendSuccess(res, {
-      event: {
-        id: ev.id,
-        title: ev.title,
-        type: ev.type,
-        startDate: ev.startDate,
-        endDate: ev.endDate,
-      },
+      event: { id: ev.id, title: ev.title, type: ev.type, startDate: ev.startDate },
       professional: ev.externalProfessional,
-      expiresAt: accessToken.expiresAt,
       elderly: {
         id: elderly.id,
         name: elderly.name,
         birthDate: elderly.birthDate,
         gender: elderly.gender,
-        phone: elderly.phone ?? null,
-        emergencyContact: elderly.emergencyContact ?? null,
         pathologies: elderly.pathologies,
         medications: elderly.medications,
         measurements: elderly.measurements,
         recentFalls: elderly.fallOccurrences,
-        recentSos: elderly.sosOccurrences,  
+        recentSos: elderly.sosOccurrences,
         recentWounds: elderly.woundTrackings,
       },
-      visitNote: ev.externalVisitNote
-        ? {
-            notes: ev.externalVisitNote.notes,
-            recommendations: ev.externalVisitNote.recommendations ?? null,
-            submittedAt: ev.externalVisitNote.submittedAt,
-          }
-        : null,
     });
   } catch (error) {
     console.error('getProfileByToken error:', error);
-    sendError(res, 'Erro interno do servidor', 500);
-  }
-};
-
-const VisitNoteSchema = z.object({
-  notes: z.string().min(1, 'As observações são obrigatórias'),
-  recommendations: z.string().optional().nullable(),
-});
-
-// POST /external-access/:token/submit  (public — external professional submits visit note)
-export const submitVisitNote = async (req: Request, res: Response): Promise<void> => {
-  const token = String(req.params.token);
-
-  try {
-    const accessToken = await prisma.externalAccessToken.findUnique({
-      where: { token: token.toLowerCase().trim() },
-      include: {
-        calendarEvent: {
-          include: { externalProfessional: { select: { name: true } } },
-        },
-      },
-    });
-
-    if (!accessToken) {
-      sendError(res, 'Código inválido', 404);
-      return;
-    }
-
-    if (accessToken.expiresAt <= new Date()) {
-      sendError(res, 'Código expirado', 410);
-      return;
-    }
-
-    const validation = VisitNoteSchema.safeParse(req.body);
-    if (!validation.success) {
-      sendInputValidationError(res, 'Dados inválidos', validation.error.errors);
-      return;
-    }
-
-    const { notes, recommendations } = validation.data;
-
-    const visitNote = await prisma.externalVisitNote.upsert({
-      where: { calendarEventId: accessToken.calendarEventId },
-      update: { notes, recommendations: recommendations ?? null, submittedAt: new Date() },
-      create: {
-        calendarEventId: accessToken.calendarEventId,
-        professionalName: accessToken.calendarEvent.externalProfessional?.name ?? 'Profissional Externo',
-        notes,
-        recommendations: recommendations ?? null,
-      },
-    });
-
-    sendSuccess(res, visitNote, 'Nota de visita submetida com sucesso');
-  } catch (error) {
-    console.error('submitVisitNote error:', error);
     sendError(res, 'Erro interno do servidor', 500);
   }
 };
