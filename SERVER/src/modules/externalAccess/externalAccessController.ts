@@ -150,6 +150,53 @@ export const getProfileByToken = async (req: Request, res: Response): Promise<vo
   }
 };
 
+export const submitVisitNote = async (req: Request, res: Response): Promise<void> => {
+  const token = String(req.params.token);
+
+  try {
+    const accessToken = await prisma.externalAccessToken.findUnique({
+      where: { token: token.toLowerCase().trim() },
+      include: {
+        calendarEvent: {
+          include: { externalProfessional: { select: { name: true } } },
+        },
+      },
+    });
+
+    if (!accessToken) {
+      sendError(res, 'Código inválido', 404);
+      return;
+    }
+
+    if (accessToken.expiresAt <= new Date()) {
+      sendError(res, 'Código expirado', 410);
+      return;
+    }
+
+    const { notes, recommendations } = req.body;
+    if (!notes) {
+      sendError(res, 'As observações são obrigatórias', 400);
+      return;
+    }
+
+    const visitNote = await prisma.externalVisitNote.upsert({
+      where: { calendarEventId: accessToken.calendarEventId },
+      update: { notes, recommendations: recommendations ?? null, submittedAt: new Date() },
+      create: {
+        calendarEventId: accessToken.calendarEventId,
+        professionalName: accessToken.calendarEvent.externalProfessional?.name ?? 'Profissional Externo',
+        notes,
+        recommendations: recommendations ?? null,
+      },
+    });
+
+    sendSuccess(res, visitNote, 'Nota de visita submetida com sucesso');
+  } catch (error) {
+    console.error('submitVisitNote error:', error);
+    sendError(res, 'Erro interno do servidor', 500);
+  }
+};
+
 // GET /external-access/visit-note/:calendarEventId  (authenticated staff)
 export const getVisitNote = async (req: Request, res: Response): Promise<void> => {
   const calendarEventId = Number(req.params.calendarEventId);
