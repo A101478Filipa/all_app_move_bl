@@ -98,13 +98,10 @@ export const getProfileByToken = async (req: Request, res: Response): Promise<vo
           include: {
             elderly: {
               include: {
-                pathologies: { orderBy: { createdAt: 'desc' }, take: 5 },
-                medications: { orderBy: { createdAt: 'desc' }, take: 5 },
-                measurements: { orderBy: { createdAt: 'desc' }, take: 5 },
-                fallOccurrences: { orderBy: { date: 'desc' }, take: 5 },
-                // CORREÇÃO: Usa apenas os nomes que existem no schema
-                sosOccurrences: { orderBy: { date: 'desc' }, take: 5 }, 
-                woundTrackings: { orderBy: { createdAt: 'desc' }, take: 5 },
+                pathologies: { orderBy: { createdAt: 'desc' } },
+                medications: { orderBy: { createdAt: 'desc' } },
+                measurements: { orderBy: { createdAt: 'desc' }},
+                fallOccurrences: { orderBy: { date: 'desc' }},
               },
             },
             externalProfessional: true,
@@ -140,8 +137,6 @@ export const getProfileByToken = async (req: Request, res: Response): Promise<vo
         medications: elderly.medications,
         measurements: elderly.measurements,
         recentFalls: elderly.fallOccurrences,
-        recentSos: elderly.sosOccurrences,
-        recentWounds: elderly.woundTrackings,
       },
     });
   } catch (error) {

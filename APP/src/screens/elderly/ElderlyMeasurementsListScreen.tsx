@@ -1,101 +1,110 @@
-import React, { useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useLayoutEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Measurement, MeasurementType, UserRole } from 'moveplus-shared';
+import { Measurement, MeasurementType } from 'moveplus-shared';
 import { MeasurementOverviewComponent } from '@components/MeasurementOverviewComponent';
-import { BmiCardComponent } from '@components/BmiCardComponent';
 import { useElderlyDetailsStore } from '@src/stores/elderlyDetailsStore';
-import { useAuthStore } from '@src/stores/authStore';
 import { groupMeasurements } from '@src/utils/chartsHelper';
 import { Color } from '@src/styles/colors';
 import { FontFamily, FontSize } from '@src/styles/fonts';
 import { Spacing, spacingStyles } from '@src/styles/spacings';
 import { Border } from '@src/styles/borders';
-import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
 import ScreenState from '@src/constants/screenState';
+import { elderlyApi } from '@api/endpoints/elderly'; // Importa a API
 
 type Props = NativeStackScreenProps<any, 'ElderlyMeasurementsList'>;
 
 const ElderlyMeasurementsListScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { elderlyId } = route.params;
+  const params = route.params as { elderlyId?: number; initialData?: any };
+  const { elderlyId, initialData } = params;
   const { t } = useTranslation();
-  const { elderly, state, refreshElderly, fetchElderly } = useElderlyDetailsStore();
-  const { user } = useAuthStore();
+  
+  // Estado local para armazenar as medições buscadas manualmente
+  const [localMeasurements, setLocalMeasurements] = useState<Measurement[]>(initialData || []);
+  const [loading, setLoading] = useState(false);
+  
+  const { elderly, state, refreshElderly } = useElderlyDetailsStore();
 
   useEffect(() => {
-    if (!elderly || elderly.id !== elderlyId) {
-      fetchElderly(elderlyId);
+    if (initialData && initialData.length > 0) {
+      setLocalMeasurements(initialData);
+      return;
     }
-  }, [elderlyId]);
+    // Se não temos initialData (caso do externo), buscamos tudo na API
+    if (!initialData && elderlyId) {
+      const fetchAllMeasurements = async () => {
+        setLoading(true);
+        try {
+          const allTypes = Object.values(MeasurementType);
+          console.log("Tipos a buscar na API:", allTypes); // VEJA O QUE APARECE AQUI NO TERMINAL
 
-  const canAdd = user && [
-    UserRole.INSTITUTION_ADMIN, UserRole.CAREGIVER, UserRole.CLINICIAN, UserRole.PROGRAMMER,
-  ].includes(user.user.role as UserRole);
-
-  useEffect(() => {
-    if (canAdd) {
-      navigation.setOptions({
-        headerRight: () => (
-          <TouchableOpacity
-            onPress={() => navigation.push('AddMeasurement', { elderlyId })}
-            style={styles.headerButton}
-          >
-            <MaterialIcons name="add" size={22} color={Color.Background.white} />
-          </TouchableOpacity>
-        ),
-      });
+          const promises = allTypes.map(type => 
+            elderlyApi.getMeasurementsByType(elderlyId, type)
+              .then(res => {
+                console.log(`Tipo ${type} retornou:`, res.data?.length || 0); // VEJA SE ALGUM RETORNA 0
+                return res.data || [];
+              })
+              .catch(() => [])
+          );
+          
+          const results = await Promise.all(promises);
+          const flatResults = results.flat();
+          setLocalMeasurements(flatResults);
+        } catch (error) {
+          console.error("Erro:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchAllMeasurements();
+    } else if (initialData) {
+      // Se passámos dados iniciais, usamos esses
+      setLocalMeasurements(initialData);
     }
-  }, [navigation, canAdd, elderlyId]);
+  }, [elderlyId, initialData]);
 
-  const measurements: Measurement[] = elderly?.measurements ?? [];
-  const grouped = groupMeasurements(measurements);
-  const types = Object.keys(grouped) as MeasurementType[];
+  // Se tem initialData, usa as locais, senão usa o store
+  const displayMeasurements = localMeasurements;
+  const grouped = groupMeasurements(displayMeasurements); 
+  const allPossibleTypes = Object.values(MeasurementType);
 
-  const hasBmi =
-    grouped[MeasurementType.WEIGHT] && grouped[MeasurementType.HEIGHT];
+  console.log("Medições totais no estado local:", displayMeasurements.length);
+  console.log("Grupos formados:", Object.keys(grouped));
 
-  // Latest height measurement used to colorize the weight card dot by BMI
   const latestHeightCm = grouped[MeasurementType.HEIGHT]?.length
-    ? [...grouped[MeasurementType.HEIGHT]!].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )[0].value
+    ? [...grouped[MeasurementType.HEIGHT]!].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].value
     : undefined;
+  
+  const isExternal = !initialData;
+
+  useLayoutEffect(() => {
+    const title = t(`navigation.${route.name}`);
+    navigation.setOptions({ title, headerTitle: title });
+  }, [navigation, route.name, t]);
 
   return (
     <View style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={state === ScreenState.REFRESHING}
-            onRefresh={() => refreshElderly(elderlyId)}
-          />
+          !isExternal ? (
+            <RefreshControl refreshing={state === ScreenState.REFRESHING} onRefresh={() => refreshElderly(elderlyId ?? 0)} />
+          ) : undefined
         }
       >
-        {types.length === 0 ? (
-          <View style={styles.emptyState}>
-            <MaterialIcons name="favorite" size={48} color={Color.Gray.v300} />
-            <Text style={styles.emptyText}>{t('measurements.noMeasurements')}</Text>
-          </View>
-        ) : (
-          <>
-            {/* BMI card — shown when both Weight and Height are available */}
-            {hasBmi && <BmiCardComponent measurements={measurements} />}
-
-            {types.map(type => (
-              <MeasurementOverviewComponent
-                key={type}
-                elderlyId={elderlyId}
-                measurementType={type}
-                measurements={grouped[type]!}
-                navigation={navigation}
-                latestHeightCm={type === MeasurementType.WEIGHT ? latestHeightCm : undefined}
-              />
-            ))}
-          </>
-        )}
+        {allPossibleTypes
+          .filter(type => grouped[type as keyof typeof grouped] && grouped[type as keyof typeof grouped]!.length > 0)
+          .map(type => (
+            <MeasurementOverviewComponent
+              key={type}
+              elderlyId={elderlyId ?? 0}
+              measurementType={type as MeasurementType}
+              measurements={grouped[type as keyof typeof grouped] ?? []}
+              navigation={isExternal ? undefined : navigation}
+              latestHeightCm={type === MeasurementType.WEIGHT ? latestHeightCm : undefined}
+            />
+          ))}
       </ScrollView>
     </View>
   );

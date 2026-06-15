@@ -892,7 +892,11 @@
     "addCalendarEvent": "Adicionar Evento",
     "editCalendarEvent": "Editar Evento",
     "editElderly": "Editar Perfil do Idoso",
-    "absences": "Ausências"
+    "absences": "Ausências",
+    "ElderlyMeasurementsList": "Medições",
+    "ElderlyMedicationsList": "Medicação",
+    "ElderlyPathologiesList": "Patologias",
+    "ElderlyWoundTrackingScreen": "Seguimento de Feridas"
   },
   "searchElderly": {
     "title": "Pesquisar Idoso",

@@ -22,6 +22,7 @@ import Toast from "react-native-toast-message";
 export type ElderlyMeasurementsArgs = {
   elderlyId: number;
   measurementType: MeasurementType;
+  initialData?: any;
 }
 
 type Props = {
@@ -32,7 +33,7 @@ type Props = {
 export const ElderlyMeasurementsComponent: React.FC<Props> = ({ route, navigation }) => {
   const { t } = useTranslation();
   const { user } = useAuthStore();
-  const { elderlyId, measurementType } = route.params;
+  const { elderlyId, measurementType, initialData } = route.params;
 
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [heightMeasurements, setHeightMeasurements] = useState<Measurement[]>([]);
@@ -42,27 +43,29 @@ export const ElderlyMeasurementsComponent: React.FC<Props> = ({ route, navigatio
   const canAddData = userRole && [UserRole.INSTITUTION_ADMIN, UserRole.CAREGIVER, UserRole.CLINICIAN, UserRole.PROGRAMMER].includes(userRole);
 
   const fetchMeasurements = async () => {
-    try {
-      setLoading(true);
-      const response = await elderlyApi.getMeasurementsByType(elderlyId, measurementType);
-      if (response.data) {
-        setMeasurements(response.data);
-      }
-      // For WEIGHT charts, also load heights so we can color by BMI
-      if (measurementType === MeasurementType.WEIGHT) {
-        const heightResponse = await elderlyApi.getMeasurementsByType(elderlyId, MeasurementType.HEIGHT);
-        if (heightResponse.data) setHeightMeasurements(heightResponse.data);
-      }
-    } catch (error) {
-      console.error('Error fetching measurements:', error);
-      Toast.show({
-        type: 'error',
-        text1: t('errors.serverError'),
-        text2: t('measurements.failedToLoadMeasurement')
-      });
-    } finally {
-      setLoading(false);
-    }
+  if (initialData) {
+    // Se temos dados do token, usamos esses dados e paramos
+    setMeasurements(initialData); 
+    setLoading(false);
+    return;
+  }
+
+  // Caso contrário, faz o fetch normal da API (apenas para staff)
+  try {
+    setLoading(true);
+    const response = await elderlyApi.getMeasurementsByType(elderlyId, measurementType);
+    if (response.data) setMeasurements(response.data);
+    // ... (o resto da lógica de carregamento)
+  } catch (error) {
+    // ...
+  } finally {
+    setLoading(false);
+  }
+  };  
+
+  const handleMeasurementPress = (measurementId: number) => {
+    if (initialData) return; // Profissional externo não navega para detalhes
+    navigation.navigate('MeasurementDetails', { measurementId });
   };
 
   useFocusEffect(
@@ -71,30 +74,20 @@ export const ElderlyMeasurementsComponent: React.FC<Props> = ({ route, navigatio
     }, [elderlyId, measurementType])
   );
 
-  const handleAddMeasurement = () => {
-    if (elderlyId) {
-      navigation.navigate('AddMeasurement', {
-        elderlyId,
-        prefillType: measurementType
-      });
-    }
-  };
-
   useLayoutEffect(() => {
-    if (canAddData && elderlyId) {
+    if (canAddData && elderlyId && !initialData) {
       navigation.setOptions({
         headerRight: () => (
-          <TouchableOpacity style={styles.headerButton} onPress={handleAddMeasurement}>
+          <TouchableOpacity onPress={() => navigation.navigate('AddMeasurement', { elderlyId })} style={styles.headerButton}>
             <MaterialIcons name="add" size={22} color={Color.Background.white} />
           </TouchableOpacity>
         ),
       });
+    } else {
+    // Se for externo, removemos o botão do header
+    navigation.setOptions({ headerRight: null });
     }
-  }, [navigation, canAddData, elderlyId]);
-
-  const handleMeasurementPress = (measurementId: number) => {
-    navigation.navigate('MeasurementDetails', { measurementId });
-  };
+  }, [navigation, canAddData, elderlyId, initialData]);
 
   const getMeasurementStats = (measurements: Measurement[]) => {
     if (measurements.length === 0) return null;
@@ -205,7 +198,15 @@ export const ElderlyMeasurementsComponent: React.FC<Props> = ({ route, navigatio
         </VStack>
 
         {/* Stats Card */}
-        {stats && renderStatsCard()}
+        {stats && !initialData && renderStatsCard()} 
+        {stats && initialData && (
+          <View style={styles.statsCard}>
+            <Text style={styles.statLabel}>{t('measurements.latestValue')}</Text>
+            <Text style={styles.statNumber}>
+              {getDisplayValue(stats.latest)}{getUnitFromMeasurement(stats.latest)}
+            </Text>
+          </View>
+        )}
 
         {/* Charts Section */}
         {measurements.length > 0 ? (
@@ -215,8 +216,8 @@ export const ElderlyMeasurementsComponent: React.FC<Props> = ({ route, navigatio
               measurementType === MeasurementType.WEIGHT ? heightMeasurements : undefined,
             )).map(
               ([type, records]) => (
-                <View key={type} style={styles.chartCard}>
-                  <MeasurementChart data={records} onDataPointPress={handleMeasurementPress} />
+                <View key={type} style={styles.chartCard} pointerEvents={initialData ? "none" : "auto"}>
+                  <MeasurementChart data={records} onDataPointPress={initialData ? undefined : handleMeasurementPress} />
                 </View>
               )
             )}

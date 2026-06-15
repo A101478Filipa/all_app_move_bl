@@ -31,10 +31,9 @@ export const MeasurementOverviewComponent: React.FC<MeasurementOverviewComponent
 }) => {
   const { t } = useTranslation();
 
-  const latestMeasurement = useMemo(
-    () => (measurements?.length > 0 ? measurements[measurements.length - 1] : null),
-    [measurements]
-  );
+  const latestMeasurement = measurements && measurements.length > 0 
+  ? [...measurements].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+  : null;
 
   const formatMeasurementValue = (value: number, measurement: Measurement) => {
     const unitSymbol = getMeasurementUnitSymbol(measurement.unit);
@@ -54,16 +53,28 @@ export const MeasurementOverviewComponent: React.FC<MeasurementOverviewComponent
   }, [latestMeasurement, latestHeightCm]);
 
   const onPress = () => {
-    navigation.push('ElderlyMeasurements', {
-      elderlyId,
-      measurementType
-    });
+    // Se não houver navegação (passámos undefined no ecrã anterior), 
+    // a função simplesmente não faz nada.
+    if (!navigation) return; 
+
+    if (navigation.push) {
+      navigation.push('ElderlyMeasurements', {
+        elderlyId,
+        measurementType
+      });
+    }
   };
 
   return (
     <TouchableOpacity
       onPress={onPress}
-      style={styles.container}
+      // O disabled é a chave: se navigation for undefined, o botão não é clicável
+      disabled={!navigation} 
+      style={[
+        styles.container, 
+        !navigation && { opacity: 0.8 } // Opcional: fica ligeiramente opaco se não for clicável
+      ]}
+      activeOpacity={navigation ? 0.75 : 1} // Se não houver navegação, não tem efeito de "press"
     >
       <HStack align='center' style={styles.content}>
         <VStack align="flex-start" spacing={Spacing.xs_4}>
@@ -94,7 +105,10 @@ export const MeasurementOverviewComponent: React.FC<MeasurementOverviewComponent
 
         <Spacer/>
 
-        <MaterialIcons name="chevron-right" size={24} color={Color.Gray.v400}/>
+        {/* Só mostra a seta se a navegação estiver ativa */}
+        {navigation && (
+          <MaterialIcons name="chevron-right" size={24} color={Color.Gray.v400}/>
+        )}
       </HStack>
     </TouchableOpacity>
   );

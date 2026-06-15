@@ -1,26 +1,22 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Modal, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback } from 'react'; 
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native'; // Adicionado RefreshControl
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
-import { MeasurementType, MeasurementUnit } from 'moveplus-shared';
+import { useFocusEffect } from '@react-navigation/native'; 
 import { LoginStackParamList } from '@src/navigation/LoginNavigator';
 import { Color } from '@src/styles/colors';
 import { FontFamily, FontSize } from '@src/styles/fonts';
-import { Spacing, spacingStyles } from '@src/styles/spacings';
+import { Spacing } from '@src/styles/spacings';
 import { Border } from '@src/styles/borders';
-import { calculateAge, formatDateLong } from '@src/utils/Date';
 import { HStack, VStack } from '@components/CoreComponents';
-import { ExpandableRow } from '@components/ProfileComponents';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
-import { getGenderTitle } from '@src/utils/genderHelper';
-import { getDefaultMeasurementUnit } from '@src/utils/measurementHelper';
-import { externalAccessApi } from '@src/api/endpoints/externalAccess';
+import { Measurement } from 'moveplus-shared';
 
 type Props = NativeStackScreenProps<LoginStackParamList, 'ExternalElderlyProfile'>;
-type AddModal = 'measurement' | 'medication' | 'pathology' | 'fall' | null;
+type AddModal = 'measurement' | 'medication' | 'pathology' | null;
 
-const CategoryCard = ({ iconName, iconColor, title, count, onPress, onAdd }: any) => (
+const CategoryCard = ({ iconName, iconColor, title, count, onPress, onAdd, hideCount }: any) => (
   <TouchableOpacity style={[styles.categoryCard, { flex: 1 }]} onPress={onPress} activeOpacity={0.75}>
     <View style={styles.categoryIconContainer}>
       <View style={[styles.categoryIconWrap, { backgroundColor: iconColor + '18' }]}>
@@ -28,7 +24,8 @@ const CategoryCard = ({ iconName, iconColor, title, count, onPress, onAdd }: any
       </View>
     </View>
     <Text style={styles.categoryTitle}>{title}</Text>
-    {count !== undefined && <View style={[styles.categoryBadge, { backgroundColor: iconColor }]}><Text style={styles.categoryBadgeText}>{count}</Text></View>}
+    {!hideCount && count !== undefined && (
+    <View style={styles.categoryBadge}><Text>{count}</Text></View>)}
     {onAdd && (
       <TouchableOpacity style={[styles.categoryAddBtn, { backgroundColor: iconColor }]} onPress={e => { e.stopPropagation(); onAdd(); }}>
         <MaterialIcons name="add" size={14} color="#fff" />
@@ -38,20 +35,22 @@ const CategoryCard = ({ iconName, iconColor, title, count, onPress, onAdd }: any
 );
 
 const ExternalElderlyProfileScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { profile, token } = route.params;
+  const [profile, setProfile] = useState(route.params.profile); // Tornamos o profile um estado para ser atualizável
+  const [refreshing, setRefreshing] = useState(false); // Estado para o Pull-to-Refresh
   const { elderly, event } = profile;
   const { t } = useTranslation();
-  
   const [addModal, setAddModal] = useState<AddModal>(null);
-  const [submitting, setSubmitting] = useState(false);
 
-  // Navegação para ecrãs dedicados
-  const handleNavigate = (screenName: string) => {
-    // @ts-ignore
-    navigation.navigate(screenName, { elderlyId: elderly.id });
-  };
+  console.log("Medições no perfil:", profile.elderly.measurements.length);
+  console.log("Tipos unicos:", new Set(profile.elderly.measurements.map(m => m.type)));
 
-  const genderLabel = getGenderTitle(elderly.gender as any, t);
+  const handleNavigate = (screenName: string, allData: any[]) => {
+    // Envie o array completo que já existe no seu 'profile'
+    navigation.navigate(screenName as any, { 
+      elderlyId: elderly.id, 
+      initialData: profile.elderly.measurements, // ENVIA O ARRAY COMPLETO AQUI
+    });
+};
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -61,7 +60,10 @@ const ExternalElderlyProfileScreen: React.FC<Props> = ({ route, navigation }) =>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer} 
+        showsVerticalScrollIndicator={false}
+      >
         <VStack align="flex-start" spacing={Spacing.lg_24}>
           <HStack spacing={Spacing.lg_24} style={styles.header}>
             <View style={styles.avatarCircle}><MaterialIcons name="person" size={48} color={Color.primary} /></View>
@@ -73,19 +75,15 @@ const ExternalElderlyProfileScreen: React.FC<Props> = ({ route, navigation }) =>
 
           <VStack align="flex-start" spacing={Spacing.sm_12} style={styles.gridContainer}>
             <HStack spacing={Spacing.sm_12} style={styles.gridRow}>
-              <CategoryCard iconName="favorite" iconColor={Color.Semantic.measurements} title={t('elderly.measurements')} count={profile.elderly.measurements.length} onPress={() => handleNavigate('ElderlyMeasurementsList')} onAdd={() => setAddModal('measurement')} />
-              <CategoryCard iconName="medication" iconColor={Color.Semantic.medication} title={t('elderly.medications')} count={profile.elderly.medications.length} onPress={() => handleNavigate('ElderlyMedicationsList')} onAdd={() => setAddModal('medication')} />
+              <CategoryCard iconName="favorite" iconColor={Color.Semantic.measurements} title={t('elderly.measurements')} count={profile.elderly.measurements.length} hideCount={true} onPress={() => handleNavigate('ElderlyMeasurementsList', profile.elderly.measurements)} onAdd={() => setAddModal('measurement')} />
+              <CategoryCard iconName="medication" iconColor={Color.Semantic.medication} title={t('elderly.medications')} count={profile.elderly.medications.length} hideCount={true} onPress={() => handleNavigate('ElderlyMedicationsList', profile.elderly.medications)} onAdd={() => setAddModal('medication')} />
             </HStack>
             
             <HStack spacing={Spacing.sm_12} style={styles.gridRow}>
-              <CategoryCard iconName="healing" iconColor={Color.Semantic.pathology} title={t('elderly.pathologies')} count={profile.elderly.pathologies.length} onPress={() => handleNavigate('ElderlyPathologiesList')} onAdd={() => setAddModal('pathology')} />
-              <CategoryCard iconName="warning" iconColor="#7B1FA2" title={t('elderly.fallOccurrences')} count={profile.elderly.recentFalls.length} onPress={() => handleNavigate('ElderlyFallsList')} />
+              <CategoryCard iconName="healing" iconColor={Color.Semantic.pathology} title={t('elderly.pathologies')} count={profile.elderly.pathologies.length} hideCount={true} onPress={() => handleNavigate('ElderlyPathologiesList', profile.elderly.pathologies)} onAdd={() => setAddModal('pathology')} />
+              <CategoryCard iconName="healing" iconColor={Color.Error.default} title={t('woundTracking.title')} count={profile.elderly.recentWounds.length} hideCount={true} onPress={() => handleNavigate('ElderlyWoundTrackingScreen', profile.elderly.recentWounds)} />
             </HStack>
 
-            <HStack spacing={Spacing.sm_12} style={styles.gridRow}>
-              <CategoryCard iconName="sos" iconColor={Color.Warning.amber} title={t('sosOccurrence.title')} onPress={() => handleNavigate('ElderlySOSList')} />
-              <CategoryCard iconName="healing" iconColor={Color.Error.default} title={t('woundTracking.title')} onPress={() => handleNavigate('ElderlyWoundTrackingScreen')} />
-            </HStack>
           </VStack>
         </VStack>
       </ScrollView>
@@ -111,7 +109,6 @@ const styles = StyleSheet.create({
   categoryBadge: { position: 'absolute', top: Spacing.sm_8, right: Spacing.sm_8, minWidth: 24, height: 24, borderRadius: Border.full, justifyContent: 'center', alignItems: 'center' },
   categoryBadgeText: { fontSize: FontSize.caption_12, fontFamily: FontFamily.bold, color: Color.white },
   categoryAddBtn: { position: 'absolute', bottom: Spacing.sm_8, right: Spacing.sm_8, width: 22, height: 22, borderRadius: Border.full, justifyContent: 'center', alignItems: 'center' },
-  categoryChevron: { position: 'absolute', bottom: Spacing.sm_8, right: Spacing.sm_8 },
   categoryIconContainer: { position: 'relative' },
 });
 
