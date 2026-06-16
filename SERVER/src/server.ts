@@ -7,6 +7,7 @@ import apiRoutes from './apiRoutes';
 import { logRequest } from './middleware/logMiddleware';
 import { TokenCleanupService } from './services/tokenCleanupService';
 import externalAccessRoutes from './modules/externalAccess/externalAccessRoutes';
+import { authenticate } from './middleware/authMiddleware';
 
 // Initialize express app
 const app = express();
@@ -21,7 +22,7 @@ app.use(logRequest); // ! Used for debug. Remove later
 app.use('/api/external-access', externalAccessRoutes);
 
 // Routes
-app.use('/api', apiRoutes);
+app.use('/api', authenticate, apiRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../../public/uploads')));
 app.use('/default', express.static(path.join(__dirname, '../../public/default')));
 

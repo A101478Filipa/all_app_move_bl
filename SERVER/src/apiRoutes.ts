@@ -48,6 +48,5 @@ apiRoutes.use('/time-off', timeOffRoutes);
 apiRoutes.use('/elderly-absences', elderlyAbsenceRoutes);
 apiRoutes.use('/wound-tracking', woundTrackingRoutes);
 apiRoutes.use('/external-professionals', externalProfessionalRoutes);
-apiRoutes.use('/external-access', externalAccessRoutes);
 
 export default apiRoutes;
