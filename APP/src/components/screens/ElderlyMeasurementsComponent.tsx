@@ -19,6 +19,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { elderlyApi } from "@api/endpoints/elderly";
 import Toast from "react-native-toast-message";
 
+
 export type ElderlyMeasurementsArgs = {
   elderlyId: number;
   measurementType: MeasurementType;
@@ -65,7 +66,7 @@ export const ElderlyMeasurementsComponent: React.FC<Props> = ({ route, navigatio
 
   const handleMeasurementPress = (measurementId: number) => {
     if (initialData) return; // Profissional externo não navega para detalhes
-    navigation.navigate('MeasurementDetails', { measurementId });
+    navigation.navigate('ElderlyMeasurementsList', { measurementId });
   };
 
   useFocusEffect(
@@ -217,7 +218,7 @@ export const ElderlyMeasurementsComponent: React.FC<Props> = ({ route, navigatio
             )).map(
               ([type, records]) => (
                 <View key={type} style={styles.chartCard} pointerEvents={initialData ? "none" : "auto"}>
-                  <MeasurementChart data={records} onDataPointPress={initialData ? undefined : handleMeasurementPress} />
+                  <MeasurementChart data={records} onDataPointPress={handleMeasurementPress} />
                 </View>
               )
             )}

@@ -18,8 +18,9 @@ export interface MeasurementOverviewComponentProps {
   elderlyId: number;
   measurementType: MeasurementType;
   measurements: Measurement[];
-  navigation: any;
+  navigation?: any;
   latestHeightCm?: number;
+  isExternal?: boolean;
 }
 
 export const MeasurementOverviewComponent: React.FC<MeasurementOverviewComponentProps> = ({
@@ -27,6 +28,7 @@ export const MeasurementOverviewComponent: React.FC<MeasurementOverviewComponent
   measurementType,
   measurements,
   navigation,
+  isExternal,
   latestHeightCm,
 }) => {
   const { t } = useTranslation();
@@ -53,28 +55,21 @@ export const MeasurementOverviewComponent: React.FC<MeasurementOverviewComponent
   }, [latestMeasurement, latestHeightCm]);
 
   const onPress = () => {
-    // Se não houver navegação (passámos undefined no ecrã anterior), 
-    // a função simplesmente não faz nada.
-    if (!navigation) return; 
 
-    if (navigation.push) {
-      navigation.push('ElderlyMeasurements', {
-        elderlyId,
-        measurementType
-      });
-    }
+    if (isExternal || !navigation) return;
+
+    navigation.navigate('ElderlyMeasurements', { 
+      elderlyId,
+      measurementType 
+    });
   };
 
   return (
     <TouchableOpacity
       onPress={onPress}
-      // O disabled é a chave: se navigation for undefined, o botão não é clicável
-      disabled={!navigation} 
-      style={[
-        styles.container, 
-        !navigation && { opacity: 0.8 } // Opcional: fica ligeiramente opaco se não for clicável
-      ]}
-      activeOpacity={navigation ? 0.75 : 1} // Se não houver navegação, não tem efeito de "press"
+      disabled={isExternal} // Desativa o toque se for externo
+      activeOpacity={isExternal ? 1 : 0.75}
+      style={styles.container}
     >
       <HStack align='center' style={styles.content}>
         <VStack align="flex-start" spacing={Spacing.xs_4}>
@@ -106,9 +101,9 @@ export const MeasurementOverviewComponent: React.FC<MeasurementOverviewComponent
         <Spacer/>
 
         {/* Só mostra a seta se a navegação estiver ativa */}
-        {navigation && (
+        {!isExternal && 
           <MaterialIcons name="chevron-right" size={24} color={Color.Gray.v400}/>
-        )}
+        }
       </HStack>
     </TouchableOpacity>
   );

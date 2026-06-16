@@ -303,11 +303,7 @@ export const InstitutionDashboardNavigationStack = () => {
         component={ElderlyWoundTrackingScreen}
         options={{ title: t('woundTracking.title') }}
       />
-      <Stack.Screen
-        name='ElderlyMeasurementsList'
-        component={ElderlyMeasurementsListScreen}
-        options={{ title: t('measurements.title') }}
-      />
+      
       <Stack.Screen
         name='ElderlySOSList'
         component={ElderlySOSListScreen}

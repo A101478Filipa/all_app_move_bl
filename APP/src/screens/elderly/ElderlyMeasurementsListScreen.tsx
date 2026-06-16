@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useLayoutEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Measurement, MeasurementType } from 'moveplus-shared';
+import { Measurement, MeasurementType, UserRole } from 'moveplus-shared';
 import { MeasurementOverviewComponent } from '@components/MeasurementOverviewComponent';
 import { useElderlyDetailsStore } from '@src/stores/elderlyDetailsStore';
 import { groupMeasurements } from '@src/utils/chartsHelper';
@@ -12,13 +12,17 @@ import { Border } from '@src/styles/borders';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
 import ScreenState from '@src/constants/screenState';
 import { elderlyApi } from '@api/endpoints/elderly'; // Importa a API
+import { useAuthStore } from "@stores/authStore";
 
 type Props = NativeStackScreenProps<any, 'ElderlyMeasurementsList'>;
 
 const ElderlyMeasurementsListScreen: React.FC<Props> = ({ route, navigation }) => {
-  const params = route.params as { elderlyId?: number; initialData?: any };
-  const { elderlyId, initialData } = params;
+  const params = route.params as { elderlyId?: number; initialData?: any; isExternalToken?: boolean };
+  const { elderlyId, initialData, isExternalToken } = route.params as any;
   const { t } = useTranslation();
+  const { user } = useAuthStore();
+  const userRole = user?.user?.role;
+  const isExternal = isExternalToken === true; 
   
   // Estado local para armazenar as medições buscadas manualmente
   const [localMeasurements, setLocalMeasurements] = useState<Measurement[]>(initialData || []);
@@ -27,56 +31,55 @@ const ElderlyMeasurementsListScreen: React.FC<Props> = ({ route, navigation }) =
   const { elderly, state, refreshElderly } = useElderlyDetailsStore();
 
   useEffect(() => {
+    // 1. Caso Externo (com dados pré-carregados)
     if (initialData && initialData.length > 0) {
       setLocalMeasurements(initialData);
+      setLoading(false);
       return;
     }
-    // Se não temos initialData (caso do externo), buscamos tudo na API
-    if (!initialData && elderlyId) {
+
+    // 2. Caso Interno (buscar na API)
+    if (elderlyId) {
       const fetchAllMeasurements = async () => {
         setLoading(true);
         try {
+          // Filtramos apenas os tipos que realmente existem no teu Enum
           const allTypes = Object.values(MeasurementType);
-          console.log("Tipos a buscar na API:", allTypes); // VEJA O QUE APARECE AQUI NO TERMINAL
-
-          const promises = allTypes.map(type => 
-            elderlyApi.getMeasurementsByType(elderlyId, type)
-              .then(res => {
-                console.log(`Tipo ${type} retornou:`, res.data?.length || 0); // VEJA SE ALGUM RETORNA 0
-                return res.data || [];
-              })
-              .catch(() => [])
+          
+          const results = await Promise.all(
+            allTypes.map(type => 
+              elderlyApi.getMeasurementsByType(elderlyId, type)
+                .then(res => res.data || [])
+                .catch(() => [])
+            )
           );
           
-          const results = await Promise.all(promises);
           const flatResults = results.flat();
           setLocalMeasurements(flatResults);
         } catch (error) {
-          console.error("Erro:", error);
+          console.error("Erro ao buscar medições:", error);
         } finally {
           setLoading(false);
         }
       };
+
       fetchAllMeasurements();
-    } else if (initialData) {
-      // Se passámos dados iniciais, usamos esses
-      setLocalMeasurements(initialData);
+    } else {
+      // Caso de segurança: se não houver elderlyId, limpamos
+      setLocalMeasurements([]);
+      setLoading(false);
     }
-  }, [elderlyId, initialData]);
+  }, [elderlyId, initialData]); 
 
   // Se tem initialData, usa as locais, senão usa o store
   const displayMeasurements = localMeasurements;
   const grouped = groupMeasurements(displayMeasurements); 
   const allPossibleTypes = Object.values(MeasurementType);
 
-  console.log("Medições totais no estado local:", displayMeasurements.length);
-  console.log("Grupos formados:", Object.keys(grouped));
-
   const latestHeightCm = grouped[MeasurementType.HEIGHT]?.length
     ? [...grouped[MeasurementType.HEIGHT]!].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].value
     : undefined;
-  
-  const isExternal = !initialData;
+
 
   useLayoutEffect(() => {
     const title = t(`navigation.${route.name}`);
@@ -101,7 +104,8 @@ const ElderlyMeasurementsListScreen: React.FC<Props> = ({ route, navigation }) =
               elderlyId={elderlyId ?? 0}
               measurementType={type as MeasurementType}
               measurements={grouped[type as keyof typeof grouped] ?? []}
-              navigation={isExternal ? undefined : navigation}
+              navigation={isExternal ? undefined : navigation} 
+              isExternal={isExternal}
               latestHeightCm={type === MeasurementType.WEIGHT ? latestHeightCm : undefined}
             />
           ))}

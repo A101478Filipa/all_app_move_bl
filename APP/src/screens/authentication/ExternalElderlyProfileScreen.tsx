@@ -41,16 +41,13 @@ const ExternalElderlyProfileScreen: React.FC<Props> = ({ route, navigation }) =>
   const { t } = useTranslation();
   const [addModal, setAddModal] = useState<AddModal>(null);
 
-  console.log("Medições no perfil:", profile.elderly.measurements.length);
-  console.log("Tipos unicos:", new Set(profile.elderly.measurements.map(m => m.type)));
-
   const handleNavigate = (screenName: string, allData: any[]) => {
-    // Envie o array completo que já existe no seu 'profile'
     navigation.navigate(screenName as any, { 
       elderlyId: elderly.id, 
-      initialData: profile.elderly.measurements, // ENVIA O ARRAY COMPLETO AQUI
+      initialData: allData,
+      isExternalToken: true,
     });
-};
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -75,13 +72,13 @@ const ExternalElderlyProfileScreen: React.FC<Props> = ({ route, navigation }) =>
 
           <VStack align="flex-start" spacing={Spacing.sm_12} style={styles.gridContainer}>
             <HStack spacing={Spacing.sm_12} style={styles.gridRow}>
-              <CategoryCard iconName="favorite" iconColor={Color.Semantic.measurements} title={t('elderly.measurements')} count={profile.elderly.measurements.length} hideCount={true} onPress={() => handleNavigate('ElderlyMeasurementsList', profile.elderly.measurements)} onAdd={() => setAddModal('measurement')} />
-              <CategoryCard iconName="medication" iconColor={Color.Semantic.medication} title={t('elderly.medications')} count={profile.elderly.medications.length} hideCount={true} onPress={() => handleNavigate('ElderlyMedicationsList', profile.elderly.medications)} onAdd={() => setAddModal('medication')} />
+              <CategoryCard iconName="favorite" iconColor={Color.Semantic.measurements} title={t('elderly.measurements')} count={(profile.elderly.measurements || []).length} hideCount={true} onPress={() => handleNavigate('ElderlyMeasurementsList', profile.elderly.measurements)} onAdd={() => setAddModal('measurement')} />
+              <CategoryCard iconName="medication" iconColor={Color.Semantic.medication} title={t('elderly.medications')} count={(profile.elderly.medications || []).length} hideCount={true} onPress={() => handleNavigate('ElderlyMedicationsList', profile.elderly.medications)} onAdd={() => setAddModal('medication')} />
             </HStack>
             
             <HStack spacing={Spacing.sm_12} style={styles.gridRow}>
-              <CategoryCard iconName="healing" iconColor={Color.Semantic.pathology} title={t('elderly.pathologies')} count={profile.elderly.pathologies.length} hideCount={true} onPress={() => handleNavigate('ElderlyPathologiesList', profile.elderly.pathologies)} onAdd={() => setAddModal('pathology')} />
-              <CategoryCard iconName="healing" iconColor={Color.Error.default} title={t('woundTracking.title')} count={profile.elderly.recentWounds.length} hideCount={true} onPress={() => handleNavigate('ElderlyWoundTrackingScreen', profile.elderly.recentWounds)} />
+              <CategoryCard iconName="healing" iconColor={Color.Semantic.pathology} title={t('elderly.pathologies')} count={(profile.elderly.pathologies || []).length} hideCount={true} onPress={() => handleNavigate('ElderlyPathologiesList', profile.elderly.pathologies)} onAdd={() => setAddModal('pathology')} />
+              <CategoryCard iconName="healing" iconColor={Color.Error.default} title={t('woundTracking.title')} count={(profile.elderly.recentWounds || []).length} hideCount={true} onPress={() => handleNavigate('ElderlyWoundTrackingScreen', profile.elderly.recentWounds)} />
             </HStack>
 
           </VStack>
