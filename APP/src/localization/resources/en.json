@@ -417,6 +417,7 @@
   },
   "medication": {
     "title": "Medication",
+    "details": "Medication Details",
     "addMedication": "Add Medication",
     "addNewMedication": "Add a new medication for this patient",
     "editMedication": "Edit Medication",

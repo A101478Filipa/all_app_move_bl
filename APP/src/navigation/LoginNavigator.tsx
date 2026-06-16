@@ -18,6 +18,9 @@ import ElderlyPathologiesListScreen from "@src/screens/elderly/ElderlyPathologie
 import ElderlyFallsListScreen from "@src/screens/elderly/ElderlyFallsListScreen";
 import ElderlySOSListScreen from "@src/screens/elderly/ElderlySOSListScreen";
 import ElderlyWoundTrackingScreen from "@src/screens/elderly/ElderlyWoundTrackingScreen";
+import MedicationDetailsScreen from "@src/screens/medication/MedicationDetailsScreen";
+import { useTranslation } from '@src/localization/hooks/useTranslation';
+
 
 export type LoginStackParamList = {
   Welcome: undefined;
@@ -38,7 +41,8 @@ export type LoginStackParamList = {
   ExternalAccess: undefined;
   ExternalElderlyProfile: { profile: ExternalProfileResponse; token: string };
   ElderlyMeasurementsList: undefined;
-  ElderlyMedicationsList: undefined;
+  ElderlyMedicationsList: { elderlyId: number, initialData?: any, isExternalToken?: boolean };
+  MedicationDetails: { medicationId: number };
   ElderlyPathologiesList: undefined;
   ElderlyFallsList: undefined;
   ElderlySOSList: undefined;
@@ -48,6 +52,7 @@ export type LoginStackParamList = {
 const Stack = createNativeStackNavigator<LoginStackParamList>();
 
 export const LoginNavigator: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <Stack.Navigator>
       <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false }} />
@@ -61,6 +66,7 @@ export const LoginNavigator: React.FC = () => {
       <Stack.Screen name="ExternalAccess" component={ExternalAccessScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ExternalElderlyProfile" component={ExternalElderlyProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ElderlyMeasurementsList" component={ElderlyMeasurementsListScreen} />
+      <Stack.Screen name="MedicationDetails" component={MedicationDetailsScreen} options={{ title: t('medication.details') }} />
       <Stack.Screen name="ElderlyMedicationsList" component={ElderlyMedicationsListScreen} />
       <Stack.Screen name="ElderlyPathologiesList" component={ElderlyPathologiesListScreen} />
       <Stack.Screen name="ElderlyFallsList" component={ElderlyFallsListScreen} />

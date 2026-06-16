@@ -29,30 +29,51 @@ type MedicationDetailsScreenProps = NativeStackScreenProps<any, 'MedicationDetai
 
 interface MedicationDetailsScreenRouteParams {
   medicationId: number;
+  isExternal?: boolean;
 }
 
 const MedicationDetailsScreen: React.FC<MedicationDetailsScreenProps> = ({ route, navigation }) => {
-  const { medicationId } = route.params as MedicationDetailsScreenRouteParams;
+  const { medicationId, initialData, isExternalToken } = route.params as any;
   const { user } = useAuthStore();
   const { t } = useTranslation();
   const { handleError } = useErrorHandler();
 
-  const [medication, setMedication] = useState<Medication | null>(null);
-  const [state, setState] = useState<ScreenState>(ScreenState.LOADING);
+  const [medication, setMedication] = useState<Medication | null>(
+    initialData?.find((m: any) => m.id === medicationId) || null
+  );
+  const [state, setState] = useState<ScreenState>(medication ? ScreenState.IDLE : ScreenState.LOADING);
 
   const fetchMedication = async () => {
-    try {
-      setState(ScreenState.LOADING);
-      const response = await medicationApi.getMedication(medicationId);
-      setMedication(response.data);
-      setState(ScreenState.IDLE);
-    } catch (error) {
-      console.error('Failed to fetch medication:', error);
-      handleError(error, t('medication.failedToLoadMedication'));
+    // 1. Prioridade: Se temos dados locais (caso do externo), usamos e paramos aqui
+    if (initialData) {
+      const found = initialData.find((m: any) => m.id === medicationId);
+      if (found) {
+        setMedication(found);
+        setState(ScreenState.IDLE);
+        return;
+      }
+    }
+
+    // 2. Só tentamos buscar na API se NÃO for um token externo
+    // Se for externo e não encontrámos no initialData, não fazemos o pedido 401
+    if (!isExternalToken) {
+      try {
+        setState(ScreenState.LOADING);
+        const response = await medicationApi.getMedication(medicationId);
+        setMedication(response.data);
+        setState(ScreenState.IDLE);
+      } catch (error) {
+        console.error('Failed to fetch medication:', error);
+        handleError(error, t('medication.failedToLoadMedication'));
+        setState(ScreenState.ERROR);
+      }
+    } else {
+      // Se chegou aqui sendo externo e não encontrou no initialData, definimos como erro
       setState(ScreenState.ERROR);
     }
   };
-
+    
+    
   useFocusEffect(
     useCallback(() => {
       fetchMedication();

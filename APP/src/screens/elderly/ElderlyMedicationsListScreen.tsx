@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useLayoutEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Medication, UserRole } from 'moveplus-shared';
@@ -16,16 +16,20 @@ import ScreenState from '@src/constants/screenState';
 type Props = NativeStackScreenProps<any, 'ElderlyMedicationsList'>;
 
 const ElderlyMedicationsListScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { elderlyId } = route.params;
+  const { elderlyId, initialData, isExternalToken } = route.params as any; // Adiciona isExternalToken
+  const { elderly, fetchElderly, refreshElderly } = useElderlyDetailsStore();
+  const state = elderly ? ScreenState.IDLE : ScreenState.LOADING;
   const { t } = useTranslation();
-  const { elderly, state, refreshElderly, fetchElderly } = useElderlyDetailsStore();
   const { user } = useAuthStore();
 
+  const medications = initialData || elderly?.medications || [];
+
   useEffect(() => {
-    if (!elderly || elderly.id !== elderlyId) {
+    // Se não temos initialData (ou seja, não é o externo), buscamos da API
+    if (!initialData && (!elderly || elderly.id !== elderlyId)) {
       fetchElderly(elderlyId);
     }
-  }, [elderlyId]);
+  }, [elderlyId, initialData]);
 
   const canAdd = user && [
     UserRole.INSTITUTION_ADMIN, UserRole.CLINICIAN, UserRole.PROGRAMMER,
@@ -46,11 +50,19 @@ const ElderlyMedicationsListScreen: React.FC<Props> = ({ route, navigation }) =>
     }
   }, [navigation, canAdd, elderlyId]);
 
-  const medications: Medication[] = elderly?.medications ?? [];
-
   const handleMedicationPress = (medication: Medication) => {
-    navigation.push('MedicationDetails', { medicationId: medication.id });
+    navigation.navigate('MedicationDetails', { 
+    medicationId: medication.id,
+    initialData: medications, // Passa a lista completa aqui
+    isExternalToken: isExternalToken 
+  });
   };
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: t('medication.title'), 
+    });
+  }, [navigation, t]);
 
   return (
     <View style={styles.container}>
@@ -59,7 +71,7 @@ const ElderlyMedicationsListScreen: React.FC<Props> = ({ route, navigation }) =>
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={state === ScreenState.REFRESHING}
+            refreshing={(state as any) === ScreenState.REFRESHING}
             onRefresh={() => refreshElderly(elderlyId)}
           />
         }
@@ -70,11 +82,15 @@ const ElderlyMedicationsListScreen: React.FC<Props> = ({ route, navigation }) =>
             <Text style={styles.emptyText}>{t('elderly.noMedications')}</Text>
           </View>
         ) : (
-          medications.map(medication => (
+          medications.map((medication: Medication) => (
             <MedicationCard
               key={medication.id}
               medication={medication}
-              onPress={handleMedicationPress}
+              onPress={() => navigation.navigate('MedicationDetails', { 
+                medicationId: medication.id,
+                initialData: medications, // Passa a lista
+                isExternalToken: isExternalToken // Passa a flag
+              })}
             />
           ))
         )}

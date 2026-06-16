@@ -415,6 +415,7 @@
   },
   "medication": {
     "title": "Medicação",
+    "details": "Detalhes da Medicação",
     "addMedication": "Adicionar Medicação",
     "addNewMedication": "Adicionar nova medicação para este paciente",
     "editMedication": "Editar Medicação",
