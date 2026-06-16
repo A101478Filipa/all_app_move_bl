@@ -20,6 +20,7 @@ import ElderlySOSListScreen from "@src/screens/elderly/ElderlySOSListScreen";
 import ElderlyWoundTrackingScreen from "@src/screens/elderly/ElderlyWoundTrackingScreen";
 import MedicationDetailsScreen from "@src/screens/medication/MedicationDetailsScreen";
 import { useTranslation } from '@src/localization/hooks/useTranslation';
+import EditMedicationScreen from "@src/screens/medication/EditMedicationScreen";
 
 
 export type LoginStackParamList = {
@@ -47,6 +48,7 @@ export type LoginStackParamList = {
   ElderlyFallsList: undefined;
   ElderlySOSList: undefined;
   ElderlyWoundTrackingScreen: undefined;
+  EditMedication: { medicationId: number, elderlyId: number, initialData?: any, isExternalToken?: boolean };
 };
 
 const Stack = createNativeStackNavigator<LoginStackParamList>();
@@ -68,6 +70,7 @@ export const LoginNavigator: React.FC = () => {
       <Stack.Screen name="ElderlyMeasurementsList" component={ElderlyMeasurementsListScreen} />
       <Stack.Screen name="MedicationDetails" component={MedicationDetailsScreen} options={{ title: t('medication.details') }} />
       <Stack.Screen name="ElderlyMedicationsList" component={ElderlyMedicationsListScreen} />
+      <Stack.Screen name="EditMedication" component={EditMedicationScreen} options={{ title: t('medication.editMedication') }} />
       <Stack.Screen name="ElderlyPathologiesList" component={ElderlyPathologiesListScreen} />
       <Stack.Screen name="ElderlyFallsList" component={ElderlyFallsListScreen} />
       <Stack.Screen name="ElderlySOSList" component={ElderlySOSListScreen} />

@@ -80,11 +80,11 @@ const MedicationDetailsScreen: React.FC<MedicationDetailsScreenProps> = ({ route
     }, [medicationId])
   );
 
-  const canEditMedication = user && (
-    user.user.role === UserRole.INSTITUTION_ADMIN ||
-    user.user.role === UserRole.CLINICIAN ||
-    user.user.role === UserRole.PROGRAMMER
-  );
+  const canEditMedication = (user && [
+    UserRole.INSTITUTION_ADMIN, 
+    UserRole.CLINICIAN, 
+    UserRole.PROGRAMMER
+  ].includes(user.user.role as UserRole)) || isExternalToken;
 
   const getMedicationStatusLabel = (status?: MedicationStatus | string | null) => {
     if (!status) return '';
@@ -109,11 +109,12 @@ const MedicationDetailsScreen: React.FC<MedicationDetailsScreenProps> = ({ route
     if (medication?.elderlyId) {
       navigation.push('EditMedication', {
         medication,
-        elderlyId: medication.elderlyId
+        elderlyId: medication.elderlyId,
+        isExternalToken: isExternalToken // Passa isto para o ecrã de edição saber que deve usar a API externa
       });
     }
   };
-
+  
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => {

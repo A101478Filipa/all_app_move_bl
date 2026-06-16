@@ -21,6 +21,7 @@ import { useErrorHandler } from '@src/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import { Border } from '@styles/borders';
 import { shadowStyles } from '@styles/shadow';
+import { externalAccessApi } from '@src/api/endpoints/externalAccess';
 
 type EditMedicationScreenProps = NativeStackScreenProps<any, 'EditMedication'>;
 
@@ -39,7 +40,7 @@ type MedicationForm = {
 };
 
 const EditMedicationScreen: React.FC<EditMedicationScreenProps> = ({ route, navigation }) => {
-  const { medication, elderlyId } = route.params;
+  const { medication, elderlyId, isExternalToken, token } = route.params as any;
   const [loading, setLoading] = useState(false);
   const { updateMedication } = useElderlyDetailsStore();
   const { handleError, handleSuccess, handleValidationError } = useErrorHandler();
@@ -69,16 +70,34 @@ const EditMedicationScreen: React.FC<EditMedicationScreenProps> = ({ route, navi
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const medicationData: UpdateMedicationRequest = {
+      // 1. Prepara a data como string (formato ISO é o padrão universal para APIs)
+      const endDateString = form.endDate ? new Date(form.endDate).toISOString() : undefined;
+      
+      // 2. Prepara o objeto Date para a API interna (se a API interna precisar de Date)
+      const endDateDate = form.endDate ? new Date(form.endDate) : undefined;
+
+      const medicationData = {
+        name: medication.name,
         dosage: form.dosage || undefined,
         frequency: form.frequency || undefined,
         administration: form.administration || undefined,
-        endDate: form.endDate ? new Date(form.endDate) : undefined,
         status: form.status || undefined,
         notes: form.notes || undefined,
       };
 
-      await updateMedication(elderlyId, medication.id, medicationData);
+      if (isExternalToken && token) {
+        // API Externa: Envia como STRING
+        await externalAccessApi.addMedication(token, {
+          ...medicationData,
+          endDate: endDateString, 
+        } as any);
+      } else {
+        // API Interna: Envia como DATE
+        await updateMedication(elderlyId, medication.id, {
+          ...medicationData,
+          endDate: endDateDate,
+        } as any);
+      }
 
       handleSuccess(t('medication.medicationUpdatedSuccessfully'));
       navigation.goBack();
@@ -143,7 +162,7 @@ const EditMedicationScreen: React.FC<EditMedicationScreenProps> = ({ route, navi
         <FormDateInput
           title={t('medication.endDate')}
           placeholder={t('medication.selectEndDate')}
-          value={form.endDate}
+          value={form.endDate || ''}
           onDateChange={(date) => handleInputChange('endDate', date)}
           minimumDate={medication.startDate ? new Date(medication.startDate) : new Date()}
         />

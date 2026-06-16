@@ -29,5 +29,6 @@ router.post('/:token/measurements', controller.addMeasurement);
 router.post('/:token/medications', controller.addMedication);
 router.post('/:token/pathologies', controller.addPathology);
 router.post('/:token/falls', controller.addFall);
+router.post('/:token/medications/:medicationId', controller.updateMedication);
 
 export default router;

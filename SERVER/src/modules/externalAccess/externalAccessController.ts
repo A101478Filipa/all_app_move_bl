@@ -430,3 +430,41 @@ export const addFall = async (req: Request, res: Response): Promise<void> => {
     sendError(res, 'Erro interno do servidor', 500);
   }
 };
+
+
+// POST /external-access/:token/medications/:medicationId (public)
+export const updateMedication = async (req: Request, res: Response): Promise<void> => {
+  const token = String(req.params.token);
+  const medicationId = Number(req.params.medicationId);
+
+  try {
+    const ctx = await resolveToken(token, res);
+    if (!ctx) return;
+
+    // Reutilizamos o mesmo schema de criação, mas permitimos partial update
+    const validation = ExternalMedicationSchema.partial().safeParse(req.body);
+    if (!validation.success) {
+      sendInputValidationError(res, 'Dados inválidos', validation.error.errors);
+      return;
+    }
+
+    // Garante que a medicação pertence ao utente associado ao token
+    const updated = await prisma.medication.updateMany({
+      where: { 
+        id: medicationId,
+        elderlyId: ctx.elderlyId 
+      },
+      data: validation.data,
+    });
+
+    if (updated.count === 0) {
+      sendError(res, 'Medicação não encontrada ou sem permissão', 404);
+      return;
+    }
+
+    sendSuccess(res, null, 'Medicação atualizada com sucesso');
+  } catch (error) {
+    console.error('updateMedication error:', error);
+    sendError(res, 'Erro interno do servidor', 500);
+  }
+};
