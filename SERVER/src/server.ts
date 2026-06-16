@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import apiRoutes from './apiRoutes';
 import { logRequest } from './middleware/logMiddleware';
 import { TokenCleanupService } from './services/tokenCleanupService';
+import externalAccessRoutes from './modules/externalAccess/externalAccessRoutes';
 
 // Initialize express app
 const app = express();
@@ -16,6 +17,8 @@ const port = process.env.PORT || process.env.SERVER_PORT || 3000;
 app.use(express.json());
 app.use(cookieParser());
 app.use(logRequest); // ! Used for debug. Remove later
+
+app.use('/api/external-access', externalAccessRoutes);
 
 // Routes
 app.use('/api', apiRoutes);

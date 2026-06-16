@@ -70,12 +70,10 @@ const EditMedicationScreen: React.FC<EditMedicationScreenProps> = ({ route, navi
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      // 1. Prepara a data como string (formato ISO é o padrão universal para APIs)
-      const endDateString = form.endDate ? new Date(form.endDate).toISOString() : undefined;
-      
-      // 2. Prepara o objeto Date para a API interna (se a API interna precisar de Date)
-      const endDateDate = form.endDate ? new Date(form.endDate) : undefined;
+      // 1. Prepara o valor da data dependendo do destino
+      const endDateRaw = form.endDate ? new Date(form.endDate) : undefined;
 
+      // 2. Define o medicationData base
       const medicationData = {
         name: medication.name,
         dosage: form.dosage || undefined,
@@ -85,17 +83,24 @@ const EditMedicationScreen: React.FC<EditMedicationScreenProps> = ({ route, navi
         notes: form.notes || undefined,
       };
 
+      // 3. Executa a chamada correta
       if (isExternalToken && token) {
-        // API Externa: Envia como STRING
-        await externalAccessApi.addMedication(token, {
-          ...medicationData,
-          endDate: endDateString, 
-        } as any);
+        // API EXTERNA: espera string no endDate
+        await externalAccessApi.updateMedication(
+          token, 
+          medication.id, 
+          { 
+            ...medicationData, 
+            endDate: endDateRaw?.toISOString() // Converte para string
+          },
+          { _retry: true, _silentError: true }
+        );
       } else {
-        // API Interna: Envia como DATE
-        await updateMedication(elderlyId, medication.id, {
-          ...medicationData,
-          endDate: endDateDate,
+        // API INTERNA: espera Date objeto no endDate
+        // Usamos 'as any' aqui para evitar o erro de tipagem da lib 'moveplus-shared'
+        await updateMedication(elderlyId, medication.id, { 
+          ...medicationData, 
+          endDate: endDateRaw 
         } as any);
       }
 

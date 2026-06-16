@@ -71,14 +71,18 @@ api.interceptors.request.use(async (config) => {
 });
 
 api.interceptors.response.use(
-  (response: AxiosResponse) => {
-    return response;
-  },
+  (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+    const status = error?.response?.status;
+    
+    // VERIFICAÇÃO DE SEGURANÇA: 
+    // Se for uma rota externa, não fazemos NADA. Deixamos o erro passar para o catch da tela.
+    if (originalRequest.url?.includes('external-access')) {
+      return Promise.reject(error);
+    }
     const data = error.response?.data as { message?: string; error?: string; code?: string } | undefined;
     const message = data?.message || data?.error;
-    const status = error?.response?.status;
     const errorCode = data?.code;
 
     if (status === 401 && errorCode === 'LOGIN_FAILED') {
@@ -127,7 +131,13 @@ api.interceptors.response.use(
         processQueue(refreshError, null);
         isRefreshing = false;
 
-        if (!isLoggingOut) {
+        const isExternalRequest = originalRequest.url?.includes('external-access');
+
+        if (status === 401 && isExternalRequest) {
+          return Promise.reject(error); // Apenas rejeita o erro, não faz logout nem refresh
+        }
+
+        if (status === 401 && !originalRequest._retry) {
           isLoggingOut = true;
           await asyncStorageService.removeAccessToken();
           await asyncStorageService.removeRefreshToken();
@@ -166,3 +176,9 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+
+export const apiPublic = axios.create({
+  baseURL: `${baseServerUrl}/api`,
+  timeout: 15000,
+});

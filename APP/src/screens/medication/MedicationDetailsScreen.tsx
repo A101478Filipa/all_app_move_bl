@@ -33,7 +33,7 @@ interface MedicationDetailsScreenRouteParams {
 }
 
 const MedicationDetailsScreen: React.FC<MedicationDetailsScreenProps> = ({ route, navigation }) => {
-  const { medicationId, initialData, isExternalToken } = route.params as any;
+  const { medicationId, initialData, isExternalToken } = (route.params as any) || {};
   const { user } = useAuthStore();
   const { t } = useTranslation();
   const { handleError } = useErrorHandler();
@@ -44,6 +44,11 @@ const MedicationDetailsScreen: React.FC<MedicationDetailsScreenProps> = ({ route
   const [state, setState] = useState<ScreenState>(medication ? ScreenState.IDLE : ScreenState.LOADING);
 
   const fetchMedication = async () => {
+
+    const params = route.params as any;
+    if (!params) return; // Garante que não prossegue se params for undefined
+
+    const { medicationId, initialData, isExternalToken } = params;
     // 1. Prioridade: Se temos dados locais (caso do externo), usamos e paramos aqui
     if (initialData) {
       const found = initialData.find((m: any) => m.id === medicationId);
@@ -110,11 +115,12 @@ const MedicationDetailsScreen: React.FC<MedicationDetailsScreenProps> = ({ route
       navigation.push('EditMedication', {
         medication,
         elderlyId: medication.elderlyId,
-        isExternalToken: isExternalToken // Passa isto para o ecrã de edição saber que deve usar a API externa
+        isExternalToken: isExternalToken, // Passa isto para o ecrã de edição saber que deve usar a API externa
+        token: route.params?.token
       });
     }
   };
-  
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => {
