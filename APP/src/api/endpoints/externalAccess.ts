@@ -152,7 +152,7 @@ export const externalAccessApi = {
 
   // externalAccess.ts
   updateMedication: async (token: string, medicationId: number, body: any) => {
-    const url = `external-access/${token}/medications/${medicationId}`;
+    const url = `/api/external-access/${token}/medications/${medicationId}`;
     console.log("DEBUG URL:", url); 
     return apiPublic.post(url, body).then(r => r.data);
   },

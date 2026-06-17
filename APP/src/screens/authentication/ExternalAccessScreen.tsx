@@ -15,6 +15,7 @@ import { Color } from '@src/styles/colors';
 import { FontFamily, FontSize } from '@src/styles/fonts';
 import { Spacing } from '@src/styles/spacings';
 import { PrimaryButton } from '@components/ButtonComponents';
+import { asyncStorageService } from '@services/AsyncStorageService';
 
 type Props = NativeStackScreenProps<LoginStackParamList, 'ExternalAccess'>;
 
@@ -37,6 +38,7 @@ const ExternalAccessScreen: React.FC<Props> = ({ navigation }) => {
     setLoading(true);
     try {
       const res = await externalAccessApi.getProfileByToken(code.trim().toLowerCase());
+      await asyncStorageService.storeExternalToken(code.trim().toLowerCase());
       setProfile(res.data);
       setStep('view_profile');
     } catch (err: any) {

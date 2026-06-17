@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Text,
   ScrollView,
@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { Border } from '@styles/borders';
 import { shadowStyles } from '@styles/shadow';
 import { externalAccessApi } from '@src/api/endpoints/externalAccess';
+import { asyncStorageService } from '@src/services/AsyncStorageService';
 
 type EditMedicationScreenProps = NativeStackScreenProps<any, 'EditMedication'>;
 
@@ -40,11 +41,24 @@ type MedicationForm = {
 };
 
 const EditMedicationScreen: React.FC<EditMedicationScreenProps> = ({ route, navigation }) => {
-  const { medication, elderlyId, isExternalToken, token } = route.params as any;
+  const { medication, elderlyId, isExternalToken } = route.params as any;
+  console.log("DEBUG: Conteúdo total de route.params:", JSON.stringify(route.params, null, 2));
   const [loading, setLoading] = useState(false);
   const { updateMedication } = useElderlyDetailsStore();
   const { handleError, handleSuccess, handleValidationError } = useErrorHandler();
   const { t } = useTranslation();
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadToken = async () => {
+      if (isExternalToken) {
+        // Tenta buscar do storage se não veio nos params
+        const storedToken = await asyncStorageService.getExternalToken(); 
+        setToken(storedToken);
+      }
+    };
+    loadToken();
+  }, [isExternalToken]);
 
   const [form, setForm] = useState<MedicationForm>({
     dosage: medication.dosage || null,
@@ -69,9 +83,14 @@ const EditMedicationScreen: React.FC<EditMedicationScreenProps> = ({ route, navi
 
   const handleSubmit = async () => {
     setLoading(true);
+    console.log("DEBUG handleSubmit - isExternalToken:", isExternalToken);
+    console.log("DEBUG handleSubmit - token:", token);
+    console.log("DEBUG handleSubmit - medication.id:", medication.id);
+
     try {
       // 1. Prepara o valor da data dependendo do destino
       const endDateRaw = form.endDate ? new Date(form.endDate) : undefined;
+      const tokenFinal = token;
 
       // 2. Define o medicationData base
       const medicationData = {
@@ -84,12 +103,13 @@ const EditMedicationScreen: React.FC<EditMedicationScreenProps> = ({ route, navi
       };
 
       // 3. Executa a chamada correta
-      if (isExternalToken && token) {
+      if (isExternalToken && tokenFinal) {
         // API EXTERNA: espera string no endDate
-        console.log("URL de chamada para API externa:", `external-access/${token}/medications/${medication.id}`);
-        await externalAccessApi.updateMedication(token, medication.id, { ...medicationData, endDate: endDateRaw?.toISOString() });
+        console.log("DEBUG: Entrou no IF com token:", tokenFinal);
+        await externalAccessApi.updateMedication(tokenFinal, medication.id, { ...medicationData, endDate: endDateRaw?.toISOString() });
       } else {
         // API INTERNA: espera Date objeto no endDate
+        console.log("DEBUG: Falhou o IF. isExternal:", isExternalToken, "token:", tokenFinal);
         // Usamos 'as any' aqui para evitar o erro de tipagem da lib 'moveplus-shared'
         await updateMedication(elderlyId, medication.id, { 
           ...medicationData, 
@@ -101,6 +121,7 @@ const EditMedicationScreen: React.FC<EditMedicationScreenProps> = ({ route, navi
       navigation.goBack();
     } catch (error) {
       const err = error as any;
+      console.error("DEBUG CATCH:", error);
       console.log("ERRO DETETADO NA TELA:", JSON.stringify(err, null, 2)); 
       handleError(err, t('medication.failedToUpdateMedication'));
 

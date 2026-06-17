@@ -116,7 +116,7 @@ const MedicationDetailsScreen: React.FC<MedicationDetailsScreenProps> = ({ route
         medication,
         elderlyId: medication.elderlyId,
         isExternalToken: isExternalToken, // Passa isto para o ecrã de edição saber que deve usar a API externa
-        token: route.params?.token
+        token: (route.params as any)?.token
       });
     }
   };

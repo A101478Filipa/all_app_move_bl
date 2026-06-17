@@ -6,6 +6,7 @@ export const STORAGE_KEYS = {
   REFRESH_TOKEN: 'refresh_token',
   USER: 'user',
   CONFIG: 'config',
+  EXTERNAL_TOKEN: 'external_token',
 } as const;
 
 class AsyncStorageService {
@@ -18,11 +19,29 @@ class AsyncStorageService {
     }
   }
 
+  async storeExternalToken(token: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.EXTERNAL_TOKEN, token);
+    } catch (error) {
+      console.error('Error saving external token:', error);
+      throw error;
+    }
+  }
+
   async getAccessToken(): Promise<string | null> {
     try {
       return await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
     } catch (error) {
       console.error('Error getting access token:', error);
+      return null;
+    }
+  }
+
+  async getExternalToken(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(STORAGE_KEYS.EXTERNAL_TOKEN);
+    } catch (error) {
+      console.error('Error getting external token:', error);
       return null;
     }
   }
