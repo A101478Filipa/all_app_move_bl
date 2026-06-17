@@ -434,6 +434,7 @@ export const addFall = async (req: Request, res: Response): Promise<void> => {
 
 // POST /external-access/:token/medications/:medicationId (public)
 export const updateMedication = async (req: Request, res: Response): Promise<void> => {
+  console.log("CHEGOU AO BACKEND: updateMedication", req.params.token);
   try {
     const token = String(req.params.token);
     const medicationId = Number(req.params.medicationId);

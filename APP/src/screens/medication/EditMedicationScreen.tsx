@@ -101,7 +101,7 @@ const EditMedicationScreen: React.FC<EditMedicationScreenProps> = ({ route, navi
       navigation.goBack();
     } catch (error) {
       const err = error as any;
-      console.error('Failed to update medication:', err?.response?.data || err.message);
+      console.log("ERRO DETETADO NA TELA:", JSON.stringify(err, null, 2)); 
       handleError(err, t('medication.failedToUpdateMedication'));
 
     } finally {

@@ -82,7 +82,6 @@ api.interceptors.response.use(
     // VERIFICAÇÃO DE SEGURANÇA: 
     // Se for uma rota externa, não fazemos NADA. Deixamos o erro passar para o catch da tela.
     if (originalRequest?.url?.includes('external-access')) {
-      console.log("DEBUG: Interceptor de Resposta ignorou erro de rota externa:", originalRequest?.url);
       return Promise.reject(error);
     }
     const data = error.response?.data as { message?: string; error?: string; code?: string } | undefined;
@@ -186,3 +185,6 @@ export const apiPublic = axios.create({
   baseURL: `${baseServerUrl}/api`,
   timeout: 15000,
 });
+
+apiPublic.interceptors.request.clear();
+apiPublic.interceptors.response.clear();
