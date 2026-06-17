@@ -73,12 +73,12 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as any;
     const status = error?.response?.status;
     
     // VERIFICAÇÃO DE SEGURANÇA: 
     // Se for uma rota externa, não fazemos NADA. Deixamos o erro passar para o catch da tela.
-    if (originalRequest.url?.includes('external-access')) {
+    if (originalRequest?.url?.includes('external-access')) {
       return Promise.reject(error);
     }
     const data = error.response?.data as { message?: string; error?: string; code?: string } | undefined;

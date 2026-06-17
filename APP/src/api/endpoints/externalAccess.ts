@@ -150,8 +150,8 @@ export const externalAccessApi = {
   addMedication: (token: string, body: CreateExternalMedicationBody): Promise<ApiResponse<ExternalElderlyMedication>> =>
     api.post(`external-access/${token}/medications`, body).then(r => r.data),
 
-  updateMedication: (token: string, medicationId: number, body: CreateExternalMedicationBody, config?: any): Promise<ApiResponse<any>> =>
-    apiPublic.post(`external-access/${token}/medications/${medicationId}`, body, config).then(r => r.data),
+  updateMedication: (token: string, medicationId: number, body: any) =>
+    apiPublic.post(`external-access/${token}/medications/${medicationId}`, body).then(r => r.data),
 
   addPathology: (token: string, body: CreateExternalPathologyBody): Promise<ApiResponse<ExternalElderlyPathology>> =>
     api.post(`external-access/${token}/pathologies`, body).then(r => r.data),

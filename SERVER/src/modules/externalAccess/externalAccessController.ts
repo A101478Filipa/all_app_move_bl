@@ -434,25 +434,26 @@ export const addFall = async (req: Request, res: Response): Promise<void> => {
 
 // POST /external-access/:token/medications/:medicationId (public)
 export const updateMedication = async (req: Request, res: Response): Promise<void> => {
-  const token = String(req.params.token);
-  const medicationId = Number(req.params.medicationId);
-
   try {
-    const ctx = await resolveToken(token, res);
-    if (!ctx) return;
+    const token = String(req.params.token);
+    const medicationId = Number(req.params.medicationId);
 
-    // Reutilizamos o mesmo schema de criação, mas permitimos partial update
+    // 1. CORREÇÃO: Passar o 'res' para a função resolveToken
+    const ctx = await resolveToken(token, res); 
+    if (!ctx) return; // resolveToken já enviou o erro se falhou
+
+    // 2. Validação
     const validation = ExternalMedicationSchema.partial().safeParse(req.body);
     if (!validation.success) {
       sendInputValidationError(res, 'Dados inválidos', validation.error.errors);
       return;
     }
 
-    // Garante que a medicação pertence ao utente associado ao token
+    // 3. Atualização correta usando o ctx.elderlyId obtido do token
     const updated = await prisma.medication.updateMany({
       where: { 
         id: medicationId,
-        elderlyId: ctx.elderlyId 
+        elderlyId: ctx.elderlyId // Agora o ctx existe!
       },
       data: validation.data,
     });

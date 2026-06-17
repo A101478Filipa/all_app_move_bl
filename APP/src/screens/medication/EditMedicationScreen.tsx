@@ -86,15 +86,7 @@ const EditMedicationScreen: React.FC<EditMedicationScreenProps> = ({ route, navi
       // 3. Executa a chamada correta
       if (isExternalToken && token) {
         // API EXTERNA: espera string no endDate
-        await externalAccessApi.updateMedication(
-          token, 
-          medication.id, 
-          { 
-            ...medicationData, 
-            endDate: endDateRaw?.toISOString() // Converte para string
-          },
-          { _retry: true, _silentError: true }
-        );
+        await externalAccessApi.updateMedication(token, medication.id, { ...medicationData, endDate: endDateRaw?.toISOString() });
       } else {
         // API INTERNA: espera Date objeto no endDate
         // Usamos 'as any' aqui para evitar o erro de tipagem da lib 'moveplus-shared'
@@ -107,8 +99,10 @@ const EditMedicationScreen: React.FC<EditMedicationScreenProps> = ({ route, navi
       handleSuccess(t('medication.medicationUpdatedSuccessfully'));
       navigation.goBack();
     } catch (error) {
-      console.error('Failed to update medication:', error);
-      handleError(error, t('medication.failedToUpdateMedication'));
+      const err = error as any;
+      console.error('Failed to update medication:', err?.response?.data || err.message);
+      handleError(err, t('medication.failedToUpdateMedication'));
+
     } finally {
       setLoading(false);
     }
