@@ -22,13 +22,14 @@ import elderlyAbsenceRoutes from './modules/elderlyAbsence/elderlyAbsenceRoutes'
 import woundTrackingRoutes from './modules/woundTracking/woundTrackingRoutes';
 import externalProfessionalRoutes from './modules/externalProfessional/externalProfessionalRoutes';
 import externalAccessRoutes from './modules/externalAccess/externalAccessRoutes';
+import { authenticate } from './middleware/authMiddleware';
 
 const apiRoutes = express.Router();
 
 // Define nested routes
 apiRoutes.use('/auth', authRoutes);
 apiRoutes.use('/institutions', institutionsRoutes);
-apiRoutes.use('/elderly', elderlyRoutes);
+apiRoutes.use('/elderly', authenticate, elderlyRoutes);
 apiRoutes.use('/caregivers', caregiverRoutes);
 apiRoutes.use('/clinicians', clinicianRoutes);
 apiRoutes.use('/programmers', programmerRoutes);
@@ -36,12 +37,12 @@ apiRoutes.use('/institution-admins', adminsRoutes);
 apiRoutes.use('/fall-occurrences', fallOccurrenceRoutes);
 apiRoutes.use('/timeline', timelineRoutes);
 apiRoutes.use('/avatar', avatarRoutes);
-apiRoutes.use('/medications', medicationRoutes);
-apiRoutes.use('/measurements', measurementRoutes);
-apiRoutes.use('/pathologies', pathologyRoutes);
-apiRoutes.use('/notifications', notificationRoutes);
-apiRoutes.use('/invitations', invitationRoutes);
-apiRoutes.use('/sos-occurrences', sosOccurrenceRoutes);
+apiRoutes.use('/medications', authenticate, medicationRoutes);
+apiRoutes.use('/measurements', authenticate, measurementRoutes);
+apiRoutes.use('/pathologies', authenticate, pathologyRoutes);
+apiRoutes.use('/notifications', authenticate, notificationRoutes);
+apiRoutes.use('/invitations', authenticate, invitationRoutes);
+apiRoutes.use('/sos-occurrences', authenticate, sosOccurrenceRoutes);
 apiRoutes.use('/calendar-events', calendarEventRoutes);
 apiRoutes.use('/staff-schedules', staffScheduleRoutes);
 apiRoutes.use('/time-off', timeOffRoutes);

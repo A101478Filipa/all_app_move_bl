@@ -22,7 +22,7 @@ app.use(logRequest); // ! Used for debug. Remove later
 app.use('/api/external-access', externalAccessRoutes);
 
 // Routes
-app.use('/api', authenticate, apiRoutes);
+app.use('/api', apiRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../../public/uploads')));
 app.use('/default', express.static(path.join(__dirname, '../../public/default')));
 
