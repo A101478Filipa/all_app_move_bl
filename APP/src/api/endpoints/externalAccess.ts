@@ -156,7 +156,7 @@ export const externalAccessApi = {
     return apiPublic.post(`external-access/${token}/medications/${medicationId}`, body)
       .then(r => r.data)
       .catch(e => {
-        console.log("ERRO NA CHAMADA API:", e.response?.status); // O que diz aqui?
+        console.log("ERRO NA CHAMADA API:", e.response?.status); 
         throw e;
       });
   },

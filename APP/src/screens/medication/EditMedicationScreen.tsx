@@ -93,7 +93,7 @@ const EditMedicationScreen: React.FC<EditMedicationScreenProps> = ({ route, navi
         await updateMedication(elderlyId, medication.id, { 
           ...medicationData, 
           endDate: endDateRaw 
-        } as any);
+        });
       }
 
       handleSuccess(t('medication.medicationUpdatedSuccessfully'));
