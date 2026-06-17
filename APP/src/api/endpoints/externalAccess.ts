@@ -150,8 +150,16 @@ export const externalAccessApi = {
   addMedication: (token: string, body: CreateExternalMedicationBody): Promise<ApiResponse<ExternalElderlyMedication>> =>
     api.post(`external-access/${token}/medications`, body).then(r => r.data),
 
-  updateMedication: (token: string, medicationId: number, body: any) =>
-    apiPublic.post(`external-access/${token}/medications/${medicationId}`, body).then(r => r.data),
+  // externalAccess.ts
+  updateMedication: async (token: string, medicationId: number, body: any) => {
+    console.log("A CHAMAR API EXTERNA PARA:", token);
+    return apiPublic.post(`external-access/${token}/medications/${medicationId}`, body)
+      .then(r => r.data)
+      .catch(e => {
+        console.log("ERRO NA CHAMADA API:", e.response?.status); // O que diz aqui?
+        throw e;
+      });
+  },
 
   addPathology: (token: string, body: CreateExternalPathologyBody): Promise<ApiResponse<ExternalElderlyPathology>> =>
     api.post(`external-access/${token}/pathologies`, body).then(r => r.data),
