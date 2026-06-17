@@ -152,13 +152,7 @@ export const externalAccessApi = {
 
   // externalAccess.ts
   updateMedication: async (token: string, medicationId: number, body: any) => {
-    console.log("A CHAMAR API EXTERNA PARA:", token);
     return apiPublic.post(`external-access/${token}/medications/${medicationId}`, body)
-      .then(r => r.data)
-      .catch(e => {
-        console.log("ERRO NA CHAMADA API:", e.response?.status); 
-        throw e;
-      });
   },
 
   addPathology: (token: string, body: CreateExternalPathologyBody): Promise<ApiResponse<ExternalElderlyPathology>> =>

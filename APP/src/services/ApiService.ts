@@ -59,8 +59,11 @@ export const buildAvatarUrl = (avatar: string) => {
 };
 
 api.interceptors.request.use(async (config) => {
-  const token = await asyncStorageService.getAccessToken();
+  if (config.url?.includes('external-access')) {
+    return config; 
+  }
 
+  const token = await asyncStorageService.getAccessToken();
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }

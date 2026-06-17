@@ -86,6 +86,7 @@ const EditMedicationScreen: React.FC<EditMedicationScreenProps> = ({ route, navi
       // 3. Executa a chamada correta
       if (isExternalToken && token) {
         // API EXTERNA: espera string no endDate
+        console.log("URL de chamada para API externa:", `external-access/${token}/medications/${medication.id}`);
         await externalAccessApi.updateMedication(token, medication.id, { ...medicationData, endDate: endDateRaw?.toISOString() });
       } else {
         // API INTERNA: espera Date objeto no endDate
