@@ -78,12 +78,11 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as any;
     const status = error?.response?.status;
-
-    console.log("Interceptor Interceptou pedido para:", originalRequest?.url);
     
     // VERIFICAÇÃO DE SEGURANÇA: 
     // Se for uma rota externa, não fazemos NADA. Deixamos o erro passar para o catch da tela.
     if (originalRequest?.url?.includes('external-access')) {
+      console.log("DEBUG: Interceptor de Resposta ignorou erro de rota externa:", originalRequest?.url);
       return Promise.reject(error);
     }
     const data = error.response?.data as { message?: string; error?: string; code?: string } | undefined;

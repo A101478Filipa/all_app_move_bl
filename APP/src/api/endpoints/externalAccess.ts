@@ -152,7 +152,9 @@ export const externalAccessApi = {
 
   // externalAccess.ts
   updateMedication: async (token: string, medicationId: number, body: any) => {
-    return apiPublic.post(`external-access/${token}/medications/${medicationId}`, body)
+    const url = `external-access/${token}/medications/${medicationId}`;
+    console.log("DEBUG URL:", url); 
+    return apiPublic.post(url, body).then(r => r.data);
   },
 
   addPathology: (token: string, body: CreateExternalPathologyBody): Promise<ApiResponse<ExternalElderlyPathology>> =>
