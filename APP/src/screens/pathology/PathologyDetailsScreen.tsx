@@ -16,6 +16,8 @@ import { FontFamily, FontSize } from '@src/styles/fonts';
 import { Spacing } from '@src/styles/spacings';
 import { useAuthStore } from '@stores/authStore';
 import { useFocusEffect } from '@react-navigation/native';
+import { asyncStorageService } from '@services/AsyncStorageService';
+import { externalAccessApi } from '@api/endpoints/externalAccess';
 
 type Props = NativeStackScreenProps<InstitutionDashboardNavigationStackParamList, 'PathologyDetails'>;
 
@@ -32,7 +34,7 @@ interface PathologyWithElderly extends Pathology {
 }
 
 const PathologyDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
-  const pathologyId = (route.params as any).pathologyId;
+  const { pathologyId, isExternalToken }= route.params as any;
   const { t } = useTranslation();
   const { handleError } = useErrorHandler();
   const { user } = useAuthStore();
@@ -41,6 +43,21 @@ const PathologyDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const [state, setState] = useState<ScreenState>(ScreenState.LOADING);
 
   const fetchPathology = async () => {
+    if (isExternalToken) {
+      setState(ScreenState.LOADING);
+      const token = await asyncStorageService.getExternalToken();
+      if (token) {
+        try {
+          const res = await externalAccessApi.getProfileByToken(token);
+          const freshPath = res.data.elderly.pathologies.find(p => p.id === pathologyId);
+          if (freshPath) {
+            setPathology(freshPath as any);
+            setState(ScreenState.IDLE);
+            return;
+          }
+        } catch (e) { setState(ScreenState.ERROR); }
+      }
+    }
     try {
       setState(ScreenState.LOADING);
       const response = await pathologyApi.getPathology(pathologyId);
@@ -69,8 +86,11 @@ const PathologyDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     if (pathology?.elderlyId) {
       navigation.push('EditPathology', {
         pathology,
-        elderlyId: pathology.elderlyId
-      });
+        elderlyId: pathology.elderlyId,
+        isExternalToken: isExternalToken, 
+        token: (route.params as any)?.token,
+        onGoBack: () => fetchPathology()
+      } as any);
     }
   };
 
@@ -107,12 +127,12 @@ const PathologyDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <PathologyDetailsComponent
       pathologyName={pathology.name}
-      description={pathology.description}
-      diagnosisSite={pathology.diagnosisSite}
-      status={pathology.status}
-      notes={pathology.notes}
-      createdAt={new Date(pathology.createdAt)}
-      elderlyName={pathology.elderly?.name}
+      description={pathology.description || ''} // Garante uma string vazia se for null
+      diagnosisSite={pathology.diagnosisSite || undefined}
+      status={pathology.status || undefined}
+      notes={pathology.notes || undefined}
+      createdAt={pathology.createdAt ? new Date(pathology.createdAt) : new Date()}
+      elderlyName={pathology.elderly?.name || t('common.unknown')}
     />
   );
 };

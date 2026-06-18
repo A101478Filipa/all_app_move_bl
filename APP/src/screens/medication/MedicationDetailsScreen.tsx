@@ -24,6 +24,8 @@ import { medicationApi } from '@src/api/endpoints/medications';
 import { ActivityIndicatorOverlay } from '@components/ActivityIndicatorOverlay';
 import { useErrorHandler } from '@hooks/useErrorHandler';
 import ScreenState from '@constants/screenState';
+import { asyncStorageService } from '@services/AsyncStorageService';
+import { externalAccessApi } from '@api/endpoints/externalAccess';
 
 type MedicationDetailsScreenProps = NativeStackScreenProps<any, 'MedicationDetails'>;
 
@@ -49,6 +51,30 @@ const MedicationDetailsScreen: React.FC<MedicationDetailsScreenProps> = ({ route
     if (!params) return; // Garante que não prossegue se params for undefined
 
     const { medicationId, initialData, isExternalToken } = params;
+
+    if (isExternalToken) {
+        setState(ScreenState.LOADING);
+        try {
+            const token = await asyncStorageService.getExternalToken();
+            if (token) {
+                const res = await externalAccessApi.getProfileByToken(token);
+                const freshMed = res.data.elderly.medications.find((m: any) => m.id === medicationId);
+                
+                if (freshMed) {
+                    setMedication(freshMed as any);
+                    setState(ScreenState.IDLE);
+                } else {
+                    // Medicação não encontrada no perfil, marca como erro
+                    setState(ScreenState.ERROR);
+                }
+                return; // Sai da função com sucesso
+            }
+        } catch (error) {
+            console.error("Falha ao re-buscar perfil externo:", error);
+            setState(ScreenState.ERROR); // Garante que o estado de erro é definido
+        }
+    }
+
     // 1. Prioridade: Se temos dados locais (caso do externo), usamos e paramos aqui
     if (initialData) {
       const found = initialData.find((m: any) => m.id === medicationId);
@@ -116,8 +142,24 @@ const MedicationDetailsScreen: React.FC<MedicationDetailsScreenProps> = ({ route
         medication,
         elderlyId: medication.elderlyId,
         isExternalToken: isExternalToken, // Passa isto para o ecrã de edição saber que deve usar a API externa
-        token: (route.params as any)?.token
-      });
+        token: (route.params as any)?.token,
+        onGoBack: async () => {
+          console.log("DEBUG: Refrescando dados do servidor...");
+          try {
+              const token = await asyncStorageService.getExternalToken();
+              if (token) {
+                  const res = await externalAccessApi.getProfileByToken(token);
+                  // Encontra a medicação atualizada dentro do novo perfil
+                  const freshMed = res.data.elderly.medications.find(m => m.id === medicationId);
+                  if (freshMed) {
+                      setMedication(freshMed as any); // Isto vai forçar o re-render com os dados novos
+                  }
+              }
+          } catch (e) {
+              console.error("Falha ao refrescar:", e);
+          }
+      }
+    });
     }
   };
 

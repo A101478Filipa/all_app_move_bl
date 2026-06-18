@@ -18,12 +18,17 @@ import { useErrorHandler } from '@src/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import { Border } from '@styles/borders';
 import { shadowStyles } from '@styles/shadow';
+import { externalAccessApi } from '@src/api/endpoints/externalAccess';
+import { asyncStorageService } from '@src/services/AsyncStorageService';
 
 type EditPathologyScreenProps = NativeStackScreenProps<any, 'EditPathology'>;
 
 interface EditPathologyScreenRouteParams {
   pathology: Pathology;
   elderlyId: number;
+  isExternalToken?: boolean; 
+  token?: string | null;
+  onGoBack?: () => void;
 }
 
 type PathologyForm = {
@@ -33,7 +38,7 @@ type PathologyForm = {
 };
 
 const EditPathologyScreen: React.FC<EditPathologyScreenProps> = ({ route, navigation }) => {
-  const { pathology, elderlyId } = route.params;
+  const { pathology, elderlyId } = route.params as any;
   const [loading, setLoading] = useState(false);
   const { updatePathology } = useElderlyDetailsStore();
   const { handleError, handleSuccess, handleValidationError } = useErrorHandler();
@@ -61,15 +66,30 @@ const EditPathologyScreen: React.FC<EditPathologyScreenProps> = ({ route, naviga
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const pathologyData: UpdatePathologyRequest = {
+      // A variável pathologyData DEVE ser definida aqui antes de ser usada
+      const pathologyData = {
         description: form.description || undefined,
         status: form.status || undefined,
         notes: form.notes || undefined,
       };
 
-      await updatePathology(elderlyId, pathology.id, pathologyData);
+      const isExternal = (route.params as any).isExternalToken;
+      const token = await asyncStorageService.getExternalToken();
+
+      if (isExternal && token) {
+        await externalAccessApi.updatePathology(token, pathology.id, pathologyData);
+      } else {
+        // Certifica-te que 'updatePathology' existe no teu 'useElderlyDetailsStore'
+        await updatePathology(elderlyId, pathology.id, pathologyData);
+      }
 
       handleSuccess(t('pathology.pathologyUpdatedSuccessfully'));
+      
+      // Dispara o refresh se existir o callback
+      if ((route.params as any)?.onGoBack) {
+        (route.params as any).onGoBack();
+      }
+      
       navigation.goBack();
     } catch (error) {
       console.error('Failed to update pathology:', error);

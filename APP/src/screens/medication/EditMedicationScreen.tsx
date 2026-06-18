@@ -118,7 +118,14 @@ const EditMedicationScreen: React.FC<EditMedicationScreenProps> = ({ route, navi
       }
 
       handleSuccess(t('medication.medicationUpdatedSuccessfully'));
+    
+      // Se o ecrã anterior passou um callback 'onGoBack', chama-o
+      if ((route.params as any)?.onGoBack) {
+        (route.params as any).onGoBack();
+      }
+      
       navigation.goBack();
+      
     } catch (error) {
       const err = error as any;
       console.error("DEBUG CATCH:", error);

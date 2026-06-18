@@ -470,3 +470,38 @@ export const updateMedication = async (req: Request, res: Response): Promise<voi
     sendError(res, 'Erro interno do servidor', 500);
   }
 };
+
+export const updatePathology = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const token = String(req.params.token);
+    const pathologyId = Number(req.params.pathologyId);
+
+    const ctx = await resolveToken(token, res);
+    if (!ctx) return;
+
+    // Usa o esquema de validação de patologias que já deves ter (ou cria um similar ao de medicação)
+    const validation = ExternalPathologySchema.partial().safeParse(req.body);
+    if (!validation.success) {
+      sendInputValidationError(res, 'Dados inválidos', validation.error.errors);
+      return;
+    }
+
+    const updated = await prisma.pathology.updateMany({
+      where: { 
+        id: pathologyId,
+        elderlyId: ctx.elderlyId 
+      },
+      data: validation.data,
+    });
+
+    if (updated.count === 0) {
+      sendError(res, 'Patologia não encontrada ou sem permissão', 404);
+      return;
+    }
+
+    sendSuccess(res, null, 'Patologia atualizada com sucesso');
+  } catch (error) {
+    console.error('updatePathology error:', error);
+    sendError(res, 'Erro interno do servidor', 500);
+  }
+};

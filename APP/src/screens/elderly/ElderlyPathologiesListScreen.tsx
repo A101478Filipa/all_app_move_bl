@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Pathology, UserRole } from 'moveplus-shared';
@@ -12,14 +12,34 @@ import { Border } from '@src/styles/borders';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
 import ScreenState from '@src/constants/screenState';
+import useFocusEffect from '@react-navigation/core/lib/typescript/src/useFocusEffect';
+import { externalAccessApi } from '@api/endpoints/externalAccess';
+import { asyncStorageService } from '@services/AsyncStorageService';
 
 type Props = NativeStackScreenProps<any, 'ElderlyPathologiesList'>;
 
 const ElderlyPathologiesListScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { elderlyId } = route.params ?? {};
+  const { elderlyId, isExternalToken} = route.params ?? {};
   const { t } = useTranslation();
   const { elderly, state, refreshElderly, fetchElderly } = useElderlyDetailsStore();
   const { user } = useAuthStore();
+  const [externalPaths, setExternalPaths] = useState<Pathology[]>([]);
+
+  const loadPathologiesList = useCallback(async () => {
+    if (isExternalToken) {
+      const token = await asyncStorageService.getExternalToken();
+      if (token) {
+        try {
+          const res = await externalAccessApi.getProfileByToken(token);
+          setExternalPaths(res.data.elderly.pathologies as Pathology[]);
+        } catch (error) { console.error(error); }
+      }
+    } else {
+      await refreshElderly(elderlyId);
+    }
+  }, [isExternalToken, elderlyId, refreshElderly]);
+
+  useFocusEffect(useCallback(() => { loadPathologiesList(); }, [loadPathologiesList]));
 
   useEffect(() => {
     if (!elderly || elderly.id !== elderlyId) {
@@ -46,7 +66,7 @@ const ElderlyPathologiesListScreen: React.FC<Props> = ({ route, navigation }) =>
     }
   }, [navigation, canAdd, elderlyId]);
 
-  const pathologies: Pathology[] = elderly?.pathologies ?? [];
+  const pathologies: Pathology[] = isExternalToken ? externalPaths : (elderly?.pathologies ?? []);
 
   const handlePathologyPress = (pathology: Pathology) => {
     navigation.push('PathologyDetails', { pathologyId: pathology.id });
