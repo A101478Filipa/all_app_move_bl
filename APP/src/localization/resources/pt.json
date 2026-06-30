@@ -1057,6 +1057,7 @@
     "inputPlaceholder": "Escreva a sua pergunta...",
     "suggestionsTitle": "Sugestões",
     "errorGeneric": "Não consegui responder agora. Tente novamente em instantes.",
-    "privacyNote": "Apenas ajuda sobre a app. Sem acesso a dados de utentes."
+    "privacyNote": "Apenas ajuda sobre a app. Sem acesso a dados de utentes.",
+    "aiAnswer": "Resposta gerada por IA"
   }
 }

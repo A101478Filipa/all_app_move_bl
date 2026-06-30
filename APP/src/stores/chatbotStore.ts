@@ -6,6 +6,7 @@ export interface ChatMessage {
   sender: 'user' | 'bot';
   text: string;
   action?: ChatbotAction | null;
+  source?: 'kb' | 'llm' | 'fallback';
 }
 
 interface ChatbotStore {

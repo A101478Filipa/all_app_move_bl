@@ -103,6 +103,7 @@ const HelpChatPanel: React.FC<Props> = ({ active }) => {
         sender: 'bot',
         text: data?.answer ?? t('helpChat.errorGeneric'),
         action: data?.action ?? null,
+        source: data?.source,
       };
       addMessage(botMsg);
       if (data && !data.matched && data.suggestions?.length) {
@@ -133,6 +134,12 @@ const HelpChatPanel: React.FC<Props> = ({ active }) => {
           <Text style={[styles.bubbleText, isUser ? styles.bubbleTextUser : styles.bubbleTextBot]}>
             {item.text}
           </Text>
+          {!isUser && item.source === 'llm' ? (
+            <View style={styles.aiTag}>
+              <MaterialIcons name="auto-awesome" size={12} color={Color.Gray.v400} />
+              <Text style={styles.aiTagText}>{t('helpChat.aiAnswer')}</Text>
+            </View>
+          ) : null}
           {!isUser && item.action ? (
             <TouchableOpacity
               style={styles.actionButton}
@@ -266,6 +273,19 @@ const styles = StyleSheet.create({
     color: Color.white,
     fontSize: FontSize.bodysmall_14,
     fontFamily: FontFamily.medium,
+  },
+
+  aiTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs_2,
+    marginTop: Spacing.xs_4,
+    alignSelf: 'flex-start',
+  },
+  aiTagText: {
+    fontSize: FontSize.caption_12,
+    fontFamily: FontFamily.medium,
+    color: Color.Gray.v400,
   },
 
   suggestionsContainer: {

@@ -201,8 +201,12 @@ export const HELP_ENTRIES: HelpEntry[] = [
     id: 'view-elderly-profile',
     roles: [UserRole.CAREGIVER, UserRole.CLINICIAN, UserRole.INSTITUTION_ADMIN],
     keywords: [
-      'ver utente', 'abrir utente', 'abro utente', 'abrir ficha', 'ficha do utente', 'ficha utente', 'perfil utente', 'perfil do utente', 'consultar utente', 'cronograma',
-      'open elderly', 'view elderly', 'elderly profile', 'patient profile', 'open profile', 'timeline',
+      'ver utente', 'vejo utente', 'vejo informacoes utente', 'ver informacoes utente',
+      'informacoes do utente', 'informacoes utente', 'informacao utente', 'dados do utente', 'dados utente',
+      'abrir utente', 'abro utente', 'abrir ficha', 'ficha do utente', 'ficha utente',
+      'perfil utente', 'perfil do utente', 'consultar utente', 'consultar ficha', 'cronograma',
+      'open elderly', 'view elderly', 'see elderly', 'elderly profile', 'elderly info', 'patient profile',
+      'open profile', 'patient info', 'patient information', 'timeline',
     ],
     answer: {
       pt: 'Em Membros abra a lista de utentes e toque sobre o nome para abrir a ficha. Lá tem separadores para Medições, Medicação, Patologias, Quedas, Eventos e o Cronograma com todos os acontecimentos recentes.',
@@ -529,6 +533,110 @@ function fuzzyMatchesToken(qToken: string, kwToken: string): boolean {
   return levenshtein(qToken, kwToken, max) <= max;
 }
 
+/** Words that carry no useful signal for matching (PT + EN). */
+const STOPWORDS = new Set<string>([
+  // PT
+  'a', 'o', 'as', 'os', 'um', 'uma', 'uns', 'umas',
+  'de', 'do', 'da', 'dos', 'das', 'no', 'na', 'nos', 'nas',
+  'em', 'por', 'para', 'com', 'sem', 'sobre',
+  'e', 'ou', 'que', 'se', 'qual', 'quais',
+  'como', 'onde', 'quando', 'porque', 'porqu\u00ea',
+  'eu', 'tu', 'ele', 'ela', 'meu', 'minha', 'meus', 'minhas',
+  'isto', 'isso', 'aquilo', 'esta', 'este',
+  'ser', 'estar', 'ter', 'fazer', 'pode', 'posso', 'devo',
+  'mais', 'menos', 'muito', 'pouco', 'algum',
+  // PT verbs commonly used in questions but not informative
+  'ver', 'vejo', 'sei', 'quero', 'preciso', 'gostaria',
+  // EN
+  'a', 'an', 'the', 'of', 'in', 'on', 'at', 'to', 'for', 'with', 'without',
+  'and', 'or', 'is', 'are', 'be', 'do', 'does', 'did',
+  'how', 'what', 'where', 'when', 'why', 'who',
+  'i', 'you', 'he', 'she', 'it', 'we', 'they', 'my', 'your', 'me',
+  'can', 'should', 'would', 'need', 'want',
+  'see', 'view', 'get', 'show',
+]);
+
+/** Precomputed token -> number of entries that contain it.
+ *  Used by the loose (TF-IDF) fallback so common tokens like "utente"
+ *  don't dominate the score. */
+interface EntryIndex {
+  entry: HelpEntry;
+  tokens: Set<string>;
+}
+
+let _entryIndex: EntryIndex[] | null = null;
+let _docFreq: Map<string, number> | null = null;
+
+function buildIndex(): { index: EntryIndex[]; df: Map<string, number> } {
+  if (_entryIndex && _docFreq) return { index: _entryIndex, df: _docFreq };
+  const index: EntryIndex[] = [];
+  const df = new Map<string, number>();
+  for (const entry of HELP_ENTRIES) {
+    const tokens = new Set<string>();
+    for (const kw of entry.keywords) {
+      const nk = normalize(kw);
+      if (!nk) continue;
+      for (const t of nk.split(' ')) {
+        if (t.length < 3) continue;
+        if (STOPWORDS.has(t)) continue;
+        tokens.add(t);
+      }
+    }
+    index.push({ entry, tokens });
+    for (const t of tokens) {
+      df.set(t, (df.get(t) ?? 0) + 1);
+    }
+  }
+  _entryIndex = index;
+  _docFreq = df;
+  return { index, df };
+}
+
+/** Loose fallback: score each entry by the sum of inverse-frequency weights
+ *  of query tokens that appear in the entry's keyword token bag (with light
+ *  fuzzy tolerance). Returns null if no entry collects any meaningful weight. */
+function looseMatch(qTokens: string[], role?: UserRole): { entry: HelpEntry; score: number } | null {
+  const { index, df } = buildIndex();
+  const totalDocs = index.length || 1;
+
+  const filteredQ = qTokens.filter(t => t.length >= 3 && !STOPWORDS.has(t));
+  if (filteredQ.length === 0) return null;
+
+  let best: { entry: HelpEntry; score: number } | null = null;
+
+  for (const { entry, tokens } of index) {
+    if (!entryIsVisibleTo(entry, role)) continue;
+    if (tokens.size === 0) continue;
+
+    let score = 0;
+    let matchedCount = 0;
+    for (const qt of filteredQ) {
+      let matchedToken: string | null = null;
+      if (tokens.has(qt)) {
+        matchedToken = qt;
+      } else {
+        for (const et of tokens) {
+          if (fuzzyMatchesToken(qt, et)) { matchedToken = et; break; }
+        }
+      }
+      if (!matchedToken) continue;
+      matchedCount += 1;
+      const freq = df.get(matchedToken) ?? 1;
+      // IDF-like weight; rarer tokens contribute much more.
+      score += Math.log(1 + totalDocs / freq);
+    }
+
+    if (matchedCount === 0) continue;
+    if (!best || score > best.score) {
+      best = { entry, score };
+    }
+  }
+
+  // Require at least one meaningful match AND a minimum score to avoid noise.
+  if (!best || best.score < 0.6) return null;
+  return best;
+}
+
 export interface MatchResult {
   entryId: string | null;
   answer: string;
@@ -609,7 +717,16 @@ export function matchHelpEntry(question: string, lang: HelpLang, role?: UserRole
   }
 
   if (!best) {
-    return { entryId: null, answer: FALLBACK[lang], matched: false, action: null };
+    const loose = looseMatch(qTokens, role);
+    if (!loose) {
+      return { entryId: null, answer: FALLBACK[lang], matched: false, action: null };
+    }
+    return {
+      entryId: loose.entry.id,
+      answer: loose.entry.answer[lang],
+      matched: true,
+      action: loose.entry.action ?? null,
+    };
   }
 
   return {

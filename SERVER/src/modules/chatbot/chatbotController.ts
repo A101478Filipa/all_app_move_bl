@@ -9,6 +9,7 @@ import {
   getWelcome,
   HelpLang,
 } from './helpKnowledgeBase';
+import { askLlm, llmEnabled } from './llmService';
 
 const askSchema = z.object({
   question: z.string().min(1).max(500),
@@ -20,11 +21,14 @@ const askSchema = z.object({
 const parseLang = (raw: unknown): HelpLang => (raw === 'en' ? 'en' : 'pt');
 
 /**
- * Phase 1 of the in-app assistant.
+ * In-app assistant endpoint.
  *
- * Receives a free-text question from an authenticated user and answers
- * from a curated, deterministic, role-filtered help knowledge base.
- * No patient data is read here and nothing is sent to any external service.
+ * 1) If `entryId` is passed (suggestion chip), returns that KB entry directly.
+ * 2) Otherwise runs the deterministic matcher over the curated KB.
+ * 3) If the matcher misses and the LLM fallback is configured (GROQ_API_KEY),
+ *    asks the LLM. The LLM only receives the user's question, language and
+ *    role label — never patient data.
+ * 4) If everything fails, returns the static "I don't know" answer + suggestions.
  */
 export const askHelp = async (req: AuthenticatedRequest, res: Response) => {
   const parsed = askSchema.safeParse(req.body);
@@ -44,16 +48,44 @@ export const askHelp = async (req: AuthenticatedRequest, res: Response) => {
     ? getEntryById(parsed.data.entryId, lang, role) ?? matchHelpEntry(parsed.data.question, lang, role)
     : matchHelpEntry(parsed.data.question, lang, role);
 
-  const action = result.action
-    ? { id: result.action.id, label: result.action.label[lang] }
-    : null;
+  // KB hit (deterministic) — return as-is.
+  if (result.matched) {
+    const action = result.action
+      ? { id: result.action.id, label: result.action.label[lang] }
+      : null;
+    return sendSuccess(res, {
+      answer: result.answer,
+      matched: true,
+      entryId: result.entryId,
+      action,
+      source: 'kb',
+      suggestions: [],
+    }, 'OK');
+  }
 
+  // KB miss — try the LLM fallback.
+  if (llmEnabled()) {
+    const llmAnswer = await askLlm(parsed.data.question, lang, role);
+    if (llmAnswer) {
+      return sendSuccess(res, {
+        answer: llmAnswer,
+        matched: true,
+        entryId: null,
+        action: null,
+        source: 'llm',
+        suggestions: [],
+      }, 'OK');
+    }
+  }
+
+  // Nothing worked — static fallback + suggestions to help the user retry.
   return sendSuccess(res, {
     answer: result.answer,
-    matched: result.matched,
-    entryId: result.entryId,
-    action,
-    suggestions: result.matched ? [] : getSuggestions(lang, role),
+    matched: false,
+    entryId: null,
+    action: null,
+    source: 'fallback',
+    suggestions: getSuggestions(lang, role),
   }, 'OK');
 };
 

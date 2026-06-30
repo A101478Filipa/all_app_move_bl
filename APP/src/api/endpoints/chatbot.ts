@@ -34,6 +34,9 @@ export interface ChatbotAskResponse {
   matched: boolean;
   entryId: string | null;
   action: ChatbotAction | null;
+  /** Where the answer came from: curated knowledge base, LLM fallback,
+   *  or static "I don't know" message. */
+  source?: 'kb' | 'llm' | 'fallback';
   suggestions: ChatbotSuggestion[];
 }
 
