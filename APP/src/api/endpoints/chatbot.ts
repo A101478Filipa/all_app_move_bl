@@ -22,10 +22,18 @@ export interface ChatbotSuggestionsResponse {
   suggestions: ChatbotSuggestion[];
 }
 
+export interface ChatbotInitResponse {
+  welcome: string;
+  suggestions: ChatbotSuggestion[];
+}
+
 export const chatbotApi = {
   ask: (data: ChatbotAskRequest): Promise<ApiResponse<ChatbotAskResponse>> =>
     api.post('/chatbot/ask', data).then(response => response.data),
 
   getSuggestions: (lang: 'pt' | 'en'): Promise<ApiResponse<ChatbotSuggestionsResponse>> =>
     api.get('/chatbot/suggestions', { params: { lang } }).then(response => response.data),
+
+  init: (lang: 'pt' | 'en'): Promise<ApiResponse<ChatbotInitResponse>> =>
+    api.get('/chatbot/init', { params: { lang } }).then(response => response.data),
 };

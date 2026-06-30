@@ -5,6 +5,7 @@ import { sendSuccess, sendError, sendInputValidationError } from '../../utils/ap
 import {
   matchHelpEntry,
   getSuggestions,
+  getWelcome,
   HelpLang,
 } from './helpKnowledgeBase';
 
@@ -13,12 +14,14 @@ const askSchema = z.object({
   lang: z.enum(['pt', 'en']).optional(),
 });
 
+const parseLang = (raw: unknown): HelpLang => (raw === 'en' ? 'en' : 'pt');
+
 /**
  * Phase 1 of the in-app assistant.
  *
- * Receives a free-text question from an authenticated professional and
- * answers from a curated, deterministic help knowledge base. No patient
- * data is read here and nothing is sent to any external service.
+ * Receives a free-text question from an authenticated user and answers
+ * from a curated, deterministic, role-filtered help knowledge base.
+ * No patient data is read here and nothing is sent to any external service.
  */
 export const askHelp = async (req: AuthenticatedRequest, res: Response) => {
   const parsed = askSchema.safeParse(req.body);
@@ -45,7 +48,20 @@ export const askHelp = async (req: AuthenticatedRequest, res: Response) => {
 };
 
 export const getHelpSuggestions = async (req: AuthenticatedRequest, res: Response) => {
-  const lang: HelpLang = (req.query.lang === 'en' ? 'en' : 'pt');
+  const lang = parseLang(req.query.lang);
   const role = req.user?.role;
   return sendSuccess(res, { suggestions: getSuggestions(lang, role) }, 'OK');
+};
+
+/**
+ * Returns role-aware welcome message + initial suggestions used when the
+ * chat is first opened. Keeps role logic on the server side.
+ */
+export const getHelpInit = async (req: AuthenticatedRequest, res: Response) => {
+  const lang = parseLang(req.query.lang);
+  const role = req.user?.role;
+  return sendSuccess(res, {
+    welcome: getWelcome(lang, role),
+    suggestions: getSuggestions(lang, role),
+  }, 'OK');
 };

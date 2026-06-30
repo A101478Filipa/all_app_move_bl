@@ -10,9 +10,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
-import { VStack, HStack } from '@components/CoreComponents';
+import { HStack } from '@components/CoreComponents';
 import { Color } from '@src/styles/colors';
 import { FontFamily, FontSize } from '@src/styles/fonts';
 import { Spacing } from '@src/styles/spacings';
@@ -20,9 +19,6 @@ import { Border } from '@src/styles/borders';
 import { shadowStyles } from '@src/styles/shadow';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
 import { chatbotApi, ChatbotSuggestion } from '@src/api/endpoints/chatbot';
-import { UserMenuStackParamList } from '@navigation/UserMenuNavigationStack';
-
-type Props = NativeStackScreenProps<UserMenuStackParamList, 'HelpChat'>;
 
 type Sender = 'user' | 'bot';
 
@@ -32,7 +28,16 @@ interface ChatMessage {
   text: string;
 }
 
-const HelpChatScreen: React.FC<Props> = () => {
+interface Props {
+  /** When true, the panel re-fetches the role-aware welcome + suggestions. */
+  active: boolean;
+}
+
+/**
+ * Reusable chat UI for the help assistant. Used inside the floating
+ * chat modal so it can be opened from anywhere in the app.
+ */
+const HelpChatPanel: React.FC<Props> = ({ active }) => {
   const { t, currentLanguage } = useTranslation();
   const lang = currentLanguage?.startsWith('en') ? 'en' : 'pt';
 
@@ -40,25 +45,31 @@ const HelpChatScreen: React.FC<Props> = () => {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [suggestions, setSuggestions] = useState<ChatbotSuggestion[]>([]);
+  const [initialized, setInitialized] = useState(false);
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
-  const welcome = useMemo<ChatMessage>(() => ({
-    id: 'welcome',
-    sender: 'bot',
-    text: t('helpChat.welcome'),
-  }), [t]);
+  const fallbackWelcome = useMemo(() => t('helpChat.welcome'), [t]);
 
   useEffect(() => {
-    setMessages([welcome]);
-  }, [welcome]);
-
-  useEffect(() => {
+    if (!active) return;
     let cancelled = false;
-    chatbotApi.getSuggestions(lang)
-      .then(res => { if (!cancelled) setSuggestions(res.data?.suggestions ?? []); })
-      .catch(() => { /* non-fatal */ });
+
+    chatbotApi.init(lang)
+      .then(res => {
+        if (cancelled) return;
+        const welcomeText = res.data?.welcome ?? fallbackWelcome;
+        setMessages([{ id: 'welcome', sender: 'bot', text: welcomeText }]);
+        setSuggestions(res.data?.suggestions ?? []);
+        setInitialized(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setMessages([{ id: 'welcome', sender: 'bot', text: fallbackWelcome }]);
+        setInitialized(true);
+      });
+
     return () => { cancelled = true; };
-  }, [lang]);
+  }, [active, lang, fallbackWelcome]);
 
   const scrollToEnd = useCallback(() => {
     requestAnimationFrame(() => {
@@ -70,11 +81,7 @@ const HelpChatScreen: React.FC<Props> = () => {
     const trimmed = question.trim();
     if (!trimmed || sending) return;
 
-    const userMsg: ChatMessage = {
-      id: `u-${Date.now()}`,
-      sender: 'user',
-      text: trimmed,
-    };
+    const userMsg: ChatMessage = { id: `u-${Date.now()}`, sender: 'user', text: trimmed };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setSending(true);
@@ -121,27 +128,33 @@ const HelpChatScreen: React.FC<Props> = () => {
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <View style={styles.disclaimer}>
         <MaterialIcons name="lock" size={16} color={Color.Gray.v500} />
         <Text style={styles.disclaimerText}>{t('helpChat.privacyNote')}</Text>
       </View>
 
-      <FlatList
-        ref={listRef}
-        data={messages}
-        keyExtractor={item => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        onContentSizeChange={scrollToEnd}
-      />
+      {!initialized ? (
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color={Color.primary} />
+        </View>
+      ) : (
+        <FlatList
+          ref={listRef}
+          data={messages}
+          keyExtractor={item => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          onContentSizeChange={scrollToEnd}
+        />
+      )}
 
       {suggestions.length > 0 && (
         <View style={styles.suggestionsContainer}>
           <Text style={styles.suggestionsTitle}>{t('helpChat.suggestionsTitle')}</Text>
           <View style={styles.suggestionsList}>
-            {suggestions.slice(0, 4).map(s => (
+            {suggestions.slice(0, 6).map(s => (
               <TouchableOpacity
                 key={s.id}
                 style={styles.suggestionChip}
@@ -185,6 +198,7 @@ const HelpChatScreen: React.FC<Props> = () => {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: Color.Background.subtle },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   disclaimer: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.xs_6,
     paddingHorizontal: Spacing.md_16, paddingVertical: Spacing.sm_8,
@@ -222,9 +236,7 @@ const styles = StyleSheet.create({
     color: Color.Gray.v500,
     marginBottom: Spacing.xs_4,
   },
-  suggestionsList: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs_6,
-  },
+  suggestionsList: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs_6 },
   suggestionChip: {
     backgroundColor: Color.white,
     borderColor: Color.primary,
@@ -262,4 +274,4 @@ const styles = StyleSheet.create({
   sendButtonDisabled: { backgroundColor: Color.Gray.v400 },
 });
 
-export default HelpChatScreen;
+export default HelpChatPanel;

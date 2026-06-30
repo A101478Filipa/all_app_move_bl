@@ -1051,6 +1051,7 @@
   "helpChat": {
     "sectionTitle": "Help",
     "title": "App Assistant",
+    "headerSubtitle": "Help on how to use the app",
     "welcome": "Hi! I am the app assistant. I can help explain how features work, find menu options and answer frequent questions. I do not have access to elderly clinical data.",
     "inputPlaceholder": "Type your question...",
     "suggestionsTitle": "Suggestions",

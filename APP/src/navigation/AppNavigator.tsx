@@ -1,5 +1,5 @@
 import { NavigationContainer, NavigatorScreenParams } from '@react-navigation/native';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { CaregiverRootNavigator, CaregiverTabsParamList } from '@navigation/CaregiverRootNavigator';
 import LoginNavigator, { LoginStackParamList } from '@src/navigation/LoginNavigator';
 import { useAuthStore } from '@src/stores/authStore';
@@ -11,6 +11,7 @@ import { InstitutionAdminNavigator, InstitutionAdminTabsParamList } from './Inst
 import { ProgrammerRootNavigator, ProgrammerTabsParamList } from './ProgrammerRootNavigator';
 import { ClinicianRootNavigator, ClinicianTabsParamList } from './ClinicianRootNavigator';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { HelpChatFab } from '@src/components/chatbot/HelpChatFab';
 
 export type RootStackParamList = {
   LoginStack: NavigatorScreenParams<LoginStackParamList>;
@@ -50,6 +51,7 @@ const chooseNavigator = (role?: UserRole) => {
 const AppNavigator = () => {
   const { user, loading } = useAuthStore();
   const role = user?.user.role;
+  const showAssistant = !!role && role !== UserRole.UNKNOWN;
 
   /*
   if (loading) {
@@ -64,7 +66,10 @@ const AppNavigator = () => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer ref={navigationRef}>
-        {chooseNavigator(role)}
+        <View style={{ flex: 1 }} pointerEvents="box-none">
+          {chooseNavigator(role)}
+          {showAssistant && <HelpChatFab />}
+        </View>
       </NavigationContainer>
     </GestureHandlerRootView>
   );

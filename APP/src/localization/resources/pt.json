@@ -1052,6 +1052,7 @@
   "helpChat": {
     "sectionTitle": "Ajuda",
     "title": "Assistente da App",
+    "headerSubtitle": "Ajuda sobre como usar a aplicação",
     "welcome": "Olá! Sou o assistente da aplicação. Posso ajudar a explicar como usar funcionalidades, encontrar opções no menu e responder a dúvidas frequentes. Não tenho acesso a dados clínicos dos utentes.",
     "inputPlaceholder": "Escreva a sua pergunta...",
     "suggestionsTitle": "Sugestões",

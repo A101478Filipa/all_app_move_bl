@@ -14,6 +14,7 @@ import { shadowStyles } from '@src/styles/shadow';
 import { UserMenuStackParamList } from '@navigation/UserMenuNavigationStack';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
 import { useNotifications } from '@src/providers/NotificationProvider';
+import { useChatbotStore } from '@src/stores/chatbotStore';
 
 type Props = NativeStackScreenProps<UserMenuStackParamList, 'UserMenu'>;
 
@@ -135,6 +136,7 @@ const UserMenuScreen: React.FC<Props> = ({ navigation }) => {
   const { user, config, logout, refreshUser } = useAuthStore();
   const { t } = useTranslation();
   const { unreadCount, unregisterPushNotifications } = useNotifications();
+  const openChatbot = useChatbotStore(state => state.open);
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -183,7 +185,7 @@ const UserMenuScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   const onHelpChat = () => {
-    navigation.navigate('HelpChat');
+    openChatbot();
   }
 
   const isCaregiver = user?.user.role === UserRole.CAREGIVER;
