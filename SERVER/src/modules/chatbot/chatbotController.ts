@@ -7,6 +7,7 @@ import {
   getEntryById,
   getSuggestions,
   getWelcome,
+  detectDataQuery,
   HelpLang,
 } from './helpKnowledgeBase';
 import { askLlm, llmEnabled } from './llmService';
@@ -43,6 +44,26 @@ export const askHelp = async (req: AuthenticatedRequest, res: Response) => {
 
   const lang: HelpLang = parsed.data.lang ?? 'pt';
   const role = req.user?.role;
+
+  // If the user is asking for live data (counts, lists, averages over real
+  // records), short-circuit with a clear refusal — we have no DB access
+  // here and we don't want the LLM inventing numbers.
+  if (!parsed.data.entryId) {
+    const dataQuery = detectDataQuery(parsed.data.question, lang, role);
+    if (dataQuery) {
+      const action = dataQuery.action
+        ? { id: dataQuery.action.id, label: dataQuery.action.label[lang] }
+        : null;
+      return sendSuccess(res, {
+        answer: dataQuery.answer,
+        matched: true,
+        entryId: null,
+        action,
+        source: 'kb',
+        suggestions: [],
+      }, 'OK');
+    }
+  }
 
   const result = parsed.data.entryId
     ? getEntryById(parsed.data.entryId, lang, role) ?? matchHelpEntry(parsed.data.question, lang, role)

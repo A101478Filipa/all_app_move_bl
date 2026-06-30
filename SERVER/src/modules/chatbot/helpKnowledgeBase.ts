@@ -669,6 +669,167 @@ export function getEntryById(entryId: string, lang: HelpLang, role?: UserRole): 
   };
 }
 
+// ============================================================
+// Data-query detector
+// ------------------------------------------------------------
+// Detects when the user is asking for *live data* (counts, lists,
+// averages over real records) rather than how-to. The assistant has
+// no access to that data, so we return a clear refusal + pointer to
+// the screen where the user can check it themselves.
+// ============================================================
+
+const QUANTITATIVE_TOKENS = new Set<string>([
+  // PT
+  'quantos', 'quantas', 'numero', 'n\u00famero', 'total', 'media', 'm\u00e9dia',
+  'soma', 'maximo', 'm\u00e1ximo', 'minimo', 'm\u00ednimo', 'percentagem', 'taxa',
+  'lista', 'listar', 'mostrar', 'mostra',
+  // EN
+  'how', 'many', 'much', 'count', 'number', 'total', 'average', 'avg',
+  'sum', 'max', 'min', 'percentage', 'rate', 'list', 'show',
+]);
+
+const DATA_NOUNS = new Set<string>([
+  // PT
+  'queda', 'quedas', 'medicao', 'medi\u00e7ao', 'medi\u00e7\u00e3o', 'medicoes', 'medi\u00e7oes', 'medi\u00e7\u00f5es',
+  'tensao', 'tens\u00e3o', 'pressao', 'press\u00e3o', 'peso', 'glicemia', 'glicose',
+  'patologia', 'patologias', 'medicacao', 'medica\u00e7\u00e3o', 'medicacoes', 'medica\u00e7\u00f5es',
+  'utente', 'utentes', 'cuidador', 'cuidadores', 'clinico', 'cl\u00ednico', 'clinicos', 'cl\u00ednicos',
+  'membro', 'membros', 'profissional', 'profissionais',
+  'sos', 'alerta', 'alertas', 'ocorrencia', 'ocorr\u00eancia', 'ocorrencias', 'ocorr\u00eancias',
+  'evento', 'eventos', 'consulta', 'consultas', 'agendamento', 'agendamentos',
+  'ferias', 'f\u00e9rias', 'folga', 'folgas', 'turno', 'turnos',
+  // EN
+  'fall', 'falls', 'measurement', 'measurements', 'reading', 'readings',
+  'blood', 'pressure', 'weight', 'glucose',
+  'pathology', 'pathologies', 'medication', 'medications',
+  'elderly', 'patient', 'patients', 'resident', 'residents',
+  'caregiver', 'caregivers', 'clinician', 'clinicians',
+  'member', 'members', 'professional', 'professionals',
+  'alert', 'alerts', 'occurrence', 'occurrences',
+  'event', 'events', 'appointment', 'appointments',
+  'vacation', 'shift', 'shifts',
+]);
+
+const TIME_SCOPES = new Set<string>([
+  'hoje', 'ontem', 'amanha', 'amanh\u00e3', 'semana', 'mes', 'm\u00eas', 'ano',
+  'today', 'yesterday', 'tomorrow', 'week', 'month', 'year',
+  'last', 'this', 'esta', 'este', 'passado', 'passada', 'ultimo', '\u00faltimo', 'ultima', '\u00faltima',
+]);
+
+const COLOR_STATUS_TOKENS = new Set<string>([
+  'vermelho', 'amarelo', 'verde', 'laranja', 'critico', 'cr\u00edtico', 'alerta',
+  'red', 'yellow', 'green', 'orange', 'critical',
+]);
+
+/** Per-language refusal copy + the KB entry the user should be pointed to. */
+const DATA_QUERY_RESPONSE: Record<HelpLang, {
+  generic: string;
+  withPointer: (where: string) => string;
+}> = {
+  pt: {
+    generic: 'N\u00e3o tenho acesso a dados em tempo real dos utentes (n\u00famero de quedas, medi\u00e7\u00f5es, etc.). S\u00f3 ajudo a explicar como usar a aplica\u00e7\u00e3o.',
+    withPointer: (where) =>
+      `N\u00e3o tenho acesso a esses valores em tempo real \u2014 s\u00f3 ajudo com d\u00favidas sobre a app. Pode v\u00ea-los diretamente em ${where}.`,
+  },
+  en: {
+    generic: 'I do not have access to real-time data about residents (number of falls, measurements, etc.). I only help with how to use the app.',
+    withPointer: (where) =>
+      `I do not have access to those live values \u2014 I only help with app usage. You can see them directly in ${where}.`,
+  },
+};
+
+/** Maps a detected data noun to the KB entry + screen pointer most relevant. */
+function pointerForNouns(nouns: string[], lang: HelpLang, role?: UserRole): { where: string; action: HelpAction | null } | null {
+  const has = (...words: string[]) => nouns.some(n => words.includes(n));
+
+  const pick = (entryId: string, fallbackPt: string, fallbackEn: string): { where: string; action: HelpAction | null } => {
+    const entry = HELP_ENTRIES.find(e => e.id === entryId);
+    const visible = entry && entryIsVisibleTo(entry, role);
+    return {
+      where: lang === 'pt' ? fallbackPt : fallbackEn,
+      action: visible && entry?.action ? entry.action : null,
+    };
+  };
+
+  if (has('queda', 'quedas', 'fall', 'falls', 'ocorrencia', 'ocorr\u00eancia', 'ocorrencias', 'ocorr\u00eancias', 'sos', 'alerta', 'alertas', 'alert', 'alerts'))
+    return pick('register-fall', 'separador Quedas na ficha do utente', 'the Falls tab inside the elderly profile');
+
+  if (has('medicao', 'medi\u00e7ao', 'medi\u00e7\u00e3o', 'medicoes', 'medi\u00e7oes', 'medi\u00e7\u00f5es',
+          'tensao', 'tens\u00e3o', 'pressao', 'press\u00e3o', 'peso', 'glicemia', 'glicose',
+          'measurement', 'measurements', 'reading', 'readings', 'blood', 'pressure', 'weight', 'glucose'))
+    return pick('add-measurement', 'separador Medi\u00e7\u00f5es na ficha do utente', 'the Measurements tab inside the elderly profile');
+
+  if (has('patologia', 'patologias', 'pathology', 'pathologies'))
+    return pick('add-pathology', 'separador Patologias na ficha do utente', 'the Pathologies tab inside the elderly profile');
+
+  if (has('medicacao', 'medica\u00e7\u00e3o', 'medicacoes', 'medica\u00e7\u00f5es', 'medication', 'medications'))
+    return pick('add-medication', 'separador Medica\u00e7\u00e3o na ficha do utente', 'the Medication tab inside the elderly profile');
+
+  if (has('utente', 'utentes', 'elderly', 'patient', 'patients', 'resident', 'residents', 'membro', 'membros', 'member', 'members'))
+    return pick('view-elderly-profile', 'separador Membros', 'the Members tab');
+
+  if (has('cuidador', 'cuidadores', 'clinico', 'cl\u00ednico', 'clinicos', 'cl\u00ednicos', 'profissional', 'profissionais', 'caregiver', 'caregivers', 'clinician', 'clinicians', 'professional', 'professionals'))
+    return pick('add-staff', 'separador Membros', 'the Members tab');
+
+  if (has('evento', 'eventos', 'consulta', 'consultas', 'agendamento', 'agendamentos', 'event', 'events', 'appointment', 'appointments'))
+    return pick('elderly-schedule', 'separador Perfil/Eventos da ficha do utente', 'the Profile/Events tab of the elderly');
+
+  if (has('ferias', 'f\u00e9rias', 'folga', 'folgas', 'turno', 'turnos', 'vacation', 'shift', 'shifts'))
+    return pick('schedule', 'Conta > O Meu Hor\u00e1rio', 'Account > My Schedule');
+
+  return null;
+}
+
+export interface DataQueryResult {
+  answer: string;
+  action: HelpAction | null;
+}
+
+/**
+ * Returns a refusal response when the question is asking for live data
+ * (counts/lists/aggregates about real records). Returns null when the
+ * question is *not* a data query, letting the regular flow continue.
+ */
+export function detectDataQuery(question: string, lang: HelpLang, role?: UserRole): DataQueryResult | null {
+  const q = normalize(question);
+  if (!q) return null;
+
+  const tokens = q.split(' ').filter(Boolean);
+  const matchedNouns: string[] = [];
+  let hasQuantitative = false;
+  let hasTimeScope = false;
+  let hasColorStatus = false;
+
+  for (const t of tokens) {
+    if (DATA_NOUNS.has(t)) matchedNouns.push(t);
+    if (QUANTITATIVE_TOKENS.has(t)) hasQuantitative = true;
+    if (TIME_SCOPES.has(t)) hasTimeScope = true;
+    if (COLOR_STATUS_TOKENS.has(t)) hasColorStatus = true;
+  }
+
+  // "How many" / "quantos" pattern (also catches "how many ... ?" in EN).
+  const hasHowMany = /\b(how\s+many|how\s+much)\b/.test(q);
+  if (hasHowMany) hasQuantitative = true;
+
+  if (matchedNouns.length === 0) return null;
+
+  // Trigger if the user asked for a quantity, a time-bounded value, or a
+  // status-filtered list (e.g. "utentes com tens\u00e3o a vermelho").
+  const isDataQuery = hasQuantitative || (hasTimeScope && matchedNouns.length > 0) || hasColorStatus;
+  if (!isDataQuery) return null;
+
+  const copy = DATA_QUERY_RESPONSE[lang];
+  const pointer = pointerForNouns(matchedNouns, lang, role);
+  if (!pointer) {
+    return { answer: copy.generic, action: null };
+  }
+
+  return {
+    answer: copy.withPointer(pointer.where),
+    action: pointer.action,
+  };
+}
+
 export function matchHelpEntry(question: string, lang: HelpLang, role?: UserRole): MatchResult {
   const q = normalize(question);
   if (!q) {
