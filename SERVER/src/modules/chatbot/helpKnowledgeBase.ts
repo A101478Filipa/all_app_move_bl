@@ -110,6 +110,99 @@ export const HELP_ENTRIES: HelpEntry[] = [
     },
   },
 
+  // ===================== App overview (per role) =====================
+  {
+    id: 'app-overview-elderly',
+    roles: [UserRole.ELDERLY],
+    keywords: [
+      'funcionalidades', 'o que faz a app', 'o que tem a app', 'o que posso fazer',
+      'para que serve', 'ajudas', 'recursos', 'caracteristicas',
+      'features', 'what does the app do', 'what can i do', 'what is the app for',
+      'capabilities', 'overview',
+    ],
+    answer: {
+      pt: 'A aplicação permite-lhe: pedir ajuda imediata através do botão SOS, ver as suas medições (tensão, peso, glicemia, etc.), consultar a sua agenda de eventos (consultas, banhos, fisioterapia), receber notificações da equipa de cuidado, e mudar idioma ou recuperar a palavra-passe em Conta > Definições.',
+      en: 'The app lets you: ask for immediate help via the SOS button, see your measurements (blood pressure, weight, glucose, etc.), check your scheduled events (appointments, baths, physiotherapy), receive notifications from the care team, and change language or recover your password in Account > Settings.',
+    },
+  },
+  {
+    id: 'app-overview-caregiver',
+    roles: [UserRole.CAREGIVER],
+    keywords: [
+      'funcionalidades', 'o que faz a app', 'o que tem a app', 'o que posso fazer', 'para que serve',
+      'recursos', 'caracteristicas',
+      'features', 'what does the app do', 'what can i do', 'what is the app for',
+      'capabilities', 'overview',
+    ],
+    answer: {
+      pt: 'Como cuidador pode: consultar a ficha dos utentes (medições, medicação, patologias, quedas, eventos e cronograma), registar manualmente quedas e medições, dar seguimento a ocorrências SOS, acompanhar feridas com fotos e notas, gerir o seu horário e pedir ausências em Conta > O Meu Horário, e receber notificações em tempo real.',
+      en: 'As a caregiver you can: view elderly profiles (measurements, medication, pathologies, falls, events and timeline), manually record falls and measurements, follow up on SOS occurrences, track wounds with photos and notes, manage your schedule and request time off in Account > My Schedule, and get real-time notifications.',
+    },
+    action: {
+      id: 'tab.members',
+      label: { pt: 'Abrir Membros', en: 'Open Members' },
+    },
+  },
+  {
+    id: 'app-overview-clinician',
+    roles: [UserRole.CLINICIAN],
+    keywords: [
+      'funcionalidades', 'o que faz a app', 'o que tem a app', 'o que posso fazer', 'para que serve',
+      'recursos', 'caracteristicas',
+      'features', 'what does the app do', 'what can i do', 'what is the app for',
+      'capabilities', 'overview',
+    ],
+    answer: {
+      pt: 'Como clínico pode: aceder à ficha clínica de cada utente, adicionar e gerir patologias e medicação, registar avaliações clínicas (equilíbrio, mobilidade, cognição, sinais vitais), interpretar medições por estado (verde/amarelo/laranja/vermelho), registar quedas e acompanhar feridas, e gerir o seu próprio horário em Conta > O Meu Horário.',
+      en: 'As a clinician you can: access each elderly clinical profile, add and manage pathologies and medication, record clinical assessments (balance, mobility, cognition, vital signs), interpret measurements by status (green/yellow/orange/red), log falls and follow up on wounds, and manage your own schedule in Account > My Schedule.',
+    },
+    action: {
+      id: 'tab.members',
+      label: { pt: 'Abrir Membros', en: 'Open Members' },
+    },
+  },
+  {
+    id: 'app-overview-admin',
+    roles: [UserRole.INSTITUTION_ADMIN],
+    keywords: [
+      'funcionalidades', 'o que faz a app', 'o que tem a app', 'o que posso fazer', 'para que serve',
+      'recursos', 'caracteristicas',
+      'features', 'what does the app do', 'what can i do', 'what is the app for',
+      'capabilities', 'overview',
+    ],
+    answer: {
+      pt: 'Como administrador pode: convidar utentes, cuidadores, clínicos e outros administradores; gerir convites pendentes; conceder acesso temporário a profissionais externos; aprovar pedidos de ausência do pessoal; definir a política de férias da instituição; e consultar todos os utentes e profissionais a partir do separador Membros.',
+      en: 'As an admin you can: invite elderly, caregivers, clinicians and other admins; manage pending invitations; grant temporary access to external professionals; approve staff time-off requests; set the institution vacation policy; and view all elderly and staff from the Members tab.',
+    },
+    action: {
+      id: 'tab.members',
+      label: { pt: 'Abrir Membros', en: 'Open Members' },
+    },
+  },
+  {
+    id: 'app-overview-programmer',
+    roles: [UserRole.PROGRAMMER],
+    keywords: [
+      'funcionalidades', 'o que faz a app', 'o que tem a app', 'o que posso fazer', 'para que serve',
+      'features', 'what does the app do', 'what can i do', 'capabilities', 'overview',
+    ],
+    answer: {
+      pt: 'Como administrador técnico pode: criar e editar instituições, atribuir o primeiro administrador a cada uma, gerar códigos de convite para administradores, e consultar a lista global de instituições.',
+      en: 'As a technical admin you can: create and edit institutions, assign the first admin of each one, generate invitation codes for admins, and browse the global institution list.',
+    },
+  },
+  {
+    id: 'app-purpose',
+    keywords: [
+      'para que serve', 'objectivo', 'objetivo', 'proposito', 'prop\u00f3sito', 'sobre a app', 'o que e a app', 'o que \u00e9 a app',
+      'what is this app', 'what is the app', 'purpose of the app', 'about the app',
+    ],
+    answer: {
+      pt: 'O appMove \u00e9 uma plataforma de monitoriza\u00e7\u00e3o de utentes idosos em institui\u00e7\u00f5es. Liga utentes, cuidadores, cl\u00ednicos e administradores num \u00fanico s\u00edtio: deteta e regista quedas, acompanha medi\u00e7\u00f5es e medica\u00e7\u00e3o, organiza eventos e hor\u00e1rios da equipa, e mant\u00e9m a fam\u00edlia e os profissionais informados.',
+      en: 'appMove is a monitoring platform for elderly residents in care institutions. It connects elderly, caregivers, clinicians and admins in one place: detects and records falls, tracks measurements and medication, organises events and staff schedules, and keeps family and professionals informed.',
+    },
+  },
+
   // ===================== Elderly =====================
   {
     id: 'sos-button',
