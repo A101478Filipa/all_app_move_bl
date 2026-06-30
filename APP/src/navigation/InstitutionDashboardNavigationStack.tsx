@@ -28,6 +28,7 @@ import ElderlyWoundTrackingScreen from "@src/screens/elderly/ElderlyWoundTrackin
 import ElderlyMeasurementsListScreen from "@src/screens/elderly/ElderlyMeasurementsListScreen";
 import ElderlySOSListScreen from "@src/screens/elderly/ElderlySOSListScreen";
 import ElderlyDeviceTestsScreen from "@src/screens/elderly/ElderlyDeviceTestsScreen";
+import DeviceSessionDetailsScreen from "@src/screens/elderly/DeviceSessionDetailsScreen";
 import { getScreenOptionsWithNavigation } from "@src/utils/navigationHelper";
 import { useTranslation } from "@src/localization/hooks/useTranslation";
 import React from "react";
@@ -132,6 +133,9 @@ export type InstitutionDashboardNavigationStackParamList = {
   };
   ElderlyDeviceTests: {
     elderlyId: number;
+  };
+  DeviceSessionDetails: {
+    sessionId: number;
   };
   ProfessionalCalendar: {
     userId: number;
@@ -313,6 +317,11 @@ export const InstitutionDashboardNavigationStack = () => {
         name='ElderlyDeviceTests'
         component={ElderlyDeviceTestsScreen}
         options={{ title: t('deviceTests.title') }}
+      />
+      <Stack.Screen
+        name='DeviceSessionDetails'
+        component={DeviceSessionDetailsScreen}
+        options={{ title: t('deviceTests.detailsTitle') }}
       />
       <Stack.Screen
         name='BathSchedule'

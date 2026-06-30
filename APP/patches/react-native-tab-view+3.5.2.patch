@@ -32,3 +32,31 @@ index 2714896..4658433 100644
    }, [activeColor, android_ripple, gap, getAccessibilityLabel, getAccessible, getLabelText, getTestID, inactiveColor, isWidthDynamic, jumpTo, labelStyle, layout, navigationState, onTabLongPress, onTabPress, position, pressColor, pressOpacity, renderBadge, renderIcon, renderLabel, renderTabBarItem, routes, scrollEnabled, tabStyle, tabWidths]);
    const keyExtractor = React.useCallback(item => item.key, []);
    const contentContainerStyleMemoized = React.useMemo(() => [styles.tabContent, scrollEnabled ? {
+diff --git a/node_modules/react-native-tab-view/src/TabBar.tsx b/node_modules/react-native-tab-view/src/TabBar.tsx
+--- a/node_modules/react-native-tab-view/src/TabBar.tsx
++++ b/node_modules/react-native-tab-view/src/TabBar.tsx
+@@ -448,12 +448,13 @@ export function TabBar<T extends Route>({
+         android_ripple,
+       };
+ 
+-      return (
+-        <>
+-          {gap > 0 && index > 0 ? <Separator width={gap} /> : null}
+-          {renderTabBarItem ? (
+-            renderTabBarItem(props)
+-          ) : (
+-            <TabBarItem {...props} />
+-          )}
+-        </>
+-      );
++      const { key: itemKey, ...itemProps } = props;
++      return (
++        <React.Fragment key={itemKey}>
++          {gap > 0 && index > 0 ? <Separator width={gap} /> : null}
++          {renderTabBarItem ? (
++            renderTabBarItem(props)
++          ) : (
++            <TabBarItem key={itemKey} {...itemProps} />
++          )}
++        </React.Fragment>
++      );

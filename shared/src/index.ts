@@ -17,6 +17,7 @@ export * from './entities/deviceMaintenance';
 export * from './entities/measurement';
 export * from './entities/medication';
 export * from './entities/timelineActivity';
+export * from './entities/deviceSession';
 
 // Entities/User
 export * from './entities/users/caregiver';

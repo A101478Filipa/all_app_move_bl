@@ -1,5 +1,5 @@
 import '@src/localization';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { LogBox } from 'react-native';
 
 LogBox.ignoreLogs([
@@ -20,6 +20,7 @@ import UrbanistBold from './assets/fonts/Urbanist-Bold.ttf'
 import UrbanistExtraBold from './assets/fonts/Urbanist-ExtraBold.ttf'
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Color } from '@styles/colors';
+import { initBeltService } from '@src/services/deviceBelt';
 
 const App = () => {
   const [fontsLoaded] = useFonts({
@@ -29,6 +30,10 @@ const App = () => {
     "Urbanist-Bold": UrbanistBold,
     "Urbanist-ExtraBold": UrbanistExtraBold,
   });
+
+  useEffect(() => {
+    initBeltService().catch(() => { /* falls back to mock */ });
+  }, []);
 
   if (!fontsLoaded) {
     return <Text>Loading...</Text>;

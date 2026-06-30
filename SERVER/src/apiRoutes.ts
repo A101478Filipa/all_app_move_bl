@@ -23,6 +23,7 @@ import woundTrackingRoutes from './modules/woundTracking/woundTrackingRoutes';
 import externalProfessionalRoutes from './modules/externalProfessional/externalProfessionalRoutes';
 import externalAccessRoutes from './modules/externalAccess/externalAccessRoutes';
 import chatbotRoutes from './modules/chatbot/chatbotRoutes';
+import deviceSessionRoutes from './modules/deviceSession/deviceSessionRoutes';
 import { authenticate } from './middleware/authMiddleware';
 
 const apiRoutes = express.Router();
@@ -51,5 +52,6 @@ apiRoutes.use('/elderly-absences', elderlyAbsenceRoutes);
 apiRoutes.use('/wound-tracking', woundTrackingRoutes);
 apiRoutes.use('/external-professionals', externalProfessionalRoutes);
 apiRoutes.use('/chatbot', chatbotRoutes);
+apiRoutes.use('/device-sessions', deviceSessionRoutes);
 
 export default apiRoutes;

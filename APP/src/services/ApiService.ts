@@ -41,6 +41,7 @@ const getServerAddress = () => {
 
 const serverAddress = getServerAddress();
 const baseServerUrl = SERVER_URL || `http://${serverAddress}:${SERVER_PORT}`;
+export { baseServerUrl };
 
 console.log(`[ApiService] Platform: ${Platform.OS}, Base URL: ${baseServerUrl}`);
 

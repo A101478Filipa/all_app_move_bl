@@ -183,6 +183,7 @@ model User {
   timeOffsCreated         StaffTimeOff[] @relation("TimeOffCreatedBy")
   timeOffsResponded       StaffTimeOff[] @relation("TimeOffRespondedBy")
   elderlyAbsencesCreated  ElderlyAbsence[]
+  deviceSessionsCreated   DeviceSession[]
 }
 
 // MARK: RefreshToken
@@ -331,6 +332,7 @@ model Elderly {
   calendarEvents   CalendarEvent[]
   elderlyAbsences  ElderlyAbsence[]
   woundTrackings   WoundTracking[]
+  deviceSessions   DeviceSession[]
 }
 
 // MARK: Assessment
@@ -761,4 +763,34 @@ model ElderlyAbsence {
 
   @@index([elderlyId])
   @@index([startDate])
+}
+
+// MARK: DeviceSession
+// IMU acquisition recorded by the belt's Arduino. The binary payload is the
+// raw stream from the SD card: a contiguous sequence of samples, each
+// 24 bytes = 6 little-endian float32 (ax, ay, az [g], gx, gy, gz [deg/s]).
+// Sample rate is fixed (see SAMPLE_RATE_HZ constant on the app/server).
+model DeviceSession {
+  id                  Int      @id @default(autoincrement())
+  elderlyId           Int
+  createdById         Int
+  fileName            String
+  collectionType      String
+  collectionCode      String
+  trialNumber         Int
+  sampleRateHz        Int      @default(100)
+  sampleCount         Int
+  fileSizeBytes       Int
+  durationSeconds     Float
+  startedAt           DateTime
+  endedAt             DateTime
+  payload             Bytes
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  elderly             Elderly  @relation(fields: [elderlyId], references: [id], onDelete: Cascade)
+  createdBy           User     @relation(fields: [createdById], references: [id])
+
+  @@index([elderlyId])
+  @@index([startedAt])
 }
