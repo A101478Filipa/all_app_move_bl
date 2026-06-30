@@ -50,7 +50,7 @@ const CaregiverDetailsComponent = (args: CaregiverDetailsComponentArgs) => {
         {caregiver && (
           <VStack align="flex-start" spacing={Spacing.lg_24}>
             <HStack spacing={Spacing.lg_24} style={styles.header}>
-              <Image source={{ uri: buildAvatarUrl(caregiver.user.avatarUrl, caregiver.user.role) }} style={styles.avatar} />
+              <Image source={{ uri: buildAvatarUrl(caregiver.user.avatarUrl) }} style={styles.avatar} />
               <VStack align="flex-start" spacing={Spacing.xs_4}>
                 <Text style={styles.name}>{caregiver.name}</Text>
                 {caregiver.institution?.name && <Text style={styles.institution}>{caregiver.institution.name}</Text>}

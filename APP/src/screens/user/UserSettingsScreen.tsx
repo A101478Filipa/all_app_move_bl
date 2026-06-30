@@ -243,7 +243,7 @@ const UserSettingsScreen: React.FC<Props> = ({ navigation }) => {
             activeOpacity={0.8}
           >
             <Image
-              source={{ uri: buildAvatarUrl(user?.user.avatarUrl, user?.user.role) }}
+              source={{ uri: buildAvatarUrl(user?.user.avatarUrl) }}
               style={styles.avatar}
             />
 

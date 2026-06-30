@@ -35,10 +35,7 @@ const profileTabFor = (role?: UserRole): TabName => {
 
 const navigateMenu = (screen: string, params?: Record<string, unknown>) => {
   if (!navigationRef.isReady()) return;
-  navigationRef.navigate('MenuTab' as never, {
-    screen,
-    params,
-  } as never);
+  (navigationRef.navigate as (...args: any[]) => void)('MenuTab', { screen, params });
 };
 
 const navigateTab = (tab: TabName) => {

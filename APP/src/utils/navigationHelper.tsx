@@ -6,9 +6,6 @@ import { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 export const getDefaultStackScreenOptions = (): NativeStackNavigationOptions => ({
   headerShadowVisible: false,
   headerBackVisible: false,
-  headerButtonStyle: {
-    backgroundColor: 'transparent',
-  },
   headerLeft: ({ canGoBack, tintColor }) =>
     canGoBack ? (
       <CustomBackButton

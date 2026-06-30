@@ -440,7 +440,7 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
           )}
           {(isPrivileged || isExternalToken) && (
             <TouchableOpacity style={styles.resolveBtn} onPress={() => handleResolveWound(tracking.id)}>
-              <MaterialIcons name="check-circle-outline" size={15} color={Color.Success?.default ?? Color.primary} />
+              <MaterialIcons name="check-circle-outline" size={15} color={Color.primary} />
               <Text style={styles.resolveBtnText}>{t('woundTracking.markResolved')}</Text>
             </TouchableOpacity>
           )}

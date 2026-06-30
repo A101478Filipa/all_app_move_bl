@@ -61,6 +61,9 @@ export interface ExternalElderlyWound {
   createdByUserId?: number;
   createdByUser?: { id: number };
   updates?: ExternalElderlyWound[];
+  location?: string | null;
+  lastUpdate?: string | null;
+  status?: string | null;
 }
 
 export interface ExternalElderlyProfile {

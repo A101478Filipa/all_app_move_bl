@@ -29,7 +29,7 @@ import { useChatbotStore } from '@src/stores/chatbotStore';
 import { useDebounce } from '@src/hooks/useDebounce';
 import { shadowStyles } from '@src/styles/shadow';
 import { InstitutionMember } from 'moveplus-shared';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetBackdrop, BottomSheetBackdropProps, BottomSheetView } from '@gorhom/bottom-sheet';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
 import { SortModal } from '@components/SortModal';
 import { MemberSortOption, SortDirection } from '@src/types/InstitutionSortOption';
@@ -560,7 +560,7 @@ const InstitutionMembersScreen: React.FC<Props> = ({ navigation, route }) => {
             onPress={() => {
               close();
               navigation.navigate('GenerateInvitation', {
-                institutionId: fallbackInstitutionId,
+                institutionId: fallbackInstitutionId!,
                 institutionName: route.params?.institutionName || '',
                 invitedRole: UserRole.INSTITUTION_ADMIN
               });
@@ -573,7 +573,7 @@ const InstitutionMembersScreen: React.FC<Props> = ({ navigation, route }) => {
             onPress={() => {
               close();
               navigation.navigate('InstitutionInvitations', {
-                institutionId: fallbackInstitutionId
+                institutionId: fallbackInstitutionId!
               });
             }}
           />
@@ -612,7 +612,7 @@ const InstitutionMembersScreen: React.FC<Props> = ({ navigation, route }) => {
             onPress={() => {
               close();
               navigation.navigate('GenerateInvitation', {
-                institutionId: fallbackInstitutionId,
+                institutionId: fallbackInstitutionId!,
                 institutionName: route.params?.institutionName || '',
                 invitedRole: UserRole.INSTITUTION_ADMIN
               });
@@ -625,7 +625,7 @@ const InstitutionMembersScreen: React.FC<Props> = ({ navigation, route }) => {
             onPress={() => {
               close();
               navigation.navigate('GenerateInvitation', {
-                institutionId: fallbackInstitutionId,
+                institutionId: fallbackInstitutionId!,
                 institutionName: route.params?.institutionName || '',
                 invitedRole: UserRole.CLINICIAN
               });
@@ -638,7 +638,7 @@ const InstitutionMembersScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
     const renderBackdrop = useCallback(
-      (props) => (
+      (props: BottomSheetBackdropProps) => (
         <BottomSheetBackdrop
           {...props}
           disappearsOnIndex={-1}

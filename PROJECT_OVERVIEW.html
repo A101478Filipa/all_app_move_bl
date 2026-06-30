@@ -274,6 +274,7 @@
       <li><a href="#features">10. Features principais e ligações</a></li>
       <li><a href="#flows">11. Fluxos chave</a></li>
       <li><a href="#extras">12. Notas adicionais</a></li>
+      <li><a href="#chatbot">13. Assistente / Chatbot</a></li>
     </ul>
   </div>
 
@@ -900,6 +901,133 @@ modules/
       <li><strong>Documentação</strong>: a pasta <code class="inline">Docs/</code> tem 13 markdowns valiosos — <span class="file">ARCHITECTURE.md</span>, <span class="file">PRESENTATION.md</span>, <span class="file">PUSH_NOTIFICATIONS_GUIDE.md</span>, <span class="file">FALL_DETECTION_README.md</span>, <span class="file">EMAIL_LOGIN_MIGRATION.md</span>, <span class="file">FORGOT_PASSWORD_AND_INVITATIONS.md</span>, etc. Servem como fonte primária para onboarding técnico.</li>
       <li><strong>Pontos fortes</strong>: separação clara monorepo, contratos REST tipados, stores Zustand por domínio (sem prop drilling), audit-trail completo na timeline, suporte multi-idioma, deteção em background, fluxos sem conta para profissionais externos.</li>
       <li><strong>Pontos a vigiar</strong>: tamanho do <code class="inline">schema.prisma</code> (~700 linhas) — eventual separação por domínio; <code class="inline">screens/authentication</code> mistura <code class="inline">.tsx</code> e <code class="inline">.js</code> legados (<span class="file">WelcomeScreen.js</span>, <span class="file">OTPVerification.js</span>, <span class="file">PasswordChanged.js</span>) — bons candidatos a migração para TS.</li>
+    </ul>
+  </section>
+
+  <!-- CHATBOT -->
+  <section id="chatbot">
+    <h2>13. Assistente / Chatbot</h2>
+    <p>
+      O <strong>Move+ Assistant</strong> é um chatbot de ajuda contextual integrado na app. Está disponível em
+      qualquer ecrã através de um <strong>botão flutuante (FAB)</strong> e responde a perguntas sobre como usar
+      a aplicação. Suporta PT / EN, é <strong>consciente do papel do utilizador</strong> (role-aware), e nunca
+      acede nem envia dados clínicos para serviços externos.
+    </p>
+
+    <div class="grid">
+      <div class="card">
+        <div class="label">Modelo LLM</div>
+        <div class="value" style="font-size:17px;">llama-3.3-70b</div>
+        <p style="color: var(--muted); margin: 4px 0 0;">Groq API (opcional). Fallback gratuito se GROQ_API_KEY estiver definida.</p>
+      </div>
+      <div class="card">
+        <div class="label">Timeout LLM</div>
+        <div class="value">8 s</div>
+        <p style="color: var(--muted); margin: 4px 0 0;">AbortController + max 220 tokens de output.</p>
+      </div>
+      <div class="card">
+        <div class="label">Knowledge Base</div>
+        <div class="value">KB curada</div>
+        <p style="color: var(--muted); margin: 4px 0 0;">Entradas com keywords PT+EN, respostas por role e deep-links de navegação.</p>
+      </div>
+      <div class="card">
+        <div class="label">Privacidade</div>
+        <div class="value" style="color: var(--ok);">Zero dados</div>
+        <p style="color: var(--muted); margin: 4px 0 0;">Nenhum dado de pacientes é enviado ao LLM. Perguntas não são guardadas em BD.</p>
+      </div>
+    </div>
+
+    <h3>Ficheiros</h3>
+    <table>
+      <thead><tr><th>Ficheiro</th><th>Função</th></tr></thead>
+      <tbody>
+        <tr><td class="k">SERVER/src/modules/chatbot/chatbotRoutes.ts</td><td>3 rotas autenticadas: <code class="inline">POST /chatbot/ask</code>, <code class="inline">GET /chatbot/suggestions</code>, <code class="inline">GET /chatbot/init</code>.</td></tr>
+        <tr><td class="k">SERVER/src/modules/chatbot/chatbotController.ts</td><td>Orquestra o pipeline: deteta data-queries → KB → LLM → fallback estático. Expõe <code class="inline">askHelp</code>, <code class="inline">getHelpSuggestions</code>, <code class="inline">getHelpInit</code>.</td></tr>
+        <tr><td class="k">SERVER/src/modules/chatbot/helpKnowledgeBase.ts</td><td>Base de conhecimento curada (<code class="inline">HELP_ENTRIES[]</code>). Cada entrada tem: id, keywords, respostas PT/EN, roles permitidos e uma action de deep-link opcional. Funções <code class="inline">matchHelpEntry</code>, <code class="inline">getEntryById</code>, <code class="inline">getSuggestions</code>, <code class="inline">getWelcome</code>, <code class="inline">detectDataQuery</code>.</td></tr>
+        <tr><td class="k">SERVER/src/modules/chatbot/llmService.ts</td><td>Chamada à Groq API (<code class="inline">llama-3.3-70b-versatile</code>). System prompt seguro: confina ao uso da app, proíbe conselhos clínicos, dados de pacientes e valores em tempo real. Retorna <code class="inline">null</code> se a API key não estiver definida.</td></tr>
+        <tr><td class="k">APP/src/api/endpoints/chatbot.ts</td><td>Tipos e cliente HTTP: <code class="inline">ChatbotAskRequest/Response</code>, <code class="inline">ChatbotAction</code>, <code class="inline">ChatbotSuggestion</code>, <code class="inline">ChatbotInitResponse</code>, <code class="inline">chatbotApi</code>.</td></tr>
+        <tr><td class="k">APP/src/stores/chatbotStore.ts</td><td>Store Zustand: <code class="inline">isOpen</code>, <code class="inline">messages</code> (historial de sessão), <code class="inline">fabOffset</code> (ajuste dinâmico da posição do FAB).</td></tr>
+        <tr><td class="k">APP/src/components/chatbot/HelpChatFab.tsx</td><td>Botão flutuante 56 × 56 px (posição absolute, canto inferior direito). Ao tocar abre um <code class="inline">&lt;Modal animationType="slide"&gt;</code> com cabeçalho e <code class="inline">HelpChatPanel</code>. Montado uma vez em <code class="inline">AppNavigator</code> acima dos tab-navigators.</td></tr>
+        <tr><td class="k">APP/src/components/chatbot/HelpChatPanel.tsx</td><td>UI do chat: <code class="inline">FlatList</code> de mensagens com balões utilizador/bot, campo de input, botão de envio, chips de sugestão (até 6), tag &ldquo;✨ AI&rdquo; em respostas LLM, botões de deep-link (<code class="inline">action</code>).</td></tr>
+        <tr><td class="k">APP/src/components/chatbot/helpActions.ts</td><td>Mapeia um <code class="inline">ChatbotActionId</code> a uma chamada de navegação imperativa via <code class="inline">NavigationService</code>. Após navegar, fecha o modal.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Fluxo end-to-end</h3>
+    <div class="flow">
+      <ol>
+        <li><span class="tag">UI</span> Utilizador toca no FAB (<span class="file">HelpChatFab.tsx</span>) → <code class="inline">useChatbotStore.open()</code></li>
+        <li><span class="tag">init</span> <span class="file">HelpChatPanel</span> chama <code class="inline">chatbotApi.init(lang)</code> → <code class="inline">GET /chatbot/init</code></li>
+        <li>Servidor devolve mensagem de boas-vindas role-aware + chips de sugestão iniciais</li>
+        <li><span class="tag">input</span> Utilizador escreve ou toca num chip de sugestão (passa <code class="inline">entryId</code> para bypass de matching)</li>
+        <li><span class="tag">ask</span> <code class="inline">POST /chatbot/ask { question, lang, entryId? }</code></li>
+        <li><span class="tag">server</span> <strong>Pipeline de resposta:</strong>
+          <ol style="margin-top:6px;">
+            <li><code class="inline">detectDataQuery()</code> — se a pergunta pedir dados reais (contagens, listas, médias), responde imediatamente com recusa segura</li>
+            <li><code class="inline">getEntryById()</code> / <code class="inline">matchHelpEntry()</code> — matching por keywords na KB curada</li>
+            <li>Se KB falha e <code class="inline">GROQ_API_KEY</code> está definida → <code class="inline">askLlm()</code> (Groq, 8 s timeout, system prompt restrito)</li>
+            <li>Se tudo falha → resposta estática &ldquo;não tenho essa informação&rdquo; + sugestões alternativas</li>
+          </ol>
+        </li>
+        <li><span class="tag">response</span> <code class="inline">{ answer, matched, entryId, action, source: 'kb'|'llm'|'fallback', suggestions }</code></li>
+        <li><span class="tag">UI</span> Balão bot renderizado. Se <code class="inline">source === 'llm'</code>: tag &ldquo;✨ AI&rdquo;. Se <code class="inline">action</code> presente: botão de deep-link</li>
+        <li><span class="tag">nav</span> Toque no botão de deep-link → <span class="file">helpActions.ts</span> <code class="inline">runHelpAction(id)</code> → navega + fecha modal</li>
+      </ol>
+    </div>
+
+    <h3>Pipeline de resposta no servidor</h3>
+    <pre>
+  Pedido POST /chatbot/ask
+          │
+          ▼
+  detectDataQuery?  ──YES──▶  Recusa segura ("não tenho dados em tempo real")
+          │ NO
+          ▼
+  entryId passado?
+   ├─ YES ─▶ getEntryById()  ──FOUND──▶  Resposta KB  ──▶  source: 'kb'
+   └─ NO  ─▶ matchHelpEntry()  ──MATCH──▶  Resposta KB  ──▶  source: 'kb'
+                   │ MISS
+                   ▼
+            GROQ_API_KEY definida?
+             ├─ YES ─▶ askLlm()  ──OK──▶  source: 'llm'
+             │              └─ TIMEOUT/ERROR ─▶  null
+             └─ NO / null
+                   │
+                   ▼
+          Fallback estático + suggestions  ──▶  source: 'fallback'</pre>
+
+    <h3>Actions / Deep-links suportados</h3>
+    <table>
+      <thead><tr><th>Action ID</th><th>Destino de navegação</th></tr></thead>
+      <tbody>
+        <tr><td class="k">account.settings</td><td>UserSettings screen</td></tr>
+        <tr><td class="k">account.notifications</td><td>NotificationCenter screen</td></tr>
+        <tr><td class="k">account.invitations</td><td>InstitutionInvitations screen (requer institutionId)</td></tr>
+        <tr><td class="k">account.external-professionals</td><td>ExternalProfessionalsManagement screen</td></tr>
+        <tr><td class="k">account.my-schedule</td><td>StaffScheduleManagement screen</td></tr>
+        <tr><td class="k">institution.details</td><td>InstitutionDetails screen</td></tr>
+        <tr><td class="k">tab.members</td><td>Tab de Membros (role-aware)</td></tr>
+        <tr><td class="k">tab.dashboard</td><td>Tab de Dashboard (role-aware)</td></tr>
+        <tr><td class="k">tab.profile</td><td>Tab de Perfil / Menu (role-aware)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>fabOffset — evitar sobreposição com outros FABs</h3>
+    <p>
+      Ecrãs com o seu próprio botão flutuante (ex: <span class="file">InstitutionMembersScreen</span>)
+      chamam <code class="inline">useChatbotStore(s =&gt; s.setFabOffset)(72)</code> quando ficam em foco
+      e <code class="inline">setFabOffset(0)</code> ao perder o foco. O <span class="file">HelpChatFab</span>
+      adiciona esse valor ao <code class="inline">bottom</code> da sua posição absoluta, levantando-se
+      automaticamente.
+    </p>
+
+    <h3>Privacidade e segurança</h3>
+    <ul class="bullets">
+      <li><strong>Sem dados de pacientes:</strong> o LLM só recebe a pergunta do utilizador, o seu <em>role</em> em texto e uma lista compacta de tópicos da KB (80 chars por entrada).</li>
+      <li><strong>Recusa de dados em tempo real:</strong> <code class="inline">detectDataQuery()</code> interceta perguntas como &ldquo;quantas quedas&rdquo;, &ldquo;lista de&rdquo;, &ldquo;média de&rdquo; e responde com uma recusa explícita — nunca chega ao LLM.</li>
+      <li><strong>Sem persistência:</strong> conversas vivem no store Zustand (memória, sessão do utilizador). Nenhuma mensagem é gravada em BD.</li>
+      <li><strong>GROQ_API_KEY opcional:</strong> se a variável não estiver definida, <code class="inline">llmEnabled()</code> retorna <code class="inline">false</code> e o sistema funciona apenas com KB estática.</li>
+      <li><strong>Todas as rotas autenticadas:</strong> <code class="inline">authenticate</code> middleware em todas as rotas do módulo.</li>
     </ul>
   </section>
 

@@ -2,6 +2,7 @@
   "compilerOptions": {
     "jsx": "react",
     "baseUrl": "./",
+    "ignoreDeprecations": "5.0",
     "paths": {
       "@assets/*" : ["assets/*"],
       "@icons/*" : ["assets/icons/*"],
