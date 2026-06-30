@@ -12,34 +12,56 @@ import { Border } from '@src/styles/borders';
 import { HStack, VStack } from '@components/CoreComponents';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
 import { Measurement } from 'moveplus-shared';
+import { externalAccessApi } from '@src/api/endpoints/externalAccess';
+import { asyncStorageService } from '@src/services/AsyncStorageService';
 
 type Props = NativeStackScreenProps<LoginStackParamList, 'ExternalElderlyProfile'>;
 type AddModal = 'measurement' | 'medication' | 'pathology' | 'wound' | null;
 
 const CategoryCard = ({ iconName, iconColor, title, count, onPress, onAdd, hideCount }: any) => (
-  <TouchableOpacity style={[styles.categoryCard, { flex: 1 }]} onPress={onPress} activeOpacity={0.75}>
-    <View style={styles.categoryIconContainer}>
-      <View style={[styles.categoryIconWrap, { backgroundColor: iconColor + '18' }]}>
-        <MaterialIcons name={iconName} size={28} color={iconColor} />
+  <View style={[styles.categoryCard, { flex: 1 }]}>
+    <TouchableOpacity style={styles.categoryCardContent} onPress={onPress} activeOpacity={0.75}>
+      <View style={styles.categoryIconContainer}>
+        <View style={[styles.categoryIconWrap, { backgroundColor: iconColor + '18' }]}>
+          <MaterialIcons name={iconName} size={28} color={iconColor} />
+        </View>
       </View>
-    </View>
-    <Text style={styles.categoryTitle}>{title}</Text>
-    {!hideCount && count !== undefined && (
-    <View style={styles.categoryBadge}><Text>{count}</Text></View>)}
+      <Text style={styles.categoryTitle}>{title}</Text>
+      {!hideCount && count !== undefined && (
+        <View style={styles.categoryBadge}><Text>{count}</Text></View>
+      )}
+    </TouchableOpacity>
     {onAdd && (
-      <TouchableOpacity style={[styles.categoryAddBtn, { backgroundColor: iconColor }]} onPress={e => { e.stopPropagation(); onAdd(); }}>
+      <TouchableOpacity style={[styles.categoryAddBtn, { backgroundColor: iconColor }]} onPress={onAdd} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
         <MaterialIcons name="add" size={14} color="#fff" />
       </TouchableOpacity>
     )}
-  </TouchableOpacity>
+  </View>
 );
 
 const ExternalElderlyProfileScreen: React.FC<Props> = ({ route, navigation }) => {
-  const [profile, setProfile] = useState(route.params.profile); // Tornamos o profile um estado para ser atualizável
-  const [refreshing, setRefreshing] = useState(false); // Estado para o Pull-to-Refresh
-  const { elderly, event } = profile;
+  const [profile, setProfile] = useState(route.params.profile);
+  const [refreshing, setRefreshing] = useState(false);
   const { t } = useTranslation();
   const [addModal, setAddModal] = useState<AddModal>(null);
+
+  const { elderly, event } = profile;
+
+  const refreshProfile = useCallback(async () => {
+    try {
+      const token = await asyncStorageService.getExternalToken();
+      if (!token) return;
+      const res = await externalAccessApi.getProfileByToken(token);
+      if (res.data) setProfile(res.data);
+    } catch (e) {
+      // silently ignore — show stale data
+    }
+  }, []);
+
+  // Re-fetch whenever this screen gains focus (e.g. after returning from Add screens)
+  useFocusEffect(useCallback(() => {
+    refreshProfile();
+  }, [refreshProfile]));
 
   const handleNavigate = (screenName: string, allData: any[], type: AddModal) => {
     const safeData = allData ?? [];
@@ -80,13 +102,13 @@ const ExternalElderlyProfileScreen: React.FC<Props> = ({ route, navigation }) =>
 
           <VStack align="flex-start" spacing={Spacing.sm_12} style={styles.gridContainer}>
             <HStack spacing={Spacing.sm_12} style={styles.gridRow}>
-              <CategoryCard iconName="favorite" iconColor={Color.Semantic.measurements} title={t('elderly.measurements')} count={(profile.elderly.measurements || []).length} hideCount={true} onPress={() => handleNavigate('ElderlyMeasurementsList', profile.elderly.measurements, 'measurement')} onAdd={() => setAddModal('measurement')} />
-              <CategoryCard iconName="medication" iconColor={Color.Semantic.medication} title={t('elderly.medications')} count={(profile.elderly.medications || []).length} hideCount={true} onPress={() => handleNavigate('ElderlyMedicationsList', profile.elderly.medications, 'medication')} onAdd={() => setAddModal('medication')} />
+              <CategoryCard iconName="favorite" iconColor={Color.Semantic.measurements} title={t('elderly.measurements')} count={(profile.elderly.measurements || []).length} hideCount={true} onPress={() => handleNavigate('ElderlyMeasurementsList', profile.elderly.measurements, 'measurement')} onAdd={() => navigation.navigate('AddMeasurement' as any, { elderlyId: elderly.id, isExternalToken: true })} />
+              <CategoryCard iconName="medication" iconColor={Color.Semantic.medication} title={t('elderly.medications')} count={(profile.elderly.medications || []).length} hideCount={true} onPress={() => handleNavigate('ElderlyMedicationsList', profile.elderly.medications, 'medication')} onAdd={() => navigation.navigate('AddMedication' as any, { elderlyId: elderly.id, isExternalToken: true })} />
             </HStack>
             
             <HStack spacing={Spacing.sm_12} style={styles.gridRow}>
-              <CategoryCard iconName="healing" iconColor={Color.Semantic.pathology} title={t('elderly.pathologies')} count={(profile.elderly.pathologies || []).length} hideCount={true} onPress={() => handleNavigate('ElderlyPathologiesList', profile.elderly.pathologies, 'pathology')} onAdd={() => setAddModal('pathology')} />
-              <CategoryCard iconName="healing" iconColor={Color.Error.default} title={t('woundTracking.title')} count={(profile.elderly.recentWounds || []).length} hideCount={true} onPress={() => handleNavigate('ElderlyWoundTrackingScreen', profile.elderly.recentWounds, 'wound')} />
+              <CategoryCard iconName="healing" iconColor={Color.Semantic.pathology} title={t('elderly.pathologies')} count={(profile.elderly.pathologies || []).length} hideCount={true} onPress={() => handleNavigate('ElderlyPathologiesList', profile.elderly.pathologies, 'pathology')} onAdd={() => navigation.navigate('AddPathology' as any, { elderlyId: elderly.id, isExternalToken: true })} />
+              <CategoryCard iconName="healing" iconColor={Color.Error.default} title={t('woundTracking.title')} count={(profile.elderly.recentWounds || []).length} hideCount={true} onPress={() => handleNavigate('ElderlyWoundTrackingScreen', profile.elderly.recentWounds, 'wound')} onAdd={() => navigation.navigate('ElderlyWoundTrackingScreen' as any, { elderlyId: elderly.id, isExternalToken: true, openModal: true })} />
             </HStack>
 
           </VStack>
@@ -108,7 +130,8 @@ const styles = StyleSheet.create({
   institution: { fontSize: 16, color: 'gray' },
   gridContainer: { alignSelf: 'stretch' },
   gridRow: { alignSelf: 'stretch', marginBottom: Spacing.sm_12, flexDirection: 'row', gap: Spacing.sm_12, alignItems: 'stretch'},
-  categoryCard: { flex: 1, backgroundColor: Color.Background.white, borderRadius: Border.md_12, padding: Spacing.md_16, minHeight: 120, borderWidth: 1, borderColor: Color.Gray.v200, justifyContent: 'center', position: 'relative' },
+  categoryCard: { flex: 1, backgroundColor: Color.Background.white, borderRadius: Border.md_12, minHeight: 120, borderWidth: 1, borderColor: Color.Gray.v200, position: 'relative', overflow: 'hidden' },
+  categoryCardContent: { flex: 1, padding: Spacing.md_16, justifyContent: 'center' },
   categoryIconWrap: { width: 52, height: 52, borderRadius: Border.sm_8, justifyContent: 'center', alignItems: 'center' },
   categoryTitle: { marginTop: Spacing.sm_8, fontSize: FontSize.bodysmall_14, fontFamily: FontFamily.semi_bold, color: Color.dark },
   categoryBadge: { position: 'absolute', top: Spacing.sm_8, right: Spacing.sm_8, minWidth: 24, height: 24, borderRadius: Border.full, justifyContent: 'center', alignItems: 'center' },

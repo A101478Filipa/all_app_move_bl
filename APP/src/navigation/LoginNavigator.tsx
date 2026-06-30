@@ -21,6 +21,9 @@ import ElderlyWoundTrackingScreen from "@src/screens/elderly/ElderlyWoundTrackin
 import MedicationDetailsScreen from "@src/screens/medication/MedicationDetailsScreen";
 import PathologyDetailsScreen from "@src/screens/pathology/PathologyDetailsScreen";
 import EditPathologyScreen from "@src/screens/pathology/EditPathologyScreen";
+import AddMedicationScreen from "@src/screens/medication/AddMedicationScreen";
+import AddPathologyScreen from "@src/screens/medication/AddPathologyScreen";
+import AddMeasurementScreen from "@src/screens/measurements/AddMeasurementScreen";
 import { useTranslation } from '@src/localization/hooks/useTranslation';
 import EditMedicationScreen from "@src/screens/medication/EditMedicationScreen";
 
@@ -52,6 +55,9 @@ export type LoginStackParamList = {
   ElderlyFallsList: undefined;
   ElderlySOSList: undefined;
   ElderlyWoundTrackingScreen: { elderlyId: number; initialData?: any; isExternalToken?: boolean };
+  AddMedication: { elderlyId: number; isExternalToken?: boolean };
+  AddPathology: { elderlyId: number; isExternalToken?: boolean };
+  AddMeasurement: { elderlyId: number; isExternalToken?: boolean; prefillType?: any };
   EditMedication: { medicationId: number, elderlyId: number, initialData?: any, isExternalToken?: boolean };
 };
 
@@ -81,6 +87,9 @@ export const LoginNavigator: React.FC = () => {
       <Stack.Screen name="ElderlyFallsList" component={ElderlyFallsListScreen} />
       <Stack.Screen name="ElderlySOSList" component={ElderlySOSListScreen} />
       <Stack.Screen name="ElderlyWoundTrackingScreen" component={ElderlyWoundTrackingScreen} options={{ title: t('woundTracking.title') }} />
+      <Stack.Screen name="AddMedication" component={AddMedicationScreen} options={{ title: t('medication.addMedication') }} />
+      <Stack.Screen name="AddPathology" component={AddPathologyScreen} options={{ title: t('pathology.addPathology') }} />
+      <Stack.Screen name="AddMeasurement" component={AddMeasurementScreen} options={{ title: t('measurements.addMeasurement') }} />
     </Stack.Navigator>
   );
 };

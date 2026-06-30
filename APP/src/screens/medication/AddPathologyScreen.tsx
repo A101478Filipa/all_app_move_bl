@@ -21,6 +21,8 @@ import { FormDateInput } from '@components/forms/FormDateInput';
 import { FormDropdown } from '@components/forms/FormDropdown';
 import { useErrorHandler } from '@src/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
+import { externalAccessApi } from '@src/api/endpoints/externalAccess';
+import { asyncStorageService } from '@src/services/AsyncStorageService';
 
 type AddPathologyScreenProps = NativeStackScreenProps<any, 'AddPathology'>;
 
@@ -44,7 +46,7 @@ const getPathologyStatuses = (t: any) => [
 
 const AddPathologyScreen: React.FC<AddPathologyScreenProps> = ({ route, navigation }) => {
   const { t } = useTranslation();
-  const { elderlyId } = route.params;
+  const { elderlyId, isExternalToken } = route.params as any;
   const [loading, setLoading] = useState(false);
   const { addPathology } = useElderlyDetailsStore();
   const { handleError, handleSuccess, handleValidationError } = useErrorHandler();
@@ -86,7 +88,13 @@ const AddPathologyScreen: React.FC<AddPathologyScreenProps> = ({ route, navigati
         notes: form.notes,
       };
 
-      await addPathology(elderlyId, pathologyData);
+      if (isExternalToken) {
+        const token = await asyncStorageService.getExternalToken();
+        if (!token) throw new Error('Token externo n\u00e3o encontrado');
+        await externalAccessApi.addPathology(token, pathologyData as any);
+      } else {
+        await addPathology(elderlyId, pathologyData);
+      }
 
       handleSuccess(t('pathology.pathologyAddedSuccessfully'));
       navigation.goBack();

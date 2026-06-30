@@ -23,6 +23,8 @@ import { FormDateInput } from '@components/forms/FormDateInput';
 import { FormDropdown } from '@components/forms/FormDropdown';
 import { useErrorHandler } from '@src/hooks/useErrorHandler';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
+import { externalAccessApi } from '@src/api/endpoints/externalAccess';
+import { asyncStorageService } from '@src/services/AsyncStorageService';
 
 type AddMedicationScreenProps = NativeStackScreenProps<any, 'AddMedication'>;
 
@@ -40,7 +42,7 @@ type MedicationForm = {
 
 const AddMedicationScreen: React.FC<AddMedicationScreenProps> = ({ route, navigation }) => {
   const { t } = useTranslation();
-  const { elderlyId } = route.params;
+  const { elderlyId, isExternalToken } = route.params as any;
   const insets = useSafeAreaInsets();
   const { addMedication } = useElderlyDetailsStore();
   const { handleError, handleSuccess, handleValidationError } = useErrorHandler();
@@ -94,7 +96,13 @@ const AddMedicationScreen: React.FC<AddMedicationScreenProps> = ({ route, naviga
         notes: form.notes || undefined,
       };
 
-      await addMedication(elderlyId, medicationData);
+      if (isExternalToken) {
+        const token = await asyncStorageService.getExternalToken();
+        if (!token) throw new Error('Token externo n\u00e3o encontrado');
+        await externalAccessApi.addMedication(token, medicationData as any);
+      } else {
+        await addMedication(elderlyId, medicationData);
+      }
 
       handleSuccess(t('medication.medicationAddedSuccessfully'));
       navigation.goBack();

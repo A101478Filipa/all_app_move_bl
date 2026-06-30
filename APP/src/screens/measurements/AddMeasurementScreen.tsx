@@ -36,6 +36,9 @@ import {
 import { MeasurementStatusBadge } from '@components/MeasurementStatusBadge';
 import { MeasurementConflictModal } from '@components/MeasurementConflictModal';
 
+import { externalAccessApi } from '@src/api/endpoints/externalAccess';
+import { asyncStorageService } from '@src/services/AsyncStorageService';
+
 type AddMeasurementScreenProps = NativeStackScreenProps<any, 'AddMeasurement'>;
 
 interface MeasurementForm {
@@ -84,7 +87,7 @@ const measurementTypeUnits: Record<MeasurementType, MeasurementUnit[]> = {
 
 const AddMeasurementScreen: React.FC<AddMeasurementScreenProps> = ({ route, navigation }) => {
   const { t } = useTranslation();
-  const { elderlyId, prefillType } = route.params;
+  const { elderlyId, prefillType, isExternalToken } = route.params as any;
   const [loading, setLoading] = useState(false);
   const { addMeasurement, elderly } = useElderlyDetailsStore();
   const { handleError, handleSuccess, handleValidationError } = useErrorHandler();
@@ -242,7 +245,19 @@ const AddMeasurementScreen: React.FC<AddMeasurementScreenProps> = ({ route, navi
   const doSubmit = async (data: CreateMeasurementRequest) => {
     setLoading(true);
     try {
-      await addMeasurement(elderlyId, data);
+      if (isExternalToken) {
+        const token = await asyncStorageService.getExternalToken();
+        if (!token) throw new Error('Token externo não encontrado');
+        await externalAccessApi.addMeasurement(token, {
+          type: data.type,
+          value: data.value,
+          unit: data.unit as any,
+          status: data.status as any,
+          notes: data.notes,
+        });
+      } else {
+        await addMeasurement(elderlyId, data);
+      }
       handleSuccess(t('measurements.measurementAddedSuccessfully'));
       navigation.goBack();
     } catch (error) {
