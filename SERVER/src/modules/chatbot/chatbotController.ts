@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from '../../constants/AuthenticatedRequest';
 import { sendSuccess, sendError, sendInputValidationError } from '../../utils/apiResponse';
 import {
   matchHelpEntry,
+  getEntryById,
   getSuggestions,
   getWelcome,
   HelpLang,
@@ -12,6 +13,8 @@ import {
 const askSchema = z.object({
   question: z.string().min(1).max(500),
   lang: z.enum(['pt', 'en']).optional(),
+  /** When set, returns the entry with this id directly (used by suggestion chips). */
+  entryId: z.string().min(1).max(64).optional(),
 });
 
 const parseLang = (raw: unknown): HelpLang => (raw === 'en' ? 'en' : 'pt');
@@ -37,12 +40,19 @@ export const askHelp = async (req: AuthenticatedRequest, res: Response) => {
   const lang: HelpLang = parsed.data.lang ?? 'pt';
   const role = req.user?.role;
 
-  const result = matchHelpEntry(parsed.data.question, lang, role);
+  const result = parsed.data.entryId
+    ? getEntryById(parsed.data.entryId, lang, role) ?? matchHelpEntry(parsed.data.question, lang, role)
+    : matchHelpEntry(parsed.data.question, lang, role);
+
+  const action = result.action
+    ? { id: result.action.id, label: result.action.label[lang] }
+    : null;
 
   return sendSuccess(res, {
     answer: result.answer,
     matched: result.matched,
     entryId: result.entryId,
+    action,
     suggestions: result.matched ? [] : getSuggestions(lang, role),
   }, 'OK');
 };

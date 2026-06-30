@@ -18,15 +18,9 @@ import { Spacing } from '@src/styles/spacings';
 import { Border } from '@src/styles/borders';
 import { shadowStyles } from '@src/styles/shadow';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
-import { chatbotApi, ChatbotSuggestion } from '@src/api/endpoints/chatbot';
-
-type Sender = 'user' | 'bot';
-
-interface ChatMessage {
-  id: string;
-  sender: Sender;
-  text: string;
-}
+import { chatbotApi, ChatbotAction, ChatbotSuggestion } from '@src/api/endpoints/chatbot';
+import { ChatMessage, useChatbotStore } from '@src/stores/chatbotStore';
+import { runHelpAction } from './helpActions';
 
 interface Props {
   /** When true, the panel re-fetches the role-aware welcome + suggestions. */
@@ -41,19 +35,33 @@ const HelpChatPanel: React.FC<Props> = ({ active }) => {
   const { t, currentLanguage } = useTranslation();
   const lang = currentLanguage?.startsWith('en') ? 'en' : 'pt';
 
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const messages = useChatbotStore(s => s.messages);
+  const setMessages = useChatbotStore(s => s.setMessages);
+  const addMessage = useChatbotStore(s => s.addMessage);
+  const closeChat = useChatbotStore(s => s.close);
+
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [suggestions, setSuggestions] = useState<ChatbotSuggestion[]>([]);
-  const [initialized, setInitialized] = useState(false);
+  const [initialized, setInitialized] = useState(messages.length > 0);
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
   const fallbackWelcome = useMemo(() => t('helpChat.welcome'), [t]);
 
   useEffect(() => {
     if (!active) return;
-    let cancelled = false;
+    if (messages.length > 0) {
+      // Conversation persisted across open/close — keep it, just ensure suggestions.
+      setInitialized(true);
+      if (suggestions.length === 0) {
+        chatbotApi.init(lang)
+          .then(res => setSuggestions(res.data?.suggestions ?? []))
+          .catch(() => undefined);
+      }
+      return;
+    }
 
+    let cancelled = false;
     chatbotApi.init(lang)
       .then(res => {
         if (cancelled) return;
@@ -69,7 +77,7 @@ const HelpChatPanel: React.FC<Props> = ({ active }) => {
       });
 
     return () => { cancelled = true; };
-  }, [active, lang, fallbackWelcome]);
+  }, [active, lang, fallbackWelcome, messages.length, setMessages, suggestions.length]);
 
   const scrollToEnd = useCallback(() => {
     requestAnimationFrame(() => {
@@ -77,39 +85,45 @@ const HelpChatPanel: React.FC<Props> = ({ active }) => {
     });
   }, []);
 
-  const sendQuestion = useCallback(async (question: string) => {
+  const sendQuestion = useCallback(async (question: string, entryId?: string) => {
     const trimmed = question.trim();
     if (!trimmed || sending) return;
 
     const userMsg: ChatMessage = { id: `u-${Date.now()}`, sender: 'user', text: trimmed };
-    setMessages(prev => [...prev, userMsg]);
+    addMessage(userMsg);
     setInput('');
     setSending(true);
     scrollToEnd();
 
     try {
-      const res = await chatbotApi.ask({ question: trimmed, lang });
+      const res = await chatbotApi.ask({ question: trimmed, lang, entryId });
       const data = res.data;
       const botMsg: ChatMessage = {
         id: `b-${Date.now()}`,
         sender: 'bot',
         text: data?.answer ?? t('helpChat.errorGeneric'),
+        action: data?.action ?? null,
       };
-      setMessages(prev => [...prev, botMsg]);
+      addMessage(botMsg);
       if (data && !data.matched && data.suggestions?.length) {
         setSuggestions(data.suggestions);
       }
     } catch {
-      setMessages(prev => [...prev, {
+      addMessage({
         id: `b-${Date.now()}`,
         sender: 'bot',
         text: t('helpChat.errorGeneric'),
-      }]);
+      });
     } finally {
       setSending(false);
       scrollToEnd();
     }
-  }, [sending, lang, t, scrollToEnd]);
+  }, [sending, lang, t, scrollToEnd, addMessage]);
+
+  const onActionPress = useCallback((action: ChatbotAction) => {
+    const ok = runHelpAction(action.id);
+    if (ok) closeChat();
+  }, [closeChat]);
 
   const renderItem = ({ item }: { item: ChatMessage }) => {
     const isUser = item.sender === 'user';
@@ -119,6 +133,18 @@ const HelpChatPanel: React.FC<Props> = ({ active }) => {
           <Text style={[styles.bubbleText, isUser ? styles.bubbleTextUser : styles.bubbleTextBot]}>
             {item.text}
           </Text>
+          {!isUser && item.action ? (
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => onActionPress(item.action!)}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="open-in-new" size={16} color={Color.white} />
+              <Text style={styles.actionButtonText} numberOfLines={1}>
+                {item.action.label}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </View>
     );
@@ -158,7 +184,7 @@ const HelpChatPanel: React.FC<Props> = ({ active }) => {
               <TouchableOpacity
                 key={s.id}
                 style={styles.suggestionChip}
-                onPress={() => sendQuestion(s.question)}
+                onPress={() => sendQuestion(s.question, s.id)}
                 disabled={sending}
               >
                 <Text style={styles.suggestionChipText} numberOfLines={2}>{s.question}</Text>
@@ -223,6 +249,24 @@ const styles = StyleSheet.create({
   bubbleText: { fontSize: FontSize.bodymedium_16, fontFamily: FontFamily.regular, lineHeight: 22 },
   bubbleTextUser: { color: Color.white },
   bubbleTextBot: { color: Color.Gray.v500 },
+
+  actionButton: {
+    marginTop: Spacing.sm_8,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs_6,
+    backgroundColor: Color.primary,
+    paddingHorizontal: Spacing.md_12,
+    paddingVertical: Spacing.xs_6,
+    borderRadius: Border.full,
+    maxWidth: '100%',
+  },
+  actionButtonText: {
+    color: Color.white,
+    fontSize: FontSize.bodysmall_14,
+    fontFamily: FontFamily.medium,
+  },
 
   suggestionsContainer: {
     paddingHorizontal: Spacing.md_16,

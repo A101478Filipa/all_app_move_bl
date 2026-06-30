@@ -11,12 +11,34 @@ import { UserRole } from 'moveplus-shared';
 
 export type HelpLang = 'pt' | 'en';
 
+/**
+ * Stable identifiers the client knows how to deep-link to.
+ * The server only emits these strings; the app maps them to navigation calls.
+ */
+export type HelpActionId =
+  | 'account.settings'
+  | 'account.notifications'
+  | 'account.invitations'
+  | 'account.external-professionals'
+  | 'account.my-schedule'
+  | 'institution.details'
+  | 'tab.members'
+  | 'tab.dashboard'
+  | 'tab.profile';
+
+export interface HelpAction {
+  id: HelpActionId;
+  label: Record<HelpLang, string>;
+}
+
 export interface HelpEntry {
   id: string;
   keywords: string[];
   answer: Record<HelpLang, string>;
   /** If omitted, entry is visible to every role. */
   roles?: UserRole[];
+  /** Optional deep-link button shown under the answer. */
+  action?: HelpAction;
 }
 
 export const HELP_ENTRIES: HelpEntry[] = [
@@ -31,6 +53,10 @@ export const HELP_ENTRIES: HelpEntry[] = [
       pt: 'No ecrã de login toque em "Esqueceu a palavra-passe?", introduza o seu email e siga o link enviado para definir uma nova. Se já tem sessão iniciada, pode mudar a palavra-passe em Conta > Definições.',
       en: 'On the login screen tap "Forgot password?", enter your email and follow the link sent to set a new one. If you are already signed in, you can change your password in Account > Settings.',
     },
+    action: {
+      id: 'account.settings',
+      label: { pt: 'Abrir Definições', en: 'Open Settings' },
+    },
   },
   {
     id: 'notifications',
@@ -42,16 +68,24 @@ export const HELP_ENTRIES: HelpEntry[] = [
       pt: 'Veja todas as notificações em Conta > Notificações. Se não está a receber notificações push, confirme nas definições do telemóvel que a app tem permissão e que iniciou sessão pelo menos uma vez com o dispositivo ligado à internet.',
       en: 'See all notifications under Account > Notifications. If you are not getting push notifications, check in your phone settings that the app has permission and that you have signed in at least once with the device online.',
     },
+    action: {
+      id: 'account.notifications',
+      label: { pt: 'Abrir notificações', en: 'Open notifications' },
+    },
   },
   {
     id: 'change-language',
     keywords: [
-      'mudar idioma', 'alterar lingua', 'mudar lingua', 'português', 'inglês',
-      'change language', 'switch language', 'portuguese', 'english',
+      'mudar idioma', 'alterar lingua', 'mudar lingua', 'mudo idioma', 'mudar o idioma', 'trocar idioma', 'idioma', 'lingua', 'português', 'inglês',
+      'change language', 'switch language', 'set language', 'language', 'portuguese', 'english',
     ],
     answer: {
       pt: 'Pode alterar o idioma em Conta > Definições. A aplicação está disponível em Português e Inglês.',
       en: 'You can change the language in Account > Settings. The app is available in Portuguese and English.',
+    },
+    action: {
+      id: 'account.settings',
+      label: { pt: 'Abrir Definições', en: 'Open Settings' },
     },
   },
   {
@@ -112,6 +146,10 @@ export const HELP_ENTRIES: HelpEntry[] = [
       pt: 'No separador Perfil pode ver os seus eventos agendados (consultas, banho, fisioterapia, etc.). Os eventos são criados pela equipa da instituição.',
       en: 'In the Profile tab you can see your scheduled events (appointments, bath, physiotherapy, etc.). Events are created by the institution team.',
     },
+    action: {
+      id: 'tab.profile',
+      label: { pt: 'Abrir o meu perfil', en: 'Open my profile' },
+    },
   },
 
   // ===================== Caregiver + Clinician + Admin (work with elderly) =====================
@@ -119,24 +157,32 @@ export const HELP_ENTRIES: HelpEntry[] = [
     id: 'register-fall',
     roles: [UserRole.CAREGIVER, UserRole.CLINICIAN, UserRole.INSTITUTION_ADMIN],
     keywords: [
-      'registar queda', 'adicionar queda', 'inserir queda', 'reportar queda',
-      'register fall', 'add fall', 'report fall', 'log fall',
+      'registar queda', 'registo queda', 'adicionar queda', 'adiciono queda', 'inserir queda', 'reportar queda', 'queda',
+      'register fall', 'add fall', 'report fall', 'log fall', 'fall',
     ],
     answer: {
       pt: 'Para registar uma queda manualmente: entre no perfil do utente, abra o separador "Quedas" e toque em "+". Preencha a data, descrição e se houve lesão. Se a queda foi detectada automaticamente pelo dispositivo, ela já aparece como ocorrência pendente — basta abrir e confirmar os dados.',
       en: 'To manually register a fall: open the elderly profile, go to the "Falls" tab and tap "+". Fill in date, description and whether there was injury. Falls detected automatically by the device already appear as pending occurrences — just open one and confirm the data.',
+    },
+    action: {
+      id: 'tab.members',
+      label: { pt: 'Abrir lista de utentes', en: 'Open elderly list' },
     },
   },
   {
     id: 'add-measurement',
     roles: [UserRole.CAREGIVER, UserRole.CLINICIAN, UserRole.INSTITUTION_ADMIN],
     keywords: [
-      'adicionar medição', 'registar medição', 'tensão', 'peso', 'glicemia',
-      'add measurement', 'record measurement', 'blood pressure', 'glucose',
+      'adicionar medição', 'adiciono medição', 'registar medição', 'inserir medição', 'nova medição', 'medição', 'medições', 'tensão', 'peso', 'glicemia',
+      'add measurement', 'record measurement', 'new measurement', 'measurement', 'measurements', 'blood pressure', 'glucose',
     ],
     answer: {
       pt: 'Para adicionar uma medição: entre no perfil do utente, abra o separador "Medições" e toque em "+". Escolha o tipo (tensão, peso, glicemia, etc.), introduza o valor e guarde.',
       en: 'To add a measurement: open the elderly profile, go to the "Measurements" tab and tap "+". Pick the type (blood pressure, weight, glucose, etc.), enter the value and save.',
+    },
+    action: {
+      id: 'tab.members',
+      label: { pt: 'Abrir lista de utentes', en: 'Open elderly list' },
     },
   },
   {
@@ -155,12 +201,16 @@ export const HELP_ENTRIES: HelpEntry[] = [
     id: 'view-elderly-profile',
     roles: [UserRole.CAREGIVER, UserRole.CLINICIAN, UserRole.INSTITUTION_ADMIN],
     keywords: [
-      'ver utente', 'abrir utente', 'ficha do utente', 'cronograma',
-      'open elderly', 'view elderly', 'elderly profile', 'timeline',
+      'ver utente', 'abrir utente', 'abro utente', 'abrir ficha', 'ficha do utente', 'ficha utente', 'perfil utente', 'perfil do utente', 'consultar utente', 'cronograma',
+      'open elderly', 'view elderly', 'elderly profile', 'patient profile', 'open profile', 'timeline',
     ],
     answer: {
       pt: 'Em Membros abra a lista de utentes e toque sobre o nome para abrir a ficha. Lá tem separadores para Medições, Medicação, Patologias, Quedas, Eventos e o Cronograma com todos os acontecimentos recentes.',
       en: 'In Members open the elderly list and tap a name to open the profile. There you have tabs for Measurements, Medication, Pathologies, Falls, Events and a Timeline with all recent activity.',
+    },
+    action: {
+      id: 'tab.members',
+      label: { pt: 'Abrir Membros', en: 'Open Members' },
     },
   },
   {
@@ -193,31 +243,40 @@ export const HELP_ENTRIES: HelpEntry[] = [
     id: 'add-pathology',
     roles: [UserRole.CLINICIAN],
     keywords: [
-      'adicionar patologia', 'patologia', 'diagnóstico', 'doença crónica',
-      'add pathology', 'diagnosis', 'chronic disease',
+      'adicionar patologia', 'adiciono patologia', 'registar patologia', 'patologia', 'patologias', 'diagnóstico', 'doença crónica',
+      'add pathology', 'pathology', 'diagnosis', 'chronic disease',
     ],
     answer: {
       pt: 'Para adicionar uma patologia: abra o perfil do utente, vá ao separador "Patologias" e toque em "+". Indique o nome, estado (ativa, crónica, monitorizada, etc.) e notas relevantes.',
       en: 'To add a pathology: open the elderly profile, go to the "Pathologies" tab and tap "+". Set the name, status (active, chronic, monitoring, etc.) and any relevant notes.',
+    },
+    action: {
+      id: 'tab.members',
+      label: { pt: 'Abrir lista de utentes', en: 'Open elderly list' },
     },
   },
   {
     id: 'add-medication',
     roles: [UserRole.CLINICIAN],
     keywords: [
-      'adicionar medicação', 'prescrever', 'medicamento',
-      'add medication', 'prescribe', 'medication',
+      'adicionar medicação', 'registar medicação', 'prescrever', 'medicamento', 'medicação',
+      'add medication', 'record medication', 'prescribe', 'medication',
     ],
     answer: {
       pt: 'Para registar medicação: abra o perfil do utente, vá ao separador "Medicação" e toque em "+". Pode definir o estado da medicação (ativa, pausada, descontinuada, etc.) para acompanhar o histórico terapêutico.',
       en: 'To record medication: open the elderly profile, go to the "Medication" tab and tap "+". You can set the medication status (active, paused, discontinued, etc.) to keep the treatment history.',
+    },
+    action: {
+      id: 'tab.members',
+      label: { pt: 'Abrir lista de utentes', en: 'Open elderly list' },
     },
   },
   {
     id: 'assessments',
     roles: [UserRole.CLINICIAN],
     keywords: [
-      'avaliação', 'avaliações', 'assessment', 'assessments', 'escalas',
+      'avaliação', 'avaliações', 'avaliar', 'fazer avaliação', 'nova avaliação', 'escalas', 'mini mental',
+      'assessment', 'assessments', 'evaluate', 'new assessment', 'scales',
     ],
     answer: {
       pt: 'As avaliações clínicas estão na ficha do utente. Cada avaliação agrupa medições (equilíbrio, mobilidade, cognição, sinais vitais) e fica associada a quem a realizou e a quem a registou.',
@@ -230,24 +289,32 @@ export const HELP_ENTRIES: HelpEntry[] = [
     id: 'schedule',
     roles: [UserRole.CLINICIAN, UserRole.CAREGIVER, UserRole.INSTITUTION_ADMIN],
     keywords: [
-      'horário', 'meu horário', 'turno', 'escala', 'gerir horário',
-      'my schedule', 'shifts', 'roster',
+      'horário', 'meu horário', 'o meu horário', 'turno', 'turnos', 'escala', 'gerir horário', 'ver horário',
+      'my schedule', 'schedule', 'shifts', 'roster',
     ],
     answer: {
       pt: 'O seu horário está em Conta > O Meu Horário. Os administradores da instituição podem editar horários de todos os profissionais a partir da ficha de cada membro.',
       en: 'Your schedule is under Account > My Schedule. Institution admins can edit schedules of all professionals from each member profile.',
+    },
+    action: {
+      id: 'account.my-schedule',
+      label: { pt: 'Abrir o meu horário', en: 'Open my schedule' },
     },
   },
   {
     id: 'time-off',
     roles: [UserRole.CLINICIAN, UserRole.CAREGIVER],
     keywords: [
-      'férias', 'pedir folga', 'baixa médica', 'ausência',
-      'time off', 'vacation', 'request day off', 'sick leave',
+      'férias', 'pedir férias', 'pedir folga', 'folga', 'baixa médica', 'baixa', 'ausência',
+      'time off', 'vacation', 'request day off', 'day off', 'sick leave', 'absence',
     ],
     answer: {
       pt: 'Para pedir férias, folga ou baixa, abra Conta > O Meu Horário e toque em "Pedir ausência". O pedido fica pendente até o administrador aprovar ou rejeitar.',
       en: 'To request vacation, day off or sick leave, open Account > My Schedule and tap "Request time off". The request stays pending until an admin approves or denies it.',
+    },
+    action: {
+      id: 'account.my-schedule',
+      label: { pt: 'Abrir o meu horário', en: 'Open my schedule' },
     },
   },
 
@@ -256,56 +323,72 @@ export const HELP_ENTRIES: HelpEntry[] = [
     id: 'add-elderly',
     roles: [UserRole.INSTITUTION_ADMIN],
     keywords: [
-      'adicionar utente', 'novo utente', 'criar utente', 'registar utente', 'convidar utente',
-      'add elderly', 'new elderly', 'register elderly', 'invite elderly',
+      'adicionar utente', 'adiciono utente', 'novo utente', 'criar utente', 'registar utente', 'convidar utente', 'utente novo',
+      'add elderly', 'new elderly', 'register elderly', 'invite elderly', 'create elderly',
     ],
     answer: {
       pt: 'Para adicionar um utente: abra o separador Membros, toque em "+" e escolha "Convidar utente". Preencha email/telefone e envie o convite. O utente recebe um link para concluir o registo.',
       en: 'To add an elderly: open the Members tab, tap "+" and choose "Invite elderly". Fill in email/phone and send the invitation. The elderly receives a link to finish the registration.',
+    },
+    action: {
+      id: 'tab.members',
+      label: { pt: 'Abrir Membros', en: 'Open Members' },
     },
   },
   {
     id: 'add-staff',
     roles: [UserRole.INSTITUTION_ADMIN],
     keywords: [
-      'adicionar cuidador', 'adicionar clinico', 'adicionar clínico', 'convidar funcionário', 'novo membro',
-      'add caregiver', 'add clinician', 'invite staff', 'new member',
+      'adicionar cuidador', 'adicionar clinico', 'adicionar clínico', 'adiciono cuidador', 'adiciono clinico', 'convidar funcionário', 'convidar cuidador', 'convidar clinico', 'novo membro', 'novo funcionário',
+      'add caregiver', 'add clinician', 'invite staff', 'invite caregiver', 'invite clinician', 'new member',
     ],
     answer: {
       pt: 'Para adicionar um cuidador, clínico ou outro administrador: separador Membros > botão "+" > escolha o tipo de profissional e envie o convite por email.',
       en: 'To add a caregiver, clinician or another admin: Members tab > "+" button > pick the professional type and send the email invitation.',
+    },
+    action: {
+      id: 'tab.members',
+      label: { pt: 'Abrir Membros', en: 'Open Members' },
     },
   },
   {
     id: 'invitations',
     roles: [UserRole.INSTITUTION_ADMIN],
     keywords: [
-      'convite', 'convidar', 'reenviar convite', 'convite expirou', 'gerir convites',
-      'invitation', 'invite', 'resend invitation', 'invite expired', 'manage invitations',
+      'convite', 'convites', 'convidar', 'reenviar convite', 'reenviar', 'convite expirou', 'gerir convites', 'ver convites',
+      'invitation', 'invitations', 'invite', 'resend invitation', 'resend', 'invite expired', 'manage invitations', 'view invitations',
     ],
     answer: {
       pt: 'Os convites são geridos em Conta > Ver convites. Pode reenviar, cancelar ou ver o estado (pendente, aceite, expirado). Se um convite expirar, cancele-o e crie um novo.',
       en: 'Invitations are managed under Account > View invitations. You can resend, cancel or check status (pending, accepted, expired). If one expires, cancel it and create a new one.',
+    },
+    action: {
+      id: 'account.invitations',
+      label: { pt: 'Ver convites', en: 'View invitations' },
     },
   },
   {
     id: 'external-professionals',
     roles: [UserRole.INSTITUTION_ADMIN],
     keywords: [
-      'profissionais externos', 'externos', 'acesso externo',
-      'external professionals', 'external access',
+      'profissionais externos', 'profissional externo', 'externos', 'acesso externo', 'acesso a externos', 'dar acesso',
+      'external professionals', 'external professional', 'external access', 'grant access', 'grant external',
     ],
     answer: {
       pt: 'Em Conta > Profissionais Externos pode dar acesso temporário a profissionais que não pertencem à instituição (ex.: médico de família, fisioterapeuta externo) para consultarem a ficha de um utente específico.',
       en: 'Under Account > External Professionals you can grant temporary access to professionals outside the institution (e.g. family doctor, external physiotherapist) to view a specific elderly profile.',
+    },
+    action: {
+      id: 'account.external-professionals',
+      label: { pt: 'Abrir Profissionais Externos', en: 'Open External Professionals' },
     },
   },
   {
     id: 'approve-time-off',
     roles: [UserRole.INSTITUTION_ADMIN],
     keywords: [
-      'aprovar férias', 'aprovar ausência', 'gerir pedidos', 'time off requests',
-      'approve vacation', 'approve time off', 'manage requests',
+      'aprovar férias', 'aprovar ausência', 'aprovar ausências', 'aprovar pedidos', 'gerir pedidos', 'pedidos de férias', 'pedidos de ausência', 'time off requests',
+      'approve vacation', 'approve time off', 'approve absence', 'manage requests', 'absence requests',
     ],
     answer: {
       pt: 'Os pedidos de ausência do pessoal aparecem na ficha de cada membro, no separador de horário. Pode aprovar ou recusar — o profissional recebe uma notificação.',
@@ -316,11 +399,16 @@ export const HELP_ENTRIES: HelpEntry[] = [
     id: 'institution-vacation-policy',
     roles: [UserRole.INSTITUTION_ADMIN],
     keywords: [
-      'política de férias', 'dias de férias', 'vacation policy',
+      'política de férias', 'dias de férias', 'limite de férias', 'configurar férias',
+      'vacation policy', 'vacation days', 'configure vacation',
     ],
     answer: {
       pt: 'A política de férias da instituição define o número de dias anuais por profissional. Pode ajustá-la em Detalhes da Instituição.',
       en: 'The institution vacation policy sets the yearly days per professional. You can adjust it in Institution Details.',
+    },
+    action: {
+      id: 'institution.details',
+      label: { pt: 'Abrir Detalhes da Instituição', en: 'Open Institution Details' },
     },
   },
 
@@ -329,8 +417,8 @@ export const HELP_ENTRIES: HelpEntry[] = [
     id: 'manage-institutions',
     roles: [UserRole.PROGRAMMER],
     keywords: [
-      'gerir instituições', 'criar instituição', 'lista de instituições',
-      'manage institutions', 'create institution',
+      'gerir instituições', 'gerir instituição', 'criar instituição', 'nova instituição', 'lista de instituições', 'instituições', 'instituição',
+      'manage institutions', 'create institution', 'new institution', 'institutions list', 'institutions',
     ],
     answer: {
       pt: 'No separador Instituições pode criar novas instituições, editar dados existentes e atribuir o primeiro administrador.',
@@ -404,10 +492,48 @@ const stripDiacritics = (s: string) =>
 const normalize = (s: string) =>
   stripDiacritics(s.toLowerCase()).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 
+/** Iterative Levenshtein distance with a small early-exit cap. */
+function levenshtein(a: string, b: string, max: number): number {
+  if (a === b) return 0;
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+
+  let prev = new Array(b.length + 1);
+  let curr = new Array(b.length + 1);
+  for (let j = 0; j <= b.length; j++) prev[j] = j;
+
+  for (let i = 1; i <= a.length; i++) {
+    curr[0] = i;
+    let rowMin = curr[0];
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+      curr[j] = Math.min(
+        curr[j - 1] + 1,
+        prev[j] + 1,
+        prev[j - 1] + cost,
+      );
+      if (curr[j] < rowMin) rowMin = curr[j];
+    }
+    if (rowMin > max) return max + 1;
+    const tmp = prev; prev = curr; curr = tmp;
+  }
+  return prev[b.length];
+}
+
+/** Tolerance: allow 1 edit for 4-6 char tokens, 2 edits for 7+. */
+function fuzzyMatchesToken(qToken: string, kwToken: string): boolean {
+  if (qToken === kwToken) return true;
+  if (qToken.length < 4 || kwToken.length < 4) return false;
+  const max = kwToken.length >= 7 ? 2 : 1;
+  return levenshtein(qToken, kwToken, max) <= max;
+}
+
 export interface MatchResult {
   entryId: string | null;
   answer: string;
   matched: boolean;
+  action?: HelpAction | null;
 }
 
 export interface Suggestion {
@@ -421,12 +547,27 @@ function entryIsVisibleTo(entry: HelpEntry, role?: UserRole): boolean {
   return entry.roles.includes(role);
 }
 
+/** Direct entry lookup, used when the client taps a suggestion chip
+ *  (so we bypass keyword matching entirely and never return a fallback). */
+export function getEntryById(entryId: string, lang: HelpLang, role?: UserRole): MatchResult | null {
+  const entry = HELP_ENTRIES.find(e => e.id === entryId);
+  if (!entry) return null;
+  if (!entryIsVisibleTo(entry, role)) return null;
+  return {
+    entryId: entry.id,
+    answer: entry.answer[lang],
+    matched: true,
+    action: entry.action ?? null,
+  };
+}
+
 export function matchHelpEntry(question: string, lang: HelpLang, role?: UserRole): MatchResult {
   const q = normalize(question);
   if (!q) {
-    return { entryId: null, answer: FALLBACK[lang], matched: false };
+    return { entryId: null, answer: FALLBACK[lang], matched: false, action: null };
   }
 
+  const qTokens = q.split(' ').filter(Boolean);
   let best: { entry: HelpEntry; score: number } | null = null;
 
   for (const entry of HELP_ENTRIES) {
@@ -436,14 +577,29 @@ export function matchHelpEntry(question: string, lang: HelpLang, role?: UserRole
     for (const kw of entry.keywords) {
       const nk = normalize(kw);
       if (!nk) continue;
+
+      // Exact substring match (strong signal: whole phrase appears literally).
       if (q.includes(nk)) {
         score += nk.split(' ').length * 2;
         continue;
       }
-      const tokens = nk.split(' ').filter(t => t.length > 2);
-      const hits = tokens.filter(t => q.includes(t)).length;
-      if (hits > 0 && hits === tokens.length) {
-        score += hits;
+
+      const kwTokens = nk.split(' ').filter(t => t.length > 2);
+      if (kwTokens.length === 0) continue;
+
+      let hits = 0;
+      let fuzzyHits = 0;
+      for (const kt of kwTokens) {
+        if (qTokens.includes(kt)) {
+          hits += 1;
+        } else if (qTokens.some(qt => fuzzyMatchesToken(qt, kt))) {
+          fuzzyHits += 1;
+        }
+      }
+
+      if (hits + fuzzyHits === kwTokens.length) {
+        // Fuzzy hits count slightly less than exact ones.
+        score += hits + fuzzyHits * 0.7;
       }
     }
 
@@ -453,10 +609,15 @@ export function matchHelpEntry(question: string, lang: HelpLang, role?: UserRole
   }
 
   if (!best) {
-    return { entryId: null, answer: FALLBACK[lang], matched: false };
+    return { entryId: null, answer: FALLBACK[lang], matched: false, action: null };
   }
 
-  return { entryId: best.entry.id, answer: best.entry.answer[lang], matched: true };
+  return {
+    entryId: best.entry.id,
+    answer: best.entry.answer[lang],
+    matched: true,
+    action: best.entry.action ?? null,
+  };
 }
 
 // Short, role-appropriate label shown as a suggestion chip per entry.

@@ -1,9 +1,27 @@
 import { api } from '@src/services/ApiService';
 import { ApiResponse } from '@src/types/api';
 
+export type ChatbotActionId =
+  | 'account.settings'
+  | 'account.notifications'
+  | 'account.invitations'
+  | 'account.external-professionals'
+  | 'account.my-schedule'
+  | 'institution.details'
+  | 'tab.members'
+  | 'tab.dashboard'
+  | 'tab.profile';
+
+export interface ChatbotAction {
+  id: ChatbotActionId;
+  label: string;
+}
+
 export interface ChatbotAskRequest {
   question: string;
   lang?: 'pt' | 'en';
+  /** When set, the server skips keyword matching and returns this entry directly. */
+  entryId?: string;
 }
 
 export interface ChatbotSuggestion {
@@ -15,6 +33,7 @@ export interface ChatbotAskResponse {
   answer: string;
   matched: boolean;
   entryId: string | null;
+  action: ChatbotAction | null;
   suggestions: ChatbotSuggestion[];
 }
 

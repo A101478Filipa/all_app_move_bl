@@ -25,6 +25,7 @@ import { Elderly, Caregiver, InstitutionAdmin, Clinician, UserRole } from 'movep
 import { InstitutionMembersNavigationStackParamList } from '../../navigation/InstitutionMembersNavigationStack';
 import ScreenState from '@src/constants/screenState';
 import { useInstitutionMembersStore, useAuthStore } from '@src/stores';
+import { useChatbotStore } from '@src/stores/chatbotStore';
 import { useDebounce } from '@src/hooks/useDebounce';
 import { shadowStyles } from '@src/styles/shadow';
 import { InstitutionMember } from 'moveplus-shared';
@@ -520,6 +521,22 @@ const InstitutionMembersScreen: React.FC<Props> = ({ navigation, route }) => {
     useCallback(() => {
       fetchUsers(institutionId);
     }, [institutionId])
+  );
+
+  // Lift the chatbot FAB while this screen is focused, so it doesn't sit
+  // on top of the "+" floating button used to invite members.
+  const setChatbotFabOffset = useChatbotStore(s => s.setFabOffset);
+  const hasFloatingAddButton =
+    currentUserRole === UserRole.CAREGIVER ||
+    currentUserRole === UserRole.INSTITUTION_ADMIN ||
+    currentUserRole === UserRole.PROGRAMMER ||
+    currentUserRole === UserRole.CLINICIAN;
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasFloatingAddButton) return undefined;
+      setChatbotFabOffset(72);
+      return () => setChatbotFabOffset(0);
+    }, [setChatbotFabOffset, hasFloatingAddButton])
   );
 
   // Client-side search: filter from allUsers or restore full list

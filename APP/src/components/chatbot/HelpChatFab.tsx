@@ -26,13 +26,13 @@ import HelpChatPanel from './HelpChatPanel';
  */
 export const HelpChatFab: React.FC = () => {
   const { t } = useTranslation();
-  const { isOpen, open, close } = useChatbotStore();
+  const { isOpen, open, close, fabOffset } = useChatbotStore();
 
   return (
     <>
       <TouchableOpacity
         accessibilityLabel={t('helpChat.title')}
-        style={styles.fab}
+        style={[styles.fab, { bottom: FAB_BOTTOM + fabOffset }]}
         onPress={open}
         activeOpacity={0.85}
       >
