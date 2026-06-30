@@ -140,12 +140,15 @@ export const getProfileByToken = async (req: Request, res: Response): Promise<vo
         recentFalls: elderly.fallOccurrences,
         recentWounds: (elderly.woundTrackings || []).map((wt: any) => ({
           id: wt.id,
-          location: (wt.bodyLocations && wt.bodyLocations.length > 0)
-            ? wt.bodyLocations.join(', ')
-            : 'N/A',
-          status: wt.isResolved ? 'RESOLVED' : 'IN_PROGRESS',
-          lastUpdate: wt.createdAt,
-        })),
+          elderlyId: wt.elderlyId,
+          photoUrl: wt.photoUrl,
+          notes: wt.notes,
+          bodyLocations: wt.bodyLocations,
+          isResolved: wt.isResolved,
+          createdAt: wt.createdAt instanceof Date ? wt.createdAt.toISOString() : String(wt.createdAt ?? ''),
+          createdByUserId: 0,
+          createdByUser: { id: 0 },
+        })).filter((wt: any) => !wt.isResolved),
       },
     });
   } catch (error) {
@@ -476,6 +479,56 @@ export const updateMedication = async (req: Request, res: Response): Promise<voi
     sendSuccess(res, null, 'Medicação atualizada com sucesso');
   } catch (error) {
     console.error('updateMedication error:', error);
+    sendError(res, 'Erro interno do servidor', 500);
+  }
+};
+
+// POST /external-access/:token/wound-trackings  (public — multipart/form-data)
+export const addExternalWoundTracking = async (req: Request, res: Response): Promise<void> => {
+  const token = String(req.params.token);
+  try {
+    const ctx = await resolveToken(token, res);
+    if (!ctx) return;
+
+    const elderly = await prisma.elderly.findUnique({
+      where: { id: ctx.elderlyId },
+      select: { userId: true },
+    });
+    if (!elderly) { sendError(res, 'Utente n\u00e3o encontrado', 404); return; }
+
+    const { notes } = req.body;
+    const isResolved = req.body.isResolved === 'true' || req.body.isResolved === true;
+    const photoFile = (req as any).file;
+
+    if (!notes?.trim() && !photoFile && !isResolved) {
+      sendError(res, 'Adicione notas, foto ou marque como resolvido', 400);
+      return;
+    }
+
+    const tracking = await prisma.woundTracking.create({
+      data: {
+        elderlyId: ctx.elderlyId,
+        createdByUserId: elderly.userId,
+        notes: notes?.trim() || null,
+        photoUrl: photoFile ? photoFile.filename : null,
+        bodyLocations: [],
+        isResolved,
+      },
+    });
+
+    sendSuccess(res, {
+      id: tracking.id,
+      elderlyId: tracking.elderlyId,
+      photoUrl: tracking.photoUrl,
+      notes: tracking.notes,
+      bodyLocations: tracking.bodyLocations,
+      isResolved: tracking.isResolved,
+      createdAt: tracking.createdAt,
+      createdByUserId: 0,
+      createdByUser: { id: 0 },
+    }, 'Atualiza\u00e7\u00e3o registada', 201);
+  } catch (error) {
+    console.error('addExternalWoundTracking error:', error);
     sendError(res, 'Erro interno do servidor', 500);
   }
 };

@@ -51,9 +51,14 @@ export interface ExternalElderlySos {
 
 export interface ExternalElderlyWound {
   id: number;
-  location: string;
-  status: string | null;
-  lastUpdate: string;
+  elderlyId?: number | null;
+  photoUrl?: string | null;
+  notes?: string | null;
+  bodyLocations: string[];
+  isResolved: boolean;
+  createdAt: string;
+  createdByUserId?: number;
+  createdByUser?: { id: number };
 }
 
 export interface ExternalElderlyProfile {
@@ -171,4 +176,11 @@ export const externalAccessApi = {
 
   addWound: (token: string, body: { location: string; status?: string | null; lastUpdate: string }): Promise<ApiResponse<ExternalElderlyWound>> =>
     api.post(`external-access/${token}/wounds`, body).then(r => r.data),
+
+  addExternalWoundTracking: (token: string, formData: FormData): Promise<ApiResponse<ExternalElderlyWound>> => {
+    const url = `/api/external-access/${token}/wound-trackings`;
+    return apiPublic.post(url, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data);
+  },
 };

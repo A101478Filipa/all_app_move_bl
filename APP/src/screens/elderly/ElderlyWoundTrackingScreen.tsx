@@ -58,14 +58,9 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
   const [submitting, setSubmitting] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
 
-  // ─── External token state ───────────────────────────────────────────────────
-  const ONGOING_STATUSES = ['IN_PROGRESS', 'UNDER_TREATMENT'];
-  const [externalWounds, setExternalWounds] = useState<ExternalElderlyWound[]>(
-    isExternalToken && initialData
-      ? (initialData as ExternalElderlyWound[]).filter(w => ONGOING_STATUSES.includes(w.status ?? ''))
-      : []
-  );
-  const [externalLoading, setExternalLoading] = useState(false);
+  // ─── External token state ─────────────────────────────────────────────────────
+  const [externalWounds, setExternalWounds] = useState<WoundTracking[]>([]);
+  const [externalLoading, setExternalLoading] = useState(isExternalToken ? true : false);
 
   const loadExternalWounds = useCallback(async () => {
     const token = await asyncStorageService.getExternalToken();
@@ -73,8 +68,8 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
     setExternalLoading(true);
     try {
       const res = await externalAccessApi.getProfileByToken(token);
-      const wounds = res.data.elderly.recentWounds || [];
-      setExternalWounds(wounds.filter(w => ONGOING_STATUSES.includes(w.status ?? '')));
+      const wounds = (res.data.elderly.recentWounds || []) as unknown as WoundTracking[];
+      setExternalWounds(wounds.filter(w => !w.isResolved));
     } catch (error) {
       console.error('Erro ao carregar feridas externas:', error);
     } finally {
@@ -116,11 +111,33 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
     return true;
   });
 
-  const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const parseDate = (val: any): Date | null => {
+    if (!val) return null;
+    if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) return d;
+    // try replacing space with T for MySQL-style strings
+    const d2 = new Date(String(val).replace(' ', 'T'));
+    return isNaN(d2.getTime()) ? null : d2;
+  };
 
-  const formatDateTime = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const formatDate = (dateStr: any) => {
+    const d = parseDate(dateStr);
+    if (!d) return '—';
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${day}/${month}/${d.getFullYear()}`;
+  };
+
+  const formatDateTime = (dateStr: any) => {
+    const d = parseDate(dateStr);
+    if (!d) return '—';
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const hour = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${d.getFullYear()} ${hour}:${min}`;
+  };
 
   // ─── Add tracking modal ──────────────────────────────────────────────────────
 
@@ -181,8 +198,19 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
         formData.append('isResolved', String(isResolved));
       }
       if (pickedPhoto) formData.append('photo', { uri: pickedPhoto.uri, name: pickedPhoto.name, type: pickedPhoto.type } as any);
-      const res = await woundTrackingApi.addElderlyWoundTracking(elderlyId, formData);
-      if (res.data) { setTrackings(prev => [res.data, ...prev]); setModalVisible(false); }
+
+      if (isExternalToken) {
+        const token = await asyncStorageService.getExternalToken();
+        if (!token) { Alert.alert(t('woundTracking.uploadFailed')); return; }
+        const res = await externalAccessApi.addExternalWoundTracking(token, formData);
+        if (res.data) {
+          setExternalWounds(prev => [res.data as unknown as WoundTracking, ...prev]);
+          setModalVisible(false);
+        }
+      } else {
+        const res = await woundTrackingApi.addElderlyWoundTracking(elderlyId, formData);
+        if (res.data) { setTrackings(prev => [res.data, ...prev]); setModalVisible(false); }
+      }
     } catch { Alert.alert(t('woundTracking.uploadFailed')); }
     finally { setSubmitting(false); }
   };
@@ -298,13 +326,19 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.notesText}>{tracking.notes}</Text>
         </View>
       ) : null}
+      {(!tracking.notes && tracking.bodyLocations && tracking.bodyLocations.length > 0) ? (
+        <View style={styles.notesBox}>
+          <Text style={styles.notesLabel}>{t('woundTracking.bodyLocation')}</Text>
+          <Text style={styles.notesText}>{tracking.bodyLocations.join(', ')}</Text>
+        </View>
+      ) : null}
       {tracking.photoUrl ? (
         <TouchableOpacity onPress={() => setFullscreenPhoto(buildAvatarUrl(tracking.photoUrl!))}>
           <Image source={{ uri: buildAvatarUrl(tracking.photoUrl) }} style={styles.photo} resizeMode="cover" />
           <Text style={styles.tapToExpand}>{t('woundTracking.tapToExpand')}</Text>
         </TouchableOpacity>
       ) : null}
-      {isPrivileged && (
+      {(isPrivileged || isExternalToken) && (
         <TouchableOpacity style={styles.addUpdateBtn} onPress={() => openModal(false)}>
           <MaterialIcons name="add" size={15} color={Color.primary} />
           <Text style={styles.addUpdateBtnText}>{t('woundTracking.addUpdate')}</Text>
@@ -334,14 +368,14 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
 
         {isExternalToken ? (
-          // ─── External view (only ongoing wounds) ───────────────────────────
+          // ─── External view (ongoing wounds, same design as admin) ────────────────
           externalLoading ? (
             <ActivityIndicator size="small" color={Color.primary} style={{ marginVertical: Spacing.md_16 }} />
           ) : externalWounds.length === 0 ? (
             <Text style={styles.emptyText}>{t('woundTracking.noUpdates')}</Text>
           ) : (
             <View style={styles.list}>
-              {externalWounds.map((wound, idx) => renderExternalWoundCard(wound, idx))}
+              {externalWounds.map((wound, idx) => renderTrackingItem(wound, idx))}
             </View>
           )
         ) : (
@@ -384,7 +418,7 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
       </ScrollView>
 
       {/* Add tracking modal */}
-      {!isExternalToken && <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
+      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
@@ -476,7 +510,7 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           </View>
         </KeyboardAvoidingView>
-      </Modal>}
+      </Modal>
 
       {/* Fullscreen photo */}
       {fullscreenPhoto && (

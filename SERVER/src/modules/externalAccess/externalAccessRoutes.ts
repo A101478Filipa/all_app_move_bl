@@ -2,6 +2,7 @@ import express from 'express';
 import { UserRole } from 'moveplus-shared';
 import * as controller from './externalAccessController';
 import { authenticate, authorizeRoles } from '../../middleware/authMiddleware';
+import { uploadIncidentPhoto } from '../../middleware/uploadMiddleware';
 
 const router = express.Router();
 
@@ -31,5 +32,6 @@ router.post('/:token/pathologies', controller.addPathology);
 router.post('/:token/falls', controller.addFall);
 router.post('/:token/medications/:medicationId', controller.updateMedication);
 router.post('/:token/pathologies/:pathologyId', controller.updatePathology);
+router.post('/:token/wound-trackings', uploadIncidentPhoto.single('photo'), controller.addExternalWoundTracking);
 
 export default router;

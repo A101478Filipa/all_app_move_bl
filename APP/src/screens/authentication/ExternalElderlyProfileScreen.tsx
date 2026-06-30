@@ -47,8 +47,7 @@ const ExternalElderlyProfileScreen: React.FC<Props> = ({ route, navigation }) =>
 
     // Lógica de Filtro para o Externo
     if (type === 'wound') {
-      // Filtra apenas feridas "em acompanhamento"
-      filteredData = safeData.filter(w => w.status === 'IN_PROGRESS' || w.status === 'UNDER_TREATMENT');
+      filteredData = safeData.filter(w => !w.isResolved);
     }
     // NOTA: Para medicação e patologia, deixamos o array completo 
     navigation.navigate(screenName as any, { 
