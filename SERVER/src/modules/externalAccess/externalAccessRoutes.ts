@@ -33,5 +33,6 @@ router.post('/:token/falls', controller.addFall);
 router.post('/:token/medications/:medicationId', controller.updateMedication);
 router.post('/:token/pathologies/:pathologyId', controller.updatePathology);
 router.post('/:token/wound-trackings', uploadIncidentPhoto.single('photo'), controller.addExternalWoundTracking);
+router.post('/:token/wound-trackings/:trackingId/resolve', controller.resolveExternalWound);
 
 export default router;

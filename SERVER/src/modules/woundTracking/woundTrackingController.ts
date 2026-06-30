@@ -6,6 +6,15 @@ const woundTrackingInclude = {
   createdByUser: { select: { id: true } },
 };
 
+const woundTrackingWithUpdatesInclude = {
+  createdByUser: { select: { id: true } },
+  updates: {
+    include: { createdByUser: { select: { id: true } } },
+    orderBy: { createdAt: 'asc' as const },
+    where: { parentTrackingId: { not: null } },
+  },
+};
+
 const latestTrackingInclude = {
   orderBy: { createdAt: 'desc' as const },
   take: 1,
@@ -177,8 +186,8 @@ export const getElderlyWoundTrackings = async (req, res) => {
     if (!hasAccess) return sendError(res, 'Forbidden', 403);
 
     const trackings = await prisma.woundTracking.findMany({
-      where: { elderlyId },
-      include: woundTrackingInclude,
+      where: { elderlyId, parentTrackingId: null },
+      include: woundTrackingWithUpdatesInclude,
       orderBy: { createdAt: 'desc' },
     });
 
@@ -194,6 +203,7 @@ export const addElderlyWoundTracking = async (req, res) => {
   const elderlyId = Number(req.params.elderlyId);
   const { notes } = req.body;
   const isResolved = req.body.isResolved === 'true' || req.body.isResolved === true;
+  const parentTrackingId = req.body.parentTrackingId ? Number(req.body.parentTrackingId) : null;
   let bodyLocations: string[] = [];
   try { bodyLocations = req.body.bodyLocations ? JSON.parse(req.body.bodyLocations) : []; } catch { /* ignore */ }
 
@@ -221,13 +231,39 @@ export const addElderlyWoundTracking = async (req, res) => {
         photoUrl: req.file ? req.file.filename : null,
         bodyLocations,
         isResolved,
+        parentTrackingId,
       },
       include: woundTrackingInclude,
     });
 
+    // If this update marks the wound as resolved, cascade to the parent
+    if (isResolved && parentTrackingId) {
+      await prisma.woundTracking.update({
+        where: { id: parentTrackingId },
+        data: { isResolved: true },
+      });
+    }
+
     return sendSuccess(res, tracking, 'Wound tracking added', 201);
   } catch (e) {
     console.error('Error adding elderly wound tracking:', e);
+    return sendError(res, 'Internal server error', 500);
+  }
+};
+
+// PATCH /wound-tracking/:trackingId/resolve
+export const resolveWoundTracking = async (req, res) => {
+  const trackingId = Number(req.params.trackingId);
+  try {
+    const tracking = await prisma.woundTracking.findUnique({ where: { id: trackingId } });
+    if (!tracking) return sendError(res, 'Wound tracking not found', 404);
+    await prisma.woundTracking.update({
+      where: { id: trackingId },
+      data: { isResolved: true },
+    });
+    return sendSuccess(res, null, 'Ferida marcada como resolvida');
+  } catch (e) {
+    console.error('Error resolving wound tracking:', e);
     return sendError(res, 'Internal server error', 500);
   }
 };

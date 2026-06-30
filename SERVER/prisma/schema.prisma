@@ -456,6 +456,7 @@ model WoundTracking {
   fallOccurrenceId   Int?
   sosOccurrenceId    Int?
   elderlyId          Int?
+  parentTrackingId   Int?
   createdByUserId    Int
   photoUrl           String?
   notes              String?
@@ -466,6 +467,8 @@ model WoundTracking {
   sosOccurrence      SosOccurrence?  @relation(fields: [sosOccurrenceId], references: [id])
   elderly            Elderly?        @relation(fields: [elderlyId], references: [id])
   createdByUser      User            @relation("WoundTrackingCreatedBy", fields: [createdByUserId], references: [id])
+  parentTracking     WoundTracking?  @relation("WoundTrackingUpdates", fields: [parentTrackingId], references: [id])
+  updates            WoundTracking[] @relation("WoundTrackingUpdates")
 }
 
 // MARK: FallRisk

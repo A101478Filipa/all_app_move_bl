@@ -6,6 +6,7 @@ export interface WoundTracking {
   fallOccurrenceId?: number | null;
   sosOccurrenceId?: number | null;
   elderlyId?: number | null;
+  parentTrackingId?: number | null;
   createdByUserId: number;
   photoUrl?: string | null;
   notes?: string | null;
@@ -13,6 +14,7 @@ export interface WoundTracking {
   isResolved: boolean;
   createdAt: string;
   createdByUser: { id: number };
+  updates?: WoundTracking[];
 }
 
 export interface WoundCase {
@@ -56,4 +58,7 @@ export const woundTrackingApi = {
 
   deleteWoundTracking: (trackingId: number): Promise<ApiResponse> =>
     api.delete(`/wound-tracking/${trackingId}`).then(r => r.data),
+
+  resolveWoundTracking: (trackingId: number): Promise<ApiResponse> =>
+    api.patch(`/wound-tracking/${trackingId}/resolve`).then(r => r.data),
 };

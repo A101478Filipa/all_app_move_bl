@@ -48,6 +48,7 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
   // Add-tracking modal state
   const [modalVisible, setModalVisible] = useState(false);
   const [isNewWound, setIsNewWound] = useState(false);
+  const [currentParentId, setCurrentParentId] = useState<number | null>(null);
   // new-wound fields (same as fall/SOS injury section)
   const [injuryDescription, setInjuryDescription] = useState('');
   // update fields
@@ -141,7 +142,16 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // ─── Add tracking modal ──────────────────────────────────────────────────────
 
-  const openModal = (isNew: boolean) => { setIsNewWound(isNew); setInjuryDescription(''); setNotes(''); setIsResolved(false); setPickedPhoto(null); setSelectedBodyLocations([]); setModalVisible(true); };
+  const openModal = (isNew: boolean, parentId?: number) => {
+    setIsNewWound(isNew);
+    setCurrentParentId(parentId ?? null);
+    setInjuryDescription('');
+    setNotes('');
+    setIsResolved(false);
+    setPickedPhoto(null);
+    setSelectedBodyLocations([]);
+    setModalVisible(true);
+  };
 
   // Auto-open from navigation param (new wound)
   useEffect(() => {
@@ -196,6 +206,7 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
       } else {
         if (notes.trim()) formData.append('notes', notes.trim());
         formData.append('isResolved', String(isResolved));
+        if (currentParentId) formData.append('parentTrackingId', String(currentParentId));
       }
       if (pickedPhoto) formData.append('photo', { uri: pickedPhoto.uri, name: pickedPhoto.name, type: pickedPhoto.type } as any);
 
@@ -204,12 +215,32 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
         if (!token) { Alert.alert(t('woundTracking.uploadFailed')); return; }
         const res = await externalAccessApi.addExternalWoundTracking(token, formData);
         if (res.data) {
-          setExternalWounds(prev => [res.data as unknown as WoundTracking, ...prev]);
+          if (currentParentId) {
+            // Add update to parent's updates array
+            setExternalWounds(prev => prev.map(w =>
+              w.id === currentParentId
+                ? { ...w, updates: [...(w.updates || []), res.data as WoundTracking] }
+                : w
+            ));
+          } else {
+            setExternalWounds(prev => [{ ...(res.data as WoundTracking), updates: [] }, ...prev]);
+          }
           setModalVisible(false);
         }
       } else {
         const res = await woundTrackingApi.addElderlyWoundTracking(elderlyId, formData);
-        if (res.data) { setTrackings(prev => [res.data, ...prev]); setModalVisible(false); }
+        if (res.data) {
+          if (currentParentId) {
+            setTrackings(prev => prev.map(t =>
+              t.id === currentParentId
+                ? { ...t, updates: [...(t.updates || []), res.data] }
+                : t
+            ));
+          } else {
+            setTrackings(prev => [{ ...res.data, updates: [] }, ...prev]);
+          }
+          setModalVisible(false);
+        }
       }
     } catch { Alert.alert(t('woundTracking.uploadFailed')); }
     finally { setSubmitting(false); }
@@ -223,6 +254,37 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
         catch { /* ignore */ }
       }},
     ]);
+  };
+
+  const handleResolveWound = (trackingId: number) => {
+    Alert.alert(
+      t('woundTracking.resolved'),
+      t('woundTracking.markResolvedDescription'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('woundTracking.markResolved'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (isExternalToken) {
+                const token = await asyncStorageService.getExternalToken();
+                if (!token) return;
+                await externalAccessApi.resolveExternalWound(token, trackingId);
+                setExternalWounds(prev => prev.filter(w => w.id !== trackingId));
+              } else {
+                await woundTrackingApi.resolveWoundTracking(trackingId);
+                setTrackings(prev => prev.map(t =>
+                  t.id === trackingId ? { ...t, isResolved: true } : t
+                ));
+              }
+            } catch {
+              Alert.alert(t('common.error'));
+            }
+          },
+        },
+      ]
+    );
   };
 
   // ─── Render helpers ──────────────────────────────────────────────────────────
@@ -301,19 +363,39 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
     </TouchableOpacity>
   );
 
+  const renderUpdateItem = (update: WoundTracking, idx: number) => (
+    <View key={`update-${update.id}-${idx}`} style={styles.updateItem}>
+      <View style={styles.updateDot} />
+      <View style={styles.updateContent}>
+        <Text style={styles.updateDate}>{formatDateTime(update.createdAt)}</Text>
+        {update.notes ? <Text style={styles.notesText}>{update.notes}</Text> : null}
+        {update.isResolved ? (
+          <View style={[styles.statusBadge, styles.statusResolved, { alignSelf: 'flex-start', marginTop: 4 }]}>
+            <Text style={[styles.statusText, styles.statusResolvedText]}>{t('woundTracking.resolved')}</Text>
+          </View>
+        ) : null}
+        {update.photoUrl ? (
+          <TouchableOpacity onPress={() => setFullscreenPhoto(buildAvatarUrl(update.photoUrl!))}>
+            <Image source={{ uri: buildAvatarUrl(update.photoUrl) }} style={[styles.photo, { height: 120, marginTop: 6 }]} resizeMode="cover" />
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    </View>
+  );
+
   const renderTrackingItem = (tracking: WoundTracking, idx: number) => (
-    <View key={`tracking-${idx}`} style={styles.card}>
+    <View key={`tracking-${tracking.id}-${idx}`} style={styles.card}>
       <View style={styles.cardHeader}>
         <View style={styles.cardHeaderLeft}>
           <View style={styles.typeRow}>
-            <MaterialIcons name="edit" size={14} color={Color.Gray.v500} />
+            <MaterialIcons name="healing" size={14} color={Color.Gray.v500} />
             <Text style={styles.typeLabel}>{t('woundTracking.manualEntry')}</Text>
           </View>
           <Text style={styles.dateText}>{formatDateTime(tracking.createdAt)}</Text>
         </View>
         <View style={styles.cardHeaderRight}>
           <StatusBadge resolved={tracking.isResolved} />
-          {isPrivileged && (
+          {isPrivileged && !isExternalToken && (
             <TouchableOpacity onPress={() => confirmDelete(tracking.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <MaterialIcons name="delete-outline" size={18} color={Color.Error.default} />
             </TouchableOpacity>
@@ -338,11 +420,31 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.tapToExpand}>{t('woundTracking.tapToExpand')}</Text>
         </TouchableOpacity>
       ) : null}
-      {(isPrivileged || isExternalToken) && (
-        <TouchableOpacity style={styles.addUpdateBtn} onPress={() => openModal(false)}>
-          <MaterialIcons name="add" size={15} color={Color.primary} />
-          <Text style={styles.addUpdateBtnText}>{t('woundTracking.addUpdate')}</Text>
-        </TouchableOpacity>
+
+      {/* Updates timeline */}
+      {(tracking.updates && tracking.updates.length > 0) ? (
+        <View style={styles.updatesSection}>
+          <Text style={styles.updatesSectionLabel}>{t('woundTracking.updates')} ({tracking.updates.length})</Text>
+          {tracking.updates.map((update, i) => renderUpdateItem(update, i))}
+        </View>
+      ) : null}
+
+      {/* Actions */}
+      {!tracking.isResolved && (
+        <View style={styles.actionRow}>
+          {(isPrivileged || isExternalToken) && (
+            <TouchableOpacity style={styles.addUpdateBtn} onPress={() => openModal(false, tracking.id)}>
+              <MaterialIcons name="add" size={15} color={Color.primary} />
+              <Text style={styles.addUpdateBtnText}>{t('woundTracking.addUpdate')}</Text>
+            </TouchableOpacity>
+          )}
+          {(isPrivileged || isExternalToken) && (
+            <TouchableOpacity style={styles.resolveBtn} onPress={() => handleResolveWound(tracking.id)}>
+              <MaterialIcons name="check-circle-outline" size={15} color={Color.Success?.default ?? Color.primary} />
+              <Text style={styles.resolveBtnText}>{t('woundTracking.markResolved')}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       )}
     </View>
   );
@@ -540,6 +642,17 @@ const styles = StyleSheet.create({
   // Per-card add update button
   addUpdateBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', borderWidth: 1, borderColor: Color.primary, borderRadius: Border.sm_8, paddingHorizontal: Spacing.sm_8, paddingVertical: Spacing.xs_4 },
   addUpdateBtnText: { fontFamily: FontFamily.medium, fontSize: FontSize.caption_12, color: Color.primary },
+  resolveBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', borderWidth: 1, borderColor: Color.Cyan?.v500 ?? Color.primary, borderRadius: Border.sm_8, paddingHorizontal: Spacing.sm_8, paddingVertical: Spacing.xs_4 },
+  resolveBtnText: { fontFamily: FontFamily.medium, fontSize: FontSize.caption_12, color: Color.Cyan?.v500 ?? Color.primary },
+  actionRow: { flexDirection: 'row', gap: Spacing.sm_8, flexWrap: 'wrap', marginTop: 4 },
+
+  // Updates timeline
+  updatesSection: { borderTopWidth: 1, borderTopColor: Color.Gray.v100, paddingTop: Spacing.sm_8, marginTop: Spacing.xs_4 },
+  updatesSectionLabel: { fontFamily: FontFamily.medium, fontSize: FontSize.caption_12, color: Color.Gray.v400, marginBottom: Spacing.xs_4 },
+  updateItem: { flexDirection: 'row', gap: Spacing.sm_8, paddingVertical: Spacing.xs_4 },
+  updateDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Color.primary, marginTop: 6, flexShrink: 0 },
+  updateContent: { flex: 1 },
+  updateDate: { fontFamily: FontFamily.medium, fontSize: FontSize.caption_12, color: Color.Gray.v400, marginBottom: 2 },
 
   // Filters
   filterRow: { flexDirection: 'row', gap: Spacing.xs_4, marginBottom: Spacing.sm_8 },

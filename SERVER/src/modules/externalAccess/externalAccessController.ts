@@ -102,7 +102,12 @@ export const getProfileByToken = async (req: Request, res: Response): Promise<vo
                 medications: { orderBy: { createdAt: 'desc' } },
                 measurements: { orderBy: { createdAt: 'desc' }},
                 fallOccurrences: { orderBy: { date: 'desc' }},
-                woundTrackings: { orderBy: { createdAt: 'desc' } },
+                woundTrackings: {
+                  orderBy: { createdAt: 'desc' },
+                  include: {
+                    updates: { orderBy: { createdAt: 'asc' } },
+                  },
+                },
               },
             },
             externalProfessional: true,
@@ -138,17 +143,34 @@ export const getProfileByToken = async (req: Request, res: Response): Promise<vo
         medications: elderly.medications,
         measurements: elderly.measurements,
         recentFalls: elderly.fallOccurrences,
-        recentWounds: (elderly.woundTrackings || []).map((wt: any) => ({
-          id: wt.id,
-          elderlyId: wt.elderlyId,
-          photoUrl: wt.photoUrl,
-          notes: wt.notes,
-          bodyLocations: wt.bodyLocations,
-          isResolved: wt.isResolved,
-          createdAt: wt.createdAt instanceof Date ? wt.createdAt.toISOString() : String(wt.createdAt ?? ''),
-          createdByUserId: 0,
-          createdByUser: { id: 0 },
-        })).filter((wt: any) => !wt.isResolved),
+        recentWounds: (elderly.woundTrackings || [])
+          .filter((wt: any) => wt.parentTrackingId === null || wt.parentTrackingId === undefined)
+          .filter((wt: any) => !wt.isResolved)
+          .map((wt: any) => ({
+            id: wt.id,
+            elderlyId: wt.elderlyId,
+            photoUrl: wt.photoUrl,
+            notes: wt.notes,
+            bodyLocations: wt.bodyLocations,
+            isResolved: wt.isResolved,
+            parentTrackingId: null,
+            createdAt: wt.createdAt instanceof Date ? wt.createdAt.toISOString() : String(wt.createdAt ?? ''),
+            createdByUserId: 0,
+            createdByUser: { id: 0 },
+            updates: (wt.updates || []).map((u: any) => ({
+              id: u.id,
+              elderlyId: u.elderlyId,
+              photoUrl: u.photoUrl,
+              notes: u.notes,
+              bodyLocations: u.bodyLocations,
+              isResolved: u.isResolved,
+              parentTrackingId: wt.id,
+              createdAt: u.createdAt instanceof Date ? u.createdAt.toISOString() : String(u.createdAt ?? ''),
+              createdByUserId: 0,
+              createdByUser: { id: 0 },
+              updates: [],
+            })),
+          })),
       },
     });
   } catch (error) {
@@ -498,6 +520,7 @@ export const addExternalWoundTracking = async (req: Request, res: Response): Pro
 
     const { notes } = req.body;
     const isResolved = req.body.isResolved === 'true' || req.body.isResolved === true;
+    const parentTrackingId = req.body.parentTrackingId ? Number(req.body.parentTrackingId) : null;
     const photoFile = (req as any).file;
 
     if (!notes?.trim() && !photoFile && !isResolved) {
@@ -513,8 +536,17 @@ export const addExternalWoundTracking = async (req: Request, res: Response): Pro
         photoUrl: photoFile ? photoFile.filename : null,
         bodyLocations: [],
         isResolved,
+        parentTrackingId,
       },
     });
+
+    // If this update marks the wound as resolved, cascade to the parent
+    if (isResolved && parentTrackingId) {
+      await prisma.woundTracking.update({
+        where: { id: parentTrackingId },
+        data: { isResolved: true },
+      });
+    }
 
     sendSuccess(res, {
       id: tracking.id,
@@ -523,12 +555,39 @@ export const addExternalWoundTracking = async (req: Request, res: Response): Pro
       notes: tracking.notes,
       bodyLocations: tracking.bodyLocations,
       isResolved: tracking.isResolved,
-      createdAt: tracking.createdAt,
+      parentTrackingId: tracking.parentTrackingId,
+      createdAt: tracking.createdAt instanceof Date ? tracking.createdAt.toISOString() : String(tracking.createdAt),
       createdByUserId: 0,
       createdByUser: { id: 0 },
+      updates: [],
     }, 'Atualiza\u00e7\u00e3o registada', 201);
   } catch (error) {
     console.error('addExternalWoundTracking error:', error);
+    sendError(res, 'Erro interno do servidor', 500);
+  }
+};
+
+// POST /external-access/:token/wound-trackings/:trackingId/resolve
+export const resolveExternalWound = async (req: Request, res: Response): Promise<void> => {
+  const token = String(req.params.token);
+  const trackingId = Number(req.params.trackingId);
+  try {
+    const ctx = await resolveToken(token, res);
+    if (!ctx) return;
+
+    const updated = await prisma.woundTracking.updateMany({
+      where: { id: trackingId, elderlyId: ctx.elderlyId },
+      data: { isResolved: true },
+    });
+
+    if (updated.count === 0) {
+      sendError(res, 'Ferida não encontrada ou sem permissão', 404);
+      return;
+    }
+
+    sendSuccess(res, null, 'Ferida marcada como resolvida');
+  } catch (error) {
+    console.error('resolveExternalWound error:', error);
     sendError(res, 'Erro interno do servidor', 500);
   }
 };

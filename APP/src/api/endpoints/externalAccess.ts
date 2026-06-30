@@ -56,9 +56,11 @@ export interface ExternalElderlyWound {
   notes?: string | null;
   bodyLocations: string[];
   isResolved: boolean;
+  parentTrackingId?: number | null;
   createdAt: string;
   createdByUserId?: number;
   createdByUser?: { id: number };
+  updates?: ExternalElderlyWound[];
 }
 
 export interface ExternalElderlyProfile {
@@ -182,5 +184,10 @@ export const externalAccessApi = {
     return apiPublic.post(url, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then(r => r.data);
+  },
+
+  resolveExternalWound: (token: string, trackingId: number): Promise<ApiResponse> => {
+    const url = `/api/external-access/${token}/wound-trackings/${trackingId}/resolve`;
+    return apiPublic.post(url, {}).then(r => r.data);
   },
 };

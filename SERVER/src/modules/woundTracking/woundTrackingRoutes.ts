@@ -5,6 +5,7 @@ import {
   addSosWoundTracking,
   addElderlyWoundTracking,
   deleteWoundTracking,
+  resolveWoundTracking,
   getFallWoundTrackings,
   getSosWoundTrackings,
   getElderlyWoundTrackings,
@@ -89,6 +90,12 @@ woundTrackingRoutes.delete(
   '/:trackingId',
   authenticate, authorizeRoles(deleteRoles),
   deleteWoundTracking
+);
+
+woundTrackingRoutes.patch(
+  '/:trackingId/resolve',
+  authenticate, authorizeRoles(writeRoles),
+  resolveWoundTracking
 );
 
 export default woundTrackingRoutes;
