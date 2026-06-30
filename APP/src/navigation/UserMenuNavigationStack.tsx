@@ -13,6 +13,7 @@ import PathologyDetailsScreen from "@src/screens/pathology/PathologyDetailsScree
 import InstitutionInvitationsScreen from "@src/screens/invitation/InstitutionInvitationsScreen";
 import StaffScheduleManagementScreen from "@src/screens/professional/StaffScheduleManagementScreen";
 import ExternalProfessionalsManagementScreen from '@src/screens/institution/ExternalProfessionalsManagementScreen';
+import HelpChatScreen from '@src/screens/user/HelpChatScreen';
 import { NotificationCenterStack } from "@src/navigation/NotificationCenterStack";
 import { getScreenOptionsWithNavigation } from "@src/utils/navigationHelper";
 import { useTranslation } from 'react-i18next';
@@ -55,6 +56,7 @@ export type UserMenuStackParamList = {
     staffName: string;
   };
   ExternalProfessionalsManagement: undefined;
+  HelpChat: undefined;
 };
 
 const Stack = createNativeStackNavigator<UserMenuStackParamList>();
@@ -159,6 +161,11 @@ export const UserMenuNavigationStack = () => {
         name="ExternalProfessionalsManagement"
         component={ExternalProfessionalsManagementScreen}
         options={{ title: 'Profissionais Externos' }}
+      />
+      <Stack.Screen
+        name="HelpChat"
+        component={HelpChatScreen}
+        options={{ title: t('helpChat.title') }}
       />
     </Stack.Navigator>
   );

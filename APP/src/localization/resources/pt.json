@@ -1048,5 +1048,14 @@
     "caregiversNotified": "Os seus cuidadores foram notificados",
     "alertCancelled": "Alerta Cancelado",
     "gladYouAreOk": "Ainda bem que está bem!"
+  },
+  "helpChat": {
+    "sectionTitle": "Ajuda",
+    "title": "Assistente da App",
+    "welcome": "Olá! Sou o assistente da aplicação. Posso ajudar a explicar como usar funcionalidades, encontrar opções no menu e responder a dúvidas frequentes. Não tenho acesso a dados clínicos dos utentes.",
+    "inputPlaceholder": "Escreva a sua pergunta...",
+    "suggestionsTitle": "Sugestões",
+    "errorGeneric": "Não consegui responder agora. Tente novamente em instantes.",
+    "privacyNote": "Apenas ajuda sobre a app. Sem acesso a dados de utentes."
   }
 }

@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MOVEPLUSAPP — Análise do Projeto</title>
+<style>
+  :root {
+    --bg: #0f1729;
+    --bg-soft: #16213d;
+    --panel: #1c2845;
+    --panel-2: #24325a;
+    --border: #2e3f6b;
+    --text: #e6ecff;
+    --muted: #9fb0d6;
+    --accent: #6ea8ff;
+    --accent-2: #7be0c1;
+    --warn: #ffb46b;
+    --danger: #ff6b8a;
+    --ok: #7ce28a;
+    --code-bg: #0b1226;
+    --shadow: 0 6px 24px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(180deg, #0a1024 0%, #0f1729 100%);
+    color: var(--text);
+    line-height: 1.55;
+    font-size: 15px;
+  }
+  header.hero {
+    padding: 56px 24px 40px;
+    background: radial-gradient(1200px 400px at 20% -20%, #2a3d7a 0%, transparent 60%),
+                radial-gradient(900px 300px at 90% 0%, #1f6a55 0%, transparent 55%),
+                linear-gradient(180deg, #101a36 0%, #0f1729 100%);
+    border-bottom: 1px solid var(--border);
+  }
+  .container { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+  h1 {
+    margin: 0 0 8px;
+    font-size: 38px;
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #cfe0ff, #7be0c1);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  h2 {
+    margin: 40px 0 12px;
+    font-size: 26px;
+    letter-spacing: -0.3px;
+    border-left: 4px solid var(--accent);
+    padding-left: 12px;
+  }
+  h3 { margin: 24px 0 8px; font-size: 19px; color: var(--accent-2); }
+  h4 { margin: 16px 0 6px; font-size: 16px; color: #cfe0ff; }
+  p { color: #d6deff; }
+  .subtitle { color: var(--muted); margin-top: 0; font-size: 17px; max-width: 820px; }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-top: 18px;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(110, 168, 255, .12);
+    color: #cfe0ff;
+    border: 1px solid rgba(110, 168, 255, .35);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12.5px;
+  }
+  .chip.green { background: rgba(123,224,193,.1); border-color: rgba(123,224,193,.35); color: #c4f5e2; }
+  .chip.warn  { background: rgba(255,180,107,.1); border-color: rgba(255,180,107,.35); color: #ffd9b0; }
+  .chip.red   { background: rgba(255,107,138,.1); border-color: rgba(255,107,138,.35); color: #ffc4d2; }
+
+  .grid {
+    display: grid; gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    margin-top: 14px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+  }
+  .card h3 { margin-top: 0; }
+  .card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .card .value { font-size: 22px; font-weight: 600; color: #fff; margin-top: 4px; }
+
+  .toc {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 22px;
+    margin-top: 24px;
+  }
+  .toc ul { columns: 2; column-gap: 32px; margin: 0; padding-left: 18px; }
+  .toc li { margin: 4px 0; break-inside: avoid; }
+  .toc a { color: #b8c8f4; text-decoration: none; }
+  .toc a:hover { color: #fff; text-decoration: underline; }
+
+  pre, code {
+    font-family: ui-monospace, "Cascadia Code", "Fira Code", Consolas, Menlo, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    color: #d8e3ff;
+    padding: 14px 16px;
+    border-radius: 10px;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+  code.inline {
+    background: rgba(110,168,255,.12);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: #cfe0ff;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  th, td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th { background: var(--panel-2); color: #cfe0ff; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+  tr:last-child td { border-bottom: none; }
+  td.k { color: var(--accent-2); white-space: nowrap; font-family: ui-monospace, Consolas, monospace; }
+
+  ul.bullets li { margin: 6px 0; }
+  .role-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+  .role {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .role h4 { margin-top: 0; color: var(--accent); }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(110,168,255,.15);
+    border: 1px solid rgba(110,168,255,.3);
+    color: #cfe0ff;
+    margin-left: 6px;
+  }
+
+  .flow {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+  }
+  .flow ol { padding-left: 22px; }
+  .flow li { margin: 6px 0; }
+  .flow .tag {
+    display: inline-block;
+    background: rgba(123,224,193,.15);
+    color: #a8efd1;
+    border: 1px solid rgba(123,224,193,.3);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 11.5px;
+    margin-right: 6px;
+    font-family: ui-monospace, Consolas, monospace;
+  }
+
+  .two-col { display: grid; grid-template-columns: 1.1fr .9fr; gap: 18px; }
+  @media (max-width: 880px) { .two-col { grid-template-columns: 1fr; } .toc ul { columns: 1; } }
+
+  details {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 8px 0;
+  }
+  details summary { cursor: pointer; color: #cfe0ff; font-weight: 600; }
+  details[open] { background: var(--panel-2); }
+
+  .legend { display:flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display:inline-block; margin-right: 5px; vertical-align: middle; }
+
+  footer {
+    margin: 60px 0 24px;
+    padding: 18px 0;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    text-align: center;
+    font-size: 13px;
+  }
+
+  .arrow { color: var(--accent); font-weight: bold; }
+  .file { color: var(--accent-2); font-family: ui-monospace, Consolas, monospace; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <div class="meta">
+      <span class="chip">Monorepo</span>
+      <span class="chip green">React Native + Expo</span>
+      <span class="chip green">Node.js + Express</span>
+      <span class="chip green">PostgreSQL + Prisma</span>
+      <span class="chip">TypeScript</span>
+      <span class="chip warn">Healthcare</span>
+    </div>
+    <h1>MOVEPLUSAPP</h1>
+    <p class="subtitle">
+      Plataforma de gestão e monitorização de saúde para instituições de cuidados de idosos.
+      Inclui deteção automática de quedas via acelerómetro, alertas SOS, gestão de medicação,
+      patologias, medições clínicas, monitorização de feridas, calendário e notificações push em tempo real.
+    </p>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- KPIs -->
+  <section class="grid">
+    <div class="card">
+      <div class="label">Ficheiros fonte — APP</div>
+      <div class="value">206</div>
+      <p style="color: var(--muted); margin: 4px 0 0;">React Native / Expo (mobile)</p>
+    </div>
+    <div class="card">
+      <div class="label">Ficheiros fonte — SERVER</div>
+      <div class="value">70</div>
+      <p style="color: var(--muted); margin: 4px 0 0;">Express + Prisma (API REST)</p>
+    </div>
+    <div class="card">
+      <div class="label">Ficheiros fonte — SHARED</div>
+      <div class="value">74</div>
+      <p style="color: var(--muted); margin: 4px 0 0;">Tipos, enums, DTOs partilhados</p>
+    </div>
+    <div class="card">
+      <div class="label">Schema Prisma</div>
+      <div class="value">699 linhas</div>
+      <p style="color: var(--muted); margin: 4px 0 0;">~30 modelos / 12 enums</p>
+    </div>
+  </section>
+
+  <!-- TOC -->
+  <div class="toc">
+    <strong>Índice</strong>
+    <ul>
+      <li><a href="#overview">1. Visão geral</a></li>
+      <li><a href="#stack">2. Stack tecnológica</a></li>
+      <li><a href="#monorepo">3. Arquitetura monorepo</a></li>
+      <li><a href="#hierarchy">4. Hierarquia de pastas</a></li>
+      <li><a href="#app">5. Aplicação móvel (APP)</a></li>
+      <li><a href="#server">6. Backend (SERVER)</a></li>
+      <li><a href="#shared">7. Pacote partilhado (shared)</a></li>
+      <li><a href="#db">8. Modelo de dados (Prisma)</a></li>
+      <li><a href="#roles">9. Perfis de utilizador</a></li>
+      <li><a href="#features">10. Features principais e ligações</a></li>
+      <li><a href="#flows">11. Fluxos chave</a></li>
+      <li><a href="#extras">12. Notas adicionais</a></li>
+    </ul>
+  </div>
+
+  <!-- OVERVIEW -->
+  <section id="overview">
+    <h2>1. Visão geral</h2>
+    <p>
+      O <strong>MOVEPLUSAPP</strong> (também referido na documentação como <em>Move+</em>) é uma solução
+      <strong>cross-platform</strong> (iOS / Android) desenhada para instituições de cuidados continuados a idosos.
+      A plataforma cobre todo o ciclo: <em>onboarding</em> via convites, monitorização clínica diária,
+      resposta a incidentes (quedas e SOS), acompanhamento de feridas e coordenação de equipas
+      (cuidadores, clínicos, administração, profissionais externos).
+    </p>
+    <p>
+      O projeto está organizado como um <strong>monorepo</strong> com três pacotes interligados que partilham tipos
+      através de <code class="inline">moveplus-shared</code>. Existe ainda um pequeno serviço auxiliar
+      <code class="inline">all_app_move_bl/</code> (um <em>health-check</em> Express minimal) e a pasta
+      <code class="inline">public/</code> que serve uploads e avatares por defeito.
+    </p>
+  </section>
+
+  <!-- STACK -->
+  <section id="stack">
+    <h2>2. Stack tecnológica</h2>
+    <div class="two-col">
+      <div>
+        <h3>Frontend (APP)</h3>
+        <ul class="bullets">
+          <li><strong>React Native 0.81</strong> + <strong>Expo SDK 54</strong> (gestão de plataforma e build)</li>
+          <li><strong>TypeScript 5.9</strong> com path aliases (<code class="inline">@src</code>, <code class="inline">@navigation</code>, <code class="inline">@stores</code>, ...)</li>
+          <li><strong>React Navigation 6</strong> — stacks aninhados por <em>role</em></li>
+          <li><strong>Zustand</strong> — estado global leve (auth, dashboards, listas)</li>
+          <li><strong>Axios</strong> — cliente HTTP com interceptors para refresh de token</li>
+          <li><strong>React Native Paper</strong> — design system base</li>
+          <li><strong>expo-sensors / expo-task-manager / expo-background-fetch</strong> — deteção de quedas em background</li>
+          <li><strong>expo-notifications</strong> — push notifications</li>
+          <li><strong>i18next + react-i18next + expo-localization</strong> — PT / EN em runtime</li>
+          <li><strong>react-native-gifted-charts</strong>, <strong>react-native-body-highlighter</strong>, <strong>react-native-svg</strong> — gráficos e diagrama corporal</li>
+          <li><strong>expo-print</strong> — exportação de relatórios PDF</li>
+          <li><strong>Zod</strong> — validação partilhada com o backend</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Backend (SERVER)</h3>
+        <ul class="bullets">
+          <li><strong>Node.js + Express 4</strong> em TypeScript</li>
+          <li><strong>Prisma 6</strong> sobre <strong>PostgreSQL</strong> (~30 modelos, 12 enums)</li>
+          <li><strong>JWT</strong> (access) + <strong>Refresh Tokens</strong> persistidos em BD</li>
+          <li><strong>bcryptjs</strong> — hashing de passwords</li>
+          <li><strong>cookie-parser</strong> — refresh token em <em>httpOnly cookie</em></li>
+          <li><strong>Multer</strong> — upload de fotos (lesões, avatares, feridas)</li>
+          <li><strong>nodemailer</strong> — emails (reset password, convites)</li>
+          <li><strong>expo-server-sdk</strong> — envio de push para o serviço Expo (APNs/FCM)</li>
+          <li><strong>Zod</strong> — validação de requests</li>
+        </ul>
+        <h3>Outros</h3>
+        <ul class="bullets">
+          <li><strong>shared/</strong> — entidades, enums, DTOs (request/response) e modelos de notificação</li>
+          <li><strong>Makefile</strong> — automação de <code class="inline">dev</code>, <code class="inline">expo</code>, <code class="inline">db</code>, <code class="inline">shared</code>, <code class="inline">dist</code></li>
+          <li><strong>Railway</strong> / <strong>nixpacks</strong> — deploy do backend</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- MONOREPO -->
+  <section id="monorepo">
+    <h2>3. Arquitetura monorepo</h2>
+    <pre>
+┌──────────────────────────┐    ┌──────────────────────────┐    ┌──────────────────────────┐
+│   APP/  (React Native)   │    │   SERVER/  (Express)     │    │   PostgreSQL             │
+│                          │    │                          │    │                          │
+│   AppNavigator           │───▶│   apiRoutes.ts           │───▶│   ~30 modelos Prisma     │
+│   stores (Zustand)       │    │   modules/<feature>      │    │                          │
+│   services (Api/Auth)    │◀───│   controllers + routes   │◀───│                          │
+└────────────┬─────────────┘    └────────────┬─────────────┘    └──────────────────────────┘
+             │                               │
+             ▼                               ▼
+        ┌─────────────────────────────────────────────┐
+        │           shared/  (moveplus-shared)        │
+        │     enums · entities · DTOs · models        │
+        └─────────────────────────────────────────────┘</pre>
+    <p>
+      O pacote <code class="inline">shared</code> é importado por ambos os lados via
+      <code class="inline">"moveplus-shared": "file:../shared"</code> nos respetivos <code class="inline">package.json</code>.
+      Garante que os <em>enums</em> (<code class="inline">UserRole</code>, <code class="inline">MeasurementType</code>, ...) e os
+      <em>contracts</em> REST estão sempre sincronizados.
+    </p>
+  </section>
+
+  <!-- HIERARCHY -->
+  <section id="hierarchy">
+    <h2>4. Hierarquia de pastas</h2>
+    <pre>
+appMove-main/
+├── Makefile                 # Atalhos: dev / expo / db / shared / dist
+├── README.md                # Setup e documentação geral
+├── nixpacks.toml            # Build config Railway/Nixpacks
+├── railway.json             # Deploy Railway
+├── package.json             # Workspace raiz (ts-node, nodemon)
+│
+├── APP/                     # 📱 React Native + Expo
+│   ├── App.tsx              # Entry point — providers + AppNavigator
+│   ├── app.json             # Config Expo
+│   ├── babel.config.js      # module-resolver com aliases @src, @stores, ...
+│   ├── metro.config.js      # SVG transformer + .env
+│   ├── tsconfig.json        # Path aliases
+│   ├── android/ ios/        # Projetos nativos (Gradle, Xcode workspace)
+│   ├── assets/              # Fonts (Urbanist), icons, imagens
+│   ├── patches/             # patch-package: react-native-tab-view
+│   └── src/                 # ⬇ ver secção 5
+│
+├── SERVER/                  # 🖥  Node.js + Express + Prisma
+│   ├── nodemon.json
+│   ├── tsconfig.json
+│   ├── prisma/
+│   │   ├── schema.prisma    # 699 linhas, ~30 modelos
+│   │   ├── seed.ts          # Mock data
+│   │   └── migrations/
+│   └── src/                 # ⬇ ver secção 6
+│
+├── shared/                  # 📦 moveplus-shared (TypeScript puro)
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── src/
+│       ├── index.ts         # Barrel re-export de tudo
+│       ├── constants/       # Ex: feriados portugueses
+│       ├── entities/        # Tipos espelho do Prisma (+ users/)
+│       ├── enums/           # UserRole, MeasurementType, ...
+│       ├── models/          # baseUser, notifications
+│       └── rest/
+│           ├── requests/    # DTOs de entrada
+│           └── responses/   # DTOs de saída
+│
+├── all_app_move_bl/         # 🩺 Health-check Express minimal (root "API online!")
+├── public/                  # 🖼  Servido pelo backend
+│   ├── default/             # Avatares por defeito
+│   └── uploads/             # Uploads (fotos de lesões, avatares, feridas)
+└── Docs/                    # 📄 13 ficheiros markdown (arquitetura, deploys, features, ...)</pre>
+  </section>
+
+  <!-- APP -->
+  <section id="app">
+    <h2>5. Aplicação móvel — <code class="inline">APP/src</code></h2>
+    <p>Organizada por <strong>responsabilidade</strong> em vez de feature. Cada camada tem uma função bem definida:</p>
+
+    <table>
+      <thead><tr><th>Pasta</th><th>Responsabilidade</th><th>Ficheiros chave</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="k">api/</td>
+          <td>Cliente HTTP centralizado. <code class="inline">endpoints/</code> tem um ficheiro por recurso (auth, elderly, fallOccurrences, measurements, medications, notifications, ...).</td>
+          <td><code class="inline">utils.ts</code> (error mapping), <code class="inline">endpoints/auth.ts</code>, <code class="inline">endpoints/fallOccurrences.ts</code></td>
+        </tr>
+        <tr>
+          <td class="k">components/</td>
+          <td>UI reutilizável: cartões (Fall, SOS, Medication, Pathology, BMI), gráficos, inputs com label flutuante, modais (Unsaved, Incident, Conflict). Subpasta <code class="inline">forms/</code> com inputs partilhados e <code class="inline">screens/</code> com componentes "pesados" reaproveitados entre ecrãs.</td>
+          <td><code class="inline">FallOccurrenceCard.tsx</code>, <code class="inline">MeasurementChart.tsx</code>, <code class="inline">BodyLocationPicker.tsx</code>, <code class="inline">WoundTrackingComponent.tsx</code></td>
+        </tr>
+        <tr>
+          <td class="k">config/</td>
+          <td>Configurações estáticas da app (ex: <code class="inline">toastConfig.tsx</code>).</td>
+          <td><code class="inline">toastConfig.tsx</code></td>
+        </tr>
+        <tr>
+          <td class="k">constants/</td>
+          <td>Constantes globais (URLs, chaves, tempos).</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td class="k">hooks/</td>
+          <td>Hooks customizados.</td>
+          <td><code class="inline">useCustomBackButton.tsx</code>, <code class="inline">useDebounce.ts</code>, <code class="inline">useErrorHandler.tsx</code></td>
+        </tr>
+        <tr>
+          <td class="k">localization/</td>
+          <td>i18n com <code class="inline">i18next</code>. Recursos PT/EN em JSON.</td>
+          <td><code class="inline">index.ts</code>, <code class="inline">resources/en.json</code>, <code class="inline">resources/pt.json</code>, <code class="inline">hooks/</code></td>
+        </tr>
+        <tr>
+          <td class="k">navigation/</td>
+          <td>Vários <em>navigators</em> nativos/stack/tab. O <code class="inline">AppNavigator</code> escolhe o root conforme o <code class="inline">UserRole</code>.</td>
+          <td><code class="inline">AppNavigator.tsx</code>, <code class="inline">LoginNavigator.tsx</code>, <code class="inline">CaregiverRootNavigator.tsx</code>, <code class="inline">InstitutionAdminNavigator.tsx</code>, <code class="inline">ClinicianRootNavigator.tsx</code>, <code class="inline">ElderlyRootNavigator.tsx</code>, <code class="inline">ProgrammerRootNavigator.tsx</code></td>
+        </tr>
+        <tr>
+          <td class="k">providers/</td>
+          <td>React Context providers globais que envolvem a árvore em <code class="inline">App.tsx</code>.</td>
+          <td><code class="inline">AuthManager.tsx</code>, <code class="inline">NotificationProvider.tsx</code>, <code class="inline">ToastProvider.tsx</code></td>
+        </tr>
+        <tr>
+          <td class="k">screens/</td>
+          <td>Ecrãs agrupados por domínio (admin, authentication, caregiver, clinician, elderly, fallOccurrence, institution, invitation, measurements, medication, pathology, professional, programmer, sosOccurrence, user).</td>
+          <td><code class="inline">elderly/ElderlyDashboardScreen.tsx</code>, <code class="inline">institution/InstitutionDashboardScreen.tsx</code>, <code class="inline">fallOccurrence/FallOccurrenceScreen.tsx</code>, <code class="inline">authentication/LoginScreen.tsx</code>, <code class="inline">NotificationCenterScreen.tsx</code></td>
+        </tr>
+        <tr>
+          <td class="k">services/</td>
+          <td>Lógica não-UI: chamadas a APIs, persistência, navegação imperativa, deteção de quedas, push tokens, i18n bootstrap.</td>
+          <td><code class="inline">ApiService.ts</code>, <code class="inline">authService.ts</code>, <code class="inline">accelerometerService.ts</code>, <code class="inline">notificationService.ts</code>, <code class="inline">NavigationService.ts</code>, <code class="inline">AsyncStorageService.ts</code></td>
+        </tr>
+        <tr>
+          <td class="k">stores/</td>
+          <td>Stores Zustand (estado global). Um por domínio para evitar re-renders desnecessários.</td>
+          <td><code class="inline">authStore.ts</code>, <code class="inline">elderlyDashboardStore.ts</code>, <code class="inline">institutionDashboardStore.ts</code>, <code class="inline">institutionMembersStore.ts</code>, <code class="inline">institutionTimelineStore.ts</code>, <code class="inline">incidentConfirmationStore.ts</code>, <code class="inline">userSettingsStore.ts</code></td>
+        </tr>
+        <tr>
+          <td class="k">styles/</td>
+          <td>Design tokens (cores, espaçamentos, sombras, bordas, fonts).</td>
+          <td><code class="inline">colors.ts</code>, <code class="inline">spacings.ts</code>, <code class="inline">fonts.ts</code></td>
+        </tr>
+        <tr>
+          <td class="k">types/</td>
+          <td>Tipos locais e ambient declarations (.d.ts para fontes, SVG, imagens), tipos de navegação.</td>
+          <td><code class="inline">navigation.ts</code>, <code class="inline">authTypes.ts</code>, <code class="inline">api.ts</code>, <code class="inline">svg.d.ts</code></td>
+        </tr>
+        <tr>
+          <td class="k">utils/</td>
+          <td>Helpers puros: datas, cálculo de risco de queda, sistema de cores clínico, helpers de avatar, traduções de notificações.</td>
+          <td><code class="inline">fallRiskCalculator.ts</code>, <code class="inline">healthColorSystem.ts</code>, <code class="inline">measurementHelper.ts</code>, <code class="inline">notificationTranslation.ts</code>, <code class="inline">timelineActivityHelper.ts</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Entry point — <code class="inline">App.tsx</code></h3>
+    <p>Carrega fontes Urbanist via <code class="inline">expo-font</code> e monta a hierarquia de providers:</p>
+    <pre>&lt;ToastProvider&gt;
+  &lt;AuthManager&gt;
+    &lt;NotificationProvider&gt;
+      &lt;GestureHandlerRootView&gt;
+        &lt;AppNavigator /&gt;     {/* escolhe stack por UserRole */}
+        &lt;Toast /&gt;
+      &lt;/GestureHandlerRootView&gt;
+    &lt;/NotificationProvider&gt;
+  &lt;/AuthManager&gt;
+&lt;/ToastProvider&gt;</pre>
+  </section>
+
+  <!-- SERVER -->
+  <section id="server">
+    <h2>6. Backend — <code class="inline">SERVER/src</code></h2>
+    <p>O servidor segue um padrão <strong>module-per-feature</strong>. Cada <em>module</em> tem o seu
+       <code class="inline">*Routes.ts</code> + <code class="inline">*Controller.ts</code>, registado em <code class="inline">apiRoutes.ts</code>.</p>
+
+    <table>
+      <thead><tr><th>Ficheiro / Pasta</th><th>Função</th></tr></thead>
+      <tbody>
+        <tr><td class="k">server.ts</td><td>Bootstraps Express (JSON, cookies, logging), monta <code class="inline">/api/external-access</code> (não autenticado) e <code class="inline">/api</code>, serve <code class="inline">/uploads</code> e <code class="inline">/default</code> estáticos, arranca <code class="inline">TokenCleanupService</code> periódico.</td></tr>
+        <tr><td class="k">apiRoutes.ts</td><td>Composição de todas as rotas. Algumas autenticadas no nível do router (<code class="inline">elderly</code>, <code class="inline">medications</code>, <code class="inline">measurements</code>, <code class="inline">pathologies</code>, <code class="inline">notifications</code>, <code class="inline">invitations</code>, <code class="inline">sos-occurrences</code>).</td></tr>
+        <tr><td class="k">prisma.ts</td><td>Singleton do Prisma Client.</td></tr>
+        <tr><td class="k">db.ts</td><td>Legacy Sequelize (referenciado mas Prisma é a fonte de verdade).</td></tr>
+        <tr><td class="k">middleware/authMiddleware.ts</td><td>Verifica JWT, anexa <code class="inline">req.user</code>. Suporta refresh via cookie.</td></tr>
+        <tr><td class="k">middleware/logMiddleware.ts</td><td>Log de request (modo dev).</td></tr>
+        <tr><td class="k">middleware/uploadMiddleware.ts</td><td>Multer para fotos (lesões/avatares/feridas).</td></tr>
+        <tr><td class="k">services/emailService.ts</td><td>Envio de emails (nodemailer) — reset password, convites.</td></tr>
+        <tr><td class="k">services/notificationService.ts</td><td>Envio de push via <code class="inline">expo-server-sdk</code> em <em>chunks</em>, validação de tokens, gestão de receipts.</td></tr>
+        <tr><td class="k">services/refreshTokenService.ts</td><td>Emissão/rotação/revogação de refresh tokens (tabela <code class="inline">RefreshToken</code>).</td></tr>
+        <tr><td class="k">services/tokenCleanupService.ts</td><td>Job periódico (24h) que remove tokens expirados.</td></tr>
+        <tr><td class="k">services/timelineService.ts</td><td>Cria entradas em <code class="inline">TimelineActivity</code> para auditoria.</td></tr>
+        <tr><td class="k">utils/apiResponse.ts</td><td>Wrappers <code class="inline">sendSuccess / sendError / sendInputValidationError</code>.</td></tr>
+        <tr><td class="k">utils/generateToken.ts / verifyToken.ts</td><td>JWT helpers.</td></tr>
+        <tr><td class="k">utils/notificationHelpers.ts</td><td>Funções <em>high-level</em> (ex: <code class="inline">notifyFallOccurrence</code>) que combinam DB + serviço de push.</td></tr>
+        <tr><td class="k">utils/defaultAvatarHelper.ts</td><td>Lógica de fallback para avatar.</td></tr>
+        <tr><td class="k">modules/</td><td>23 módulos (ver lista abaixo).</td></tr>
+        <tr><td class="k">constants/, localization/</td><td>Strings e configuração de idioma do servidor (para emails / notificações traduzidas).</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Módulos REST</h3>
+    <p>Cada um expõe um <em>controller</em> e regista as suas rotas:</p>
+    <pre>
+modules/
+├── auth/                  /api/auth          login, register, refresh, logout, forgot/reset password
+│   └── register/          handlers específicos de registo
+├── avatar/                /api/avatar        upload e leitura de avatares
+├── calendarEvent/         /api/calendar-events
+├── caregiver/             /api/caregivers
+├── clinician/             /api/clinicians
+├── dataAccessRequest/     (pasta presente, usada por workflow de clínicos externos)
+├── elderly/               /api/elderly       (autenticado)
+├── elderlyAbsence/        /api/elderly-absences
+├── externalAccess/        /api/external-access  (rota pública, token-based)
+├── externalProfessional/  /api/external-professionals
+├── fallOccurrence/        /api/fall-occurrences
+├── institutionAdmins/     /api/institution-admins
+├── institutions/          /api/institutions
+├── invitation/            /api/invitations
+├── measurements/          /api/measurements
+├── medication/            /api/medications
+├── notifications/         /api/notifications  (register-token, send, broadcast, test)
+├── pathology/             /api/pathologies
+├── programmer/            /api/programmers
+├── sosOccurrence/         /api/sos-occurrences
+├── staffSchedule/         /api/staff-schedules
+├── timeline/              /api/timeline
+├── timeOff/               /api/time-off
+└── woundTracking/         /api/wound-tracking</pre>
+  </section>
+
+  <!-- SHARED -->
+  <section id="shared">
+    <h2>7. Pacote partilhado — <code class="inline">shared/src</code></h2>
+    <p>Exporta tudo via <code class="inline">index.ts</code> (barrel). Está dividido em:</p>
+    <table>
+      <thead><tr><th>Subpasta</th><th>Conteúdo</th></tr></thead>
+      <tbody>
+        <tr><td class="k">enums/</td><td><code class="inline">UserRole</code>, <code class="inline">Gender</code>, <code class="inline">MeasurementType</code>, <code class="inline">MeasurementUnit</code>, <code class="inline">MeasurementStatus</code>, <code class="inline">MedicationStatus</code>, <code class="inline">PathologyStatus</code>, <code class="inline">ActivityType</code>, <code class="inline">CalendarEventType</code>, <code class="inline">TimeOffType / Status</code>, <code class="inline">BodyLocation</code></td></tr>
+        <tr><td class="k">entities/</td><td>Tipos espelho da BD (Address, Institution, FallOccurrence, SosOccurrence, FallDetection, FallRisk, Medication, Pathology, Measurement, CalendarEvent, Assessment, Device, Session, ActivityLog, ExternalProfessional, TimelineActivity, Schedule, e <code class="inline">users/</code> com Caregiver, Clinician, Elderly, InstitutionAdmin, ExternalPersonnel, Programmer, AppUser, BaseUser, InstitutionMember)</td></tr>
+        <tr><td class="k">models/</td><td><code class="inline">baseUser.ts</code>, <code class="inline">notifications.ts</code> (tipos <code class="inline">NotificationType</code>, <code class="inline">NotificationData</code>, <code class="inline">FallOccurrenceNotificationData</code>, etc.)</td></tr>
+        <tr><td class="k">rest/requests/</td><td>DTOs Zod-validados — Create/Update para Fall, Sos, Medication, Measurement, Pathology, Elderly, Caregiver, Clinician, Institution, CalendarEvent, Invitation, PasswordReset, Schedule, UserSettings, CompleteProfile</td></tr>
+        <tr><td class="k">rest/responses/</td><td><code class="inline">ApiResponse</code>, <code class="inline">LoginResponse</code>, <code class="inline">RegistrationResponse</code>, <code class="inline">SearchElderlyResponse</code>, respostas de convite</td></tr>
+        <tr><td class="k">constants/</td><td><code class="inline">portugueseHolidays</code></td></tr>
+      </tbody>
+    </table>
+    <p>Build via <code class="inline">make shared</code> (<code class="inline">tsc</code>) e instalado nos outros pacotes com <code class="inline">"moveplus-shared": "file:../shared"</code>.</p>
+  </section>
+
+  <!-- DB -->
+  <section id="db">
+    <h2>8. Modelo de dados (Prisma · PostgreSQL)</h2>
+    <p>Total: 699 linhas, com ~30 modelos e 12 enums. Resumo dos blocos:</p>
+
+    <div class="grid">
+      <div class="card">
+        <h4>👤 Identidade</h4>
+        <p><strong>User</strong> central (username, email, password, role, avatarUrl, <em>pushToken</em>, password reset). Liga-se a 1-1 com <strong>Elderly · Caregiver · Clinician · InstitutionAdmin · Programmer · ExternalPersonnel</strong>. Sessões longas via <strong>RefreshToken</strong>.</p>
+      </div>
+      <div class="card">
+        <h4>🏢 Instituição</h4>
+        <p><strong>Institution</strong> agrupa idosos e staff. <strong>Invitation</strong> permite onboarding por token (PENDING → ACCEPTED / PROFILE_INCOMPLETE / EXPIRED / CANCELLED).</p>
+      </div>
+      <div class="card">
+        <h4>🚨 Quedas e SOS</h4>
+        <p><strong>FallDetection</strong> (deteção bruta do sensor) → <strong>FallOccurrence</strong> (ocorrência tratada com lesões, fotos, falso alarme, medidas tomadas). <strong>SosOccurrence</strong> manual, com possibilidade de marcar <em>wasActualFall</em>. <strong>FallRisk</strong> com score temporal.</p>
+      </div>
+      <div class="card">
+        <h4>💊 Saúde</h4>
+        <p><strong>Medication</strong>, <strong>Pathology</strong>, <strong>Measurement</strong> (11 tipos clínicos com unidade e status colorido), <strong>Assessment</strong>, <strong>Device</strong> e <strong>Session</strong> de dispositivos.</p>
+      </div>
+      <div class="card">
+        <h4>🩹 WoundTracking</h4>
+        <p>Histórico em árvore (<em>parentTrackingId</em>) de feridas associadas a quedas/SOS ou independentes, com fotos e localizações corporais.</p>
+      </div>
+      <div class="card">
+        <h4>📅 Agenda</h4>
+        <p><strong>CalendarEvent</strong> com tipos (Appointment, Physiotherapy, NursingCare, Bath, Meal, Activity, Other). <strong>StaffWorkSchedule</strong> (slots por dia) e <strong>StaffTimeOff</strong> (férias/folga/baixa). <strong>ElderlyAbsence</strong> para ausências de residentes.</p>
+      </div>
+      <div class="card">
+        <h4>🔑 Acesso externo</h4>
+        <p><strong>ExternalProfessional</strong> (sem conta), <strong>ExternalAccessToken</strong> (16-hex, 24h) e <strong>ExternalVisitNote</strong> (observações pós-visita) — permite consultas sem registo.</p>
+      </div>
+      <div class="card">
+        <h4>🔔 Notificações</h4>
+        <p><strong>Notification</strong> persiste em BD (type, title, body, JSON data, read) com índices por user e <em>read</em>. <strong>TimelineActivity</strong> regista o audit-trail por instituição.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROLES -->
+  <section id="roles">
+    <h2>9. Perfis de utilizador</h2>
+    <p>O <code class="inline">UserRole</code> determina o <em>navigator</em> raiz (em <code class="inline">AppNavigator.tsx</code>) e as permissões no backend.</p>
+    <div class="role-grid">
+      <div class="role">
+        <h4>ELDERLY <span class="badge">📱 paciente</span></h4>
+        <ul class="bullets">
+          <li>Auto-monitorização de saúde</li>
+          <li>SOS manual</li>
+          <li>Deteção automática de quedas em background</li>
+          <li>Calendário pessoal</li>
+        </ul>
+      </div>
+      <div class="role">
+        <h4>CAREGIVER <span class="badge">cuidador</span></h4>
+        <ul class="bullets">
+          <li>Gestão diária dos residentes</li>
+          <li>Adicionar medições/medicamentos/patologias</li>
+          <li>Tratar quedas e SOS</li>
+          <li>Horário próprio + pedidos de folga</li>
+        </ul>
+      </div>
+      <div class="role">
+        <h4>INSTITUTION_ADMIN <span class="badge">admin</span></h4>
+        <ul class="bullets">
+          <li>Visibilidade total da instituição</li>
+          <li>Convites de novos membros</li>
+          <li>Aprovação/rejeição de folgas</li>
+          <li>Calendário e agenda da equipa</li>
+        </ul>
+      </div>
+      <div class="role">
+        <h4>CLINICIAN <span class="badge">clínico</span></h4>
+        <ul class="bullets">
+          <li>Pesquisa de idosos</li>
+          <li>Pedidos de acesso a dados</li>
+          <li>Avaliações clínicas</li>
+        </ul>
+      </div>
+      <div class="role">
+        <h4>PROGRAMMER <span class="badge">sistema</span></h4>
+        <ul class="bullets">
+          <li>Manutenção / debug</li>
+          <li>Acesso a homepage interna</li>
+        </ul>
+      </div>
+      <div class="role">
+        <h4>External (sem conta) <span class="badge">token</span></h4>
+        <ul class="bullets">
+          <li><em>Não</em> é um UserRole</li>
+          <li>Acede via token expirável a perfis específicos</li>
+          <li>Submete notas pós-visita</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <h2>10. Features principais e como se ligam pelos ficheiros</h2>
+    <p>Cada feature atravessa tipicamente: <span class="arrow">UI (screen + components)</span> →
+       <span class="arrow">store (Zustand)</span> → <span class="arrow">api/endpoints</span> →
+       <span class="arrow">ApiService (axios)</span> → <span class="arrow">SERVER routes/controller</span> →
+       <span class="arrow">Prisma</span> → <span class="arrow">timeline + push notification</span>.</p>
+
+    <details open>
+      <summary>🔐 Autenticação · refresh tokens · forgot password</summary>
+      <div style="padding-top: 8px;">
+        <table>
+          <thead><tr><th>Camada</th><th>Ficheiros</th></tr></thead>
+          <tbody>
+            <tr><td>UI</td><td><span class="file">APP/src/screens/authentication/LoginScreen.tsx</span>, <span class="file">RegisterScreen.tsx</span>, <span class="file">ForgotPassword.tsx</span>, <span class="file">CreateNewPassword.tsx</span>, <span class="file">CompleteProfileScreen.tsx</span></td></tr>
+            <tr><td>State</td><td><span class="file">APP/src/stores/authStore.ts</span> (Zustand)</td></tr>
+            <tr><td>Provider</td><td><span class="file">APP/src/providers/AuthManager.tsx</span> — hidrata do AsyncStorage no boot</td></tr>
+            <tr><td>Services</td><td><span class="file">APP/src/services/authService.ts</span>, <span class="file">ApiService.ts</span> (interceptor 401 → refresh), <span class="file">AsyncStorageService.ts</span></td></tr>
+            <tr><td>API client</td><td><span class="file">APP/src/api/endpoints/auth.ts</span></td></tr>
+            <tr><td>Servidor</td><td><span class="file">SERVER/src/modules/auth/authRoutes.ts</span> + <span class="file">authController.ts</span>, <span class="file">modules/auth/register/</span>, <span class="file">middleware/authMiddleware.ts</span></td></tr>
+            <tr><td>Persistência</td><td><span class="file">SERVER/src/services/refreshTokenService.ts</span>, <span class="file">tokenCleanupService.ts</span>, tabelas <code class="inline">User</code> + <code class="inline">RefreshToken</code></td></tr>
+            <tr><td>Email</td><td><span class="file">SERVER/src/services/emailService.ts</span> (reset password)</td></tr>
+            <tr><td>Side effects</td><td>Ao login como ELDERLY → <code class="inline">startFallDetection()</code>. Ao logout → <code class="inline">stopFallDetection()</code> + remover push token.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details>
+      <summary>🚨 Deteção automática de quedas (acelerómetro)</summary>
+      <div style="padding-top: 8px;">
+        <p>Algoritmo: pico &gt; <strong>2.5g</strong> seguido de <strong>3s de imobilidade</strong>. Em paralelo, se ficar inativo por <strong>2h</strong> também alerta. Corre em <em>foreground</em> via <code class="inline">Accelerometer.addListener</code> e tem suporte a <em>background</em> com <code class="inline">expo-task-manager</code> + <code class="inline">expo-background-fetch</code>.</p>
+        <table>
+          <thead><tr><th>Camada</th><th>Ficheiros</th></tr></thead>
+          <tbody>
+            <tr><td>Sensor</td><td><span class="file">APP/src/services/accelerometerService.ts</span></td></tr>
+            <tr><td>UI confirmação</td><td><span class="file">APP/src/components/IncidentConfirmationModal.tsx</span> (countdown 30s)</td></tr>
+            <tr><td>State</td><td><span class="file">APP/src/stores/incidentConfirmationStore.ts</span></td></tr>
+            <tr><td>API</td><td><span class="file">APP/src/api/endpoints/fallOccurrences.ts</span></td></tr>
+            <tr><td>Servidor</td><td><span class="file">SERVER/src/modules/fallOccurrence/fallOccurrenceController.ts</span> → cria <code class="inline">FallOccurrence</code> + chama <code class="inline">notifyFallOccurrence()</code></td></tr>
+            <tr><td>Notificação</td><td><span class="file">SERVER/src/utils/notificationHelpers.ts</span> → <span class="file">services/notificationService.ts</span> → Expo Push</td></tr>
+            <tr><td>UI no Admin</td><td><span class="file">APP/src/components/FallOccurrenceCard.tsx</span>, <span class="file">screens/fallOccurrence/FallOccurrenceScreen.tsx</span>, <span class="file">components/screens/HandleFallOccurrenceComponent.tsx</span></td></tr>
+            <tr><td>Risco / helpers</td><td><span class="file">APP/src/utils/fallRiskCalculator.ts</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details>
+      <summary>🆘 SOS manual</summary>
+      <div style="padding-top: 8px;">
+        Botão no <span class="file">ElderlyDashboardScreen.tsx</span> → <span class="file">api/endpoints/sosOccurrences.ts</span> → <span class="file">SERVER/src/modules/sosOccurrence/</span>.
+        Renderização e tratamento em <span class="file">SosOccurrenceCard.tsx</span> + <span class="file">screens/sosOccurrence/SosOccurrenceScreen.tsx</span> + <span class="file">components/screens/HandleSosOccurrenceComponent.tsx</span>. Push notification ao admin idêntica ao fluxo de queda.
+      </div>
+    </details>
+
+    <details>
+      <summary>🔔 Push notifications + Notification Center</summary>
+      <div style="padding-top: 8px;">
+        <table>
+          <thead><tr><th>Camada</th><th>Ficheiros</th></tr></thead>
+          <tbody>
+            <tr><td>Registo do token</td><td><span class="file">APP/src/providers/NotificationProvider.tsx</span> + <span class="file">services/notificationService.ts</span> → <code class="inline">POST /api/notifications/register-token</code></td></tr>
+            <tr><td>Persistência</td><td>Campo <code class="inline">User.pushToken</code> (Prisma)</td></tr>
+            <tr><td>Envio</td><td><span class="file">SERVER/src/services/notificationService.ts</span> (chunks ≤100, validação Expo tokens, receipts)</td></tr>
+            <tr><td>Helpers</td><td><span class="file">SERVER/src/utils/notificationHelpers.ts</span> — <code class="inline">notifyFallOccurrence</code>, <code class="inline">notifySos</code>, <code class="inline">notifyDataAccessRequest</code>, ...</td></tr>
+            <tr><td>Tipos partilhados</td><td><span class="file">shared/src/models/notifications.ts</span> (<code class="inline">NotificationType</code>, <code class="inline">FallOccurrenceNotificationData</code>, ...)</td></tr>
+            <tr><td>Centro</td><td><span class="file">APP/src/screens/NotificationCenterScreen.tsx</span>, <span class="file">components/NotificationBellButton.tsx</span></td></tr>
+            <tr><td>Navegação</td><td><span class="file">NotificationProvider</span> escuta resposta e dispatcha <code class="inline">CommonActions.navigate</code> via <span class="file">NavigationService.ts</span></td></tr>
+            <tr><td>i18n</td><td><span class="file">APP/src/utils/notificationTranslation.ts</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details>
+      <summary>💊 Medicação, patologia, medições</summary>
+      <div style="padding-top: 8px;">
+        Trio simétrico no APP e no SERVER:
+        <ul class="bullets">
+          <li>Screens: <span class="file">medication/AddMedicationScreen.tsx</span>, <span class="file">EditMedicationScreen.tsx</span>, <span class="file">MedicationDetailsScreen.tsx</span>; <span class="file">measurements/AddMeasurementScreen.tsx</span> + <span class="file">MeasurementDetailsScreen.tsx</span>; <span class="file">pathology/PathologyDetailsScreen.tsx</span> + <span class="file">EditPathologyScreen.tsx</span></li>
+          <li>Componentes: <span class="file">MedicationCard.tsx</span>, <span class="file">MeasurementChart.tsx</span>, <span class="file">MeasurementStatusBadge.tsx</span>, <span class="file">MeasurementConflictModal.tsx</span>, <span class="file">BmiCardComponent.tsx</span>, <span class="file">PathologyCard.tsx</span></li>
+          <li>Lógica clínica: <span class="file">utils/measurementHelper.ts</span>, <span class="file">utils/healthColorSystem.ts</span> (escalas verde/amarelo/laranja/vermelho)</li>
+          <li>API: <span class="file">api/endpoints/medications.ts</span>, <span class="file">measurements.ts</span>, <span class="file">pathologies.ts</span></li>
+          <li>Servidor: módulos <span class="file">medication/</span>, <span class="file">measurements/</span>, <span class="file">pathology/</span> + entradas em <code class="inline">TimelineActivity</code> via <span class="file">services/timelineService.ts</span></li>
+        </ul>
+      </div>
+    </details>
+
+    <details>
+      <summary>🩹 Wound tracking</summary>
+      <div style="padding-top: 8px;">
+        <span class="file">components/WoundTrackingComponent.tsx</span>, <span class="file">WoundOverviewWidget.tsx</span>, <span class="file">BodyLocationPicker.tsx</span> (40+ zonas anatómicas via SVG) →
+        <span class="file">api/endpoints/woundTracking.ts</span> → <span class="file">SERVER/src/modules/woundTracking/</span>. Suporta histórico em árvore via <code class="inline">parentTrackingId</code>.
+        Upload de fotos via <span class="file">middleware/uploadMiddleware.ts</span> (Multer).
+      </div>
+    </details>
+
+    <details>
+      <summary>📅 Calendário + agenda da equipa</summary>
+      <div style="padding-top: 8px;">
+        <ul class="bullets">
+          <li>Eventos por idoso: <span class="file">elderly/ElderlyCalendarScreen.tsx</span>, <span class="file">elderly/AddCalendarEventScreen.tsx</span>, <span class="file">components/CalendarEventCard.tsx</span></li>
+          <li>Profissional externo: <span class="file">institution/ExternalProfessionalsManagementScreen.tsx</span> + módulo <span class="file">externalProfessional/</span></li>
+          <li>Agenda pessoal: <span class="file">professional/ProfessionalCalendarScreen.tsx</span>, <span class="file">AdminTeamSchedulesScreen.tsx</span>, <span class="file">StaffScheduleManagementScreen.tsx</span></li>
+          <li>Folgas/férias: módulos <span class="file">timeOff/</span> + <span class="file">elderlyAbsence/</span></li>
+          <li>Workflow externo: <span class="file">modules/externalAccess/externalAccessController.ts</span> gera token de 24h por evento (<code class="inline">ExternalAccessToken</code>) e regista observações em <code class="inline">ExternalVisitNote</code>.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details>
+      <summary>✉️ Convites e onboarding</summary>
+      <div style="padding-top: 8px;">
+        <span class="file">institution/InstitutionMembersScreen.tsx</span> +
+        <span class="file">invitation/GenerateInvitationScreen.tsx</span> +
+        <span class="file">invitation/InstitutionInvitationsScreen.tsx</span> →
+        <span class="file">api/endpoints/invitations.ts</span> →
+        <span class="file">SERVER/src/modules/invitation/</span>.
+        O fluxo cobre estados <code class="inline">PENDING → ACCEPTED / PROFILE_INCOMPLETE / EXPIRED / CANCELLED</code>
+        e usa o <code class="inline">InvitationRegistrationScreen.tsx</code> + <code class="inline">CompleteProfileScreen.tsx</code> do lado do convidado.
+      </div>
+    </details>
+
+    <details>
+      <summary>📊 Timeline da instituição</summary>
+      <div style="padding-top: 8px;">
+        Cada ação relevante (queda, medição, medicamento, patologia, user, evento) gera uma <code class="inline">TimelineActivity</code> via <span class="file">SERVER/src/services/timelineService.ts</span>.
+        Consumida em <span class="file">screens/institution/InstitutionTimelineScreen.tsx</span> + <span class="file">stores/institutionTimelineStore.ts</span> +
+        helpers de UI em <span class="file">utils/timelineActivityHelper.ts</span> e <span class="file">components/TimelineActivityCard.tsx</span>.
+      </div>
+    </details>
+
+    <details>
+      <summary>📄 Exportação PDF de ocorrências</summary>
+      <div style="padding-top: 8px;">
+        <code class="inline">expo-print</code> é usado nos ecrãs de detalhe (<span class="file">components/screens/FallOccurrenceDetailsComponent.tsx</span>, <span class="file">SosOccurrenceDetailsComponent.tsx</span>) para gerar relatórios com cabeçalho gradiente, cartões e linha do tempo de medidas tomadas.
+      </div>
+    </details>
+
+    <details>
+      <summary>🌐 i18n (PT / EN em runtime)</summary>
+      <div style="padding-top: 8px;">
+        <span class="file">APP/src/localization/index.ts</span> inicializa <code class="inline">i18next</code> com recursos JSON (<span class="file">en.json</span>, <span class="file">pt.json</span>).
+        Hooks em <span class="file">localization/hooks/</span>. Componente <span class="file">LanguageSwitcher.tsx</span> permite trocar em tempo real.
+        Strings de notificação são traduzidas em ambos os lados via <span class="file">notificationTranslation.ts</span>.
+      </div>
+    </details>
+  </section>
+
+  <!-- FLOWS -->
+  <section id="flows">
+    <h2>11. Fluxos chave end-to-end</h2>
+
+    <h3>11.1 Login (com refresh)</h3>
+    <div class="flow">
+      <ol>
+        <li><span class="tag">UI</span> <span class="file">LoginScreen.tsx</span> chama <code class="inline">useAuthStore.login()</code></li>
+        <li><span class="tag">store</span> <span class="file">authStore.ts</span> → <code class="inline">authService.login()</code></li>
+        <li><span class="tag">http</span> <span class="file">ApiService.ts</span> faz <code class="inline">POST /api/auth/login</code> (refresh token vem em <em>httpOnly cookie</em>)</li>
+        <li><span class="tag">api</span> <span class="file">authController.ts</span> valida credenciais → emite JWT + refresh + grava em <code class="inline">RefreshToken</code></li>
+        <li><span class="tag">store</span> guarda <code class="inline">user</code> e <code class="inline">config</code>; persiste no AsyncStorage</li>
+        <li><span class="tag">side</span> Se role = ELDERLY → <code class="inline">startFallDetection()</code></li>
+        <li><span class="tag">push</span> <span class="file">NotificationProvider</span> regista token Expo → <code class="inline">POST /api/notifications/register-token</code></li>
+        <li><span class="tag">nav</span> <span class="file">AppNavigator</span> deteta novo <code class="inline">role</code> e troca o root navigator</li>
+      </ol>
+    </div>
+
+    <h3>11.2 Queda detetada automaticamente</h3>
+    <div class="flow">
+      <ol>
+        <li><span class="tag">📱 idoso</span> Acelerómetro lê magnitude &gt; 2.5g (<span class="file">accelerometerService.ts</span>)</li>
+        <li>Aguarda 3s de imobilidade → confirma deteção</li>
+        <li>Abre <span class="file">IncidentConfirmationModal</span> com countdown 30s (<span class="file">incidentConfirmationStore.ts</span>)</li>
+        <li>"Preciso de Ajuda" (ou timeout) → <code class="inline">POST /api/fall-occurrences</code></li>
+        <li><span class="tag">api</span> <span class="file">fallOccurrenceController.ts</span> cria registo Prisma</li>
+        <li>Cria <code class="inline">TimelineActivity</code> via <span class="file">timelineService.ts</span></li>
+        <li>Procura admins/cuidadores da instituição → <code class="inline">notifyFallOccurrence()</code></li>
+        <li><span class="file">notificationService.ts</span> envia push via <code class="inline">expo-server-sdk</code> (chunks ≤100)</li>
+        <li><span class="tag">📱 admin</span> Recebe notificação. Toque → <span class="file">NotificationProvider</span> faz <code class="inline">navigationRef.dispatch</code> para <span class="file">FallOccurrenceScreen</span></li>
+        <li>Admin trata, faz upload de foto de lesão (<span class="file">uploadMiddleware.ts</span>), exporta PDF</li>
+      </ol>
+    </div>
+
+    <h3>11.3 Acesso externo (sem conta)</h3>
+    <div class="flow">
+      <ol>
+        <li>Admin cria <code class="inline">CalendarEvent</code> com <code class="inline">externalProfessionalId</code></li>
+        <li>Chama <code class="inline">POST /api/external-access/generate</code> (autenticado)</li>
+        <li><span class="file">externalAccessController.ts</span> gera token hex 16 chars (24h validade), grava em <code class="inline">ExternalAccessToken</code></li>
+        <li>Token enviado por email/SMS (fora da app)</li>
+        <li>Profissional externo acede via <code class="inline">/api/external-access</code> <strong>sem autenticação</strong> (rota montada antes do <code class="inline">/api</code> protegido em <span class="file">server.ts</span>)</li>
+        <li>Vê ficha do idoso → submete <code class="inline">ExternalVisitNote</code></li>
+        <li><span class="file">ExternalElderlyProfileScreen.tsx</span> e <span class="file">ExternalAccessScreen.tsx</span> renderizam a vista limitada</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- EXTRAS -->
+  <section id="extras">
+    <h2>12. Notas adicionais e observações</h2>
+    <ul class="bullets">
+      <li><strong>Pasta <code class="inline">all_app_move_bl/</code></strong>: contém um único <code class="inline">index.js</code> com Express minimal que responde <em>"API online!"</em> — provavelmente um worker de health-check ou template para Railway. Possível candidato a limpeza.</li>
+      <li><strong>Pasta <code class="inline">SERVER/src/modules/dataAccessRequest/</code></strong>: existe mas estava vazia na inspeção — feature de pedidos de acesso a dados clínicos pode estar a ser migrada / a viver no módulo de notificações ou externalAccess. Vale confirmar.</li>
+      <li><strong><code class="inline">SERVER/src/db.ts</code></strong>: legacy Sequelize, mas o resto do código usa Prisma. Pode ser removido se não houver dependências.</li>
+      <li><strong>Path aliases</strong>: configurados via <code class="inline">babel-plugin-module-resolver</code> em <span class="file">APP/babel.config.js</span> + <span class="file">tsconfig.json</span>. Convenção <code class="inline">@src</code>, <code class="inline">@navigation</code>, <code class="inline">@stores</code>, <code class="inline">@services</code>, <code class="inline">@styles</code>, <code class="inline">@providers</code>.</li>
+      <li><strong>Patches</strong>: <code class="inline">patch-package</code> aplica <span class="file">APP/patches/react-native-tab-view+3.5.2.patch</span> via <em>postinstall</em>.</li>
+      <li><strong>Deploy</strong>: <span class="file">railway.json</span> + <span class="file">nixpacks.toml</span> apontam para o servidor; uploads em <code class="inline">public/uploads/</code> devem ser substituídos por storage externo em produção.</li>
+      <li><strong>Segurança</strong>: passwords com bcrypt, JWT + refresh em cookie httpOnly, tokens externos de curta duração (24h), <code class="inline">TokenCleanupService</code> a correr a cada 24h, password reset com expiry em BD.</li>
+      <li><strong>Documentação</strong>: a pasta <code class="inline">Docs/</code> tem 13 markdowns valiosos — <span class="file">ARCHITECTURE.md</span>, <span class="file">PRESENTATION.md</span>, <span class="file">PUSH_NOTIFICATIONS_GUIDE.md</span>, <span class="file">FALL_DETECTION_README.md</span>, <span class="file">EMAIL_LOGIN_MIGRATION.md</span>, <span class="file">FORGOT_PASSWORD_AND_INVITATIONS.md</span>, etc. Servem como fonte primária para onboarding técnico.</li>
+      <li><strong>Pontos fortes</strong>: separação clara monorepo, contratos REST tipados, stores Zustand por domínio (sem prop drilling), audit-trail completo na timeline, suporte multi-idioma, deteção em background, fluxos sem conta para profissionais externos.</li>
+      <li><strong>Pontos a vigiar</strong>: tamanho do <code class="inline">schema.prisma</code> (~700 linhas) — eventual separação por domínio; <code class="inline">screens/authentication</code> mistura <code class="inline">.tsx</code> e <code class="inline">.js</code> legados (<span class="file">WelcomeScreen.js</span>, <span class="file">OTPVerification.js</span>, <span class="file">PasswordChanged.js</span>) — bons candidatos a migração para TS.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Análise gerada a partir da inspeção direta do repositório <code class="inline">C:\projetos\appMove-main</code>.
+    <br />
+    Cobertura: APP (206 ficheiros) · SERVER (70) · shared (74) · 13 documentos em <code class="inline">Docs/</code> · schema Prisma de 699 linhas.
+  </footer>
+
+</main>
+</body>
+</html>

@@ -1047,5 +1047,14 @@
     "externalPhonePlaceholder": "Phone number",
     "assignedTo": "Responsible",
     "unavailableTimeOff": "(Unavailable)"
+  },
+  "helpChat": {
+    "sectionTitle": "Help",
+    "title": "App Assistant",
+    "welcome": "Hi! I am the app assistant. I can help explain how features work, find menu options and answer frequent questions. I do not have access to elderly clinical data.",
+    "inputPlaceholder": "Type your question...",
+    "suggestionsTitle": "Suggestions",
+    "errorGeneric": "I couldn't answer right now. Please try again in a moment.",
+    "privacyNote": "App help only. No access to patient data."
   }
 }

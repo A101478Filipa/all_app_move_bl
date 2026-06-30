@@ -182,6 +182,10 @@ const UserMenuScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('ExternalProfessionalsManagement');
   }
 
+  const onHelpChat = () => {
+    navigation.navigate('HelpChat');
+  }
+
   const isCaregiver = user?.user.role === UserRole.CAREGIVER;
   const isAdmin = user?.user.role === UserRole.INSTITUTION_ADMIN;
   const isElderly = user?.user.role === UserRole.ELDERLY;
@@ -265,6 +269,18 @@ const UserMenuScreen: React.FC<Props> = ({ navigation }) => {
               hasNavigation={true}
               isLast={true}
               badge={unreadCount}
+            />
+          </MenuSection>
+
+          {/* Help Section */}
+          <MenuSection title={t('helpChat.sectionTitle')}>
+            <MenuOption
+              iconName="chat"
+              iconColor={Color.primary}
+              title={t('helpChat.title')}
+              onPress={onHelpChat}
+              hasNavigation={true}
+              isLast={true}
             />
           </MenuSection>
 
