@@ -19,6 +19,8 @@ import ElderlyFallsListScreen from "@src/screens/elderly/ElderlyFallsListScreen"
 import ElderlySOSListScreen from "@src/screens/elderly/ElderlySOSListScreen";
 import ElderlyWoundTrackingScreen from "@src/screens/elderly/ElderlyWoundTrackingScreen";
 import MedicationDetailsScreen from "@src/screens/medication/MedicationDetailsScreen";
+import PathologyDetailsScreen from "@src/screens/pathology/PathologyDetailsScreen";
+import EditPathologyScreen from "@src/screens/pathology/EditPathologyScreen";
 import { useTranslation } from '@src/localization/hooks/useTranslation';
 import EditMedicationScreen from "@src/screens/medication/EditMedicationScreen";
 
@@ -44,10 +46,12 @@ export type LoginStackParamList = {
   ElderlyMeasurementsList: undefined;
   ElderlyMedicationsList: { elderlyId: number, initialData?: any, isExternalToken?: boolean };
   MedicationDetails: { medicationId: number };
-  ElderlyPathologiesList: undefined;
+  ElderlyPathologiesList: { elderlyId: number, initialData?: any, isExternalToken?: boolean };
+  PathologyDetails: { pathologyId: number, isExternalToken?: boolean };
+  EditPathology: { pathology: any; elderlyId: number; isExternalToken?: boolean; onGoBack?: () => void };
   ElderlyFallsList: undefined;
   ElderlySOSList: undefined;
-  ElderlyWoundTrackingScreen: undefined;
+  ElderlyWoundTrackingScreen: { elderlyId: number; initialData?: any; isExternalToken?: boolean };
   EditMedication: { medicationId: number, elderlyId: number, initialData?: any, isExternalToken?: boolean };
 };
 
@@ -72,9 +76,11 @@ export const LoginNavigator: React.FC = () => {
       <Stack.Screen name="ElderlyMedicationsList" component={ElderlyMedicationsListScreen} />
       <Stack.Screen name="EditMedication" component={EditMedicationScreen} options={{ title: t('medication.editMedication') }} />
       <Stack.Screen name="ElderlyPathologiesList" component={ElderlyPathologiesListScreen} />
+      <Stack.Screen name="PathologyDetails" component={PathologyDetailsScreen} options={{ title: t('pathology.pathologyDetails') }} />
+      <Stack.Screen name="EditPathology" component={EditPathologyScreen} options={{ title: t('navigation.editPathology') }} />
       <Stack.Screen name="ElderlyFallsList" component={ElderlyFallsListScreen} />
       <Stack.Screen name="ElderlySOSList" component={ElderlySOSListScreen} />
-      <Stack.Screen name="ElderlyWoundTrackingScreen" component={ElderlyWoundTrackingScreen} />
+      <Stack.Screen name="ElderlyWoundTrackingScreen" component={ElderlyWoundTrackingScreen} options={{ title: t('woundTracking.title') }} />
     </Stack.Navigator>
   );
 };

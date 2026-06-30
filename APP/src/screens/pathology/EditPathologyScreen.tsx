@@ -27,8 +27,8 @@ interface EditPathologyScreenRouteParams {
   pathology: Pathology;
   elderlyId: number;
   isExternalToken?: boolean; 
-  token?: string | null;
-  onGoBack?: () => void;
+  onGoBack?: () => void;      
+  token?: string;            
 }
 
 type PathologyForm = {
@@ -38,7 +38,7 @@ type PathologyForm = {
 };
 
 const EditPathologyScreen: React.FC<EditPathologyScreenProps> = ({ route, navigation }) => {
-  const { pathology, elderlyId } = route.params as any;
+  const { pathology, elderlyId, isExternalToken, onGoBack } = route.params as any;
   const [loading, setLoading] = useState(false);
   const { updatePathology } = useElderlyDetailsStore();
   const { handleError, handleSuccess, handleValidationError } = useErrorHandler();
@@ -65,18 +65,21 @@ const EditPathologyScreen: React.FC<EditPathologyScreenProps> = ({ route, naviga
 
   const handleSubmit = async () => {
     setLoading(true);
+    const { isExternalToken, onGoBack } = route.params as any; 
     try {
       // A variável pathologyData DEVE ser definida aqui antes de ser usada
       const pathologyData = {
+        name: pathology.name,
         description: form.description || undefined,
         status: form.status || undefined,
         notes: form.notes || undefined,
       };
 
-      const isExternal = (route.params as any).isExternalToken;
       const token = await asyncStorageService.getExternalToken();
 
-      if (isExternal && token) {
+      if (isExternalToken){
+        const token = await asyncStorageService.getExternalToken();
+        if (!token) throw new Error("Token externo não encontrado");
         await externalAccessApi.updatePathology(token, pathology.id, pathologyData);
       } else {
         // Certifica-te que 'updatePathology' existe no teu 'useElderlyDetailsStore'
@@ -89,7 +92,8 @@ const EditPathologyScreen: React.FC<EditPathologyScreenProps> = ({ route, naviga
       if ((route.params as any)?.onGoBack) {
         (route.params as any).onGoBack();
       }
-      
+
+      if (onGoBack) onGoBack();
       navigation.goBack();
     } catch (error) {
       console.error('Failed to update pathology:', error);

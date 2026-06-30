@@ -647,6 +647,7 @@
   },
   "pathology": {
     "title": "Patologia",
+    "pathologyDetails": "Detalhes da Patologia",
     "addPathology": "Adicionar Patologia",
     "addNewPathology": "Adicionar nova patologia ou diagnóstico",
     "pathologyName": "Nome da Patologia",
@@ -761,6 +762,18 @@
     "floorInvalid": "O piso deve ser um número inteiro positivo",
     "addFall": "Registar Queda",
     "addFallSubtitle": "Registar manualmente uma ocorrência de queda"
+  },
+  "deviceTests": {
+    "title": "Testes de Dispositivo",
+    "dashboardSubtitle": "Iniciar teste de dispositivo num idoso",
+    "sessionControl": "Controlo de Sessão",
+    "start": "Iniciar",
+    "stop": "Parar",
+    "history": "Histórico de Testes",
+    "noSessions": "Nenhum teste registado",
+    "sessionRunning": "Em curso",
+    "status_completed": "Concluído",
+    "status_interrupted": "Interrompido"
   },
   "caregiver": {
   "title": "Cuidador",

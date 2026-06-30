@@ -324,6 +324,16 @@ const ElderlyDetailsComponent = ({
                   onPress={onViewAbsences || (() => navigation.push('ElderlyAbsences', { elderlyId: elderly.id, elderlyName: elderly.name }))}
                 />
               </HStack>
+
+              <HStack spacing={Spacing.sm_12} style={styles.gridRow}>
+                <CategoryCard
+                  iconName="sensors"
+                  iconColor="#0D7E6A"
+                  title={t('deviceTests.title')}
+                  fullWidth
+                  onPress={() => navigation.push('ElderlyDeviceTests', { elderlyId: elderly.id })}
+                />
+              </HStack>
             </VStack>
           </VStack>
         )}

@@ -42,13 +42,13 @@ const ExternalElderlyProfileScreen: React.FC<Props> = ({ route, navigation }) =>
   const [addModal, setAddModal] = useState<AddModal>(null);
 
   const handleNavigate = (screenName: string, allData: any[], type: AddModal) => {
-    let filteredData = [...allData];
+    const safeData = allData ?? [];
+    let filteredData = [...safeData];
 
     // Lógica de Filtro para o Externo
     if (type === 'wound') {
       // Filtra apenas feridas "em acompanhamento"
-      // AJUSTA O 'status' conforme a tua constante real (ex: 'IN_PROGRESS')
-      filteredData = allData.filter(w => w.status === 'IN_PROGRESS' || w.status === 'UNDER_TREATMENT');
+      filteredData = safeData.filter(w => w.status === 'IN_PROGRESS' || w.status === 'UNDER_TREATMENT');
     }
     // NOTA: Para medicação e patologia, deixamos o array completo 
     navigation.navigate(screenName as any, { 

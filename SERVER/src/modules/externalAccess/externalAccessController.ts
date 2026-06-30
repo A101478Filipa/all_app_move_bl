@@ -102,6 +102,7 @@ export const getProfileByToken = async (req: Request, res: Response): Promise<vo
                 medications: { orderBy: { createdAt: 'desc' } },
                 measurements: { orderBy: { createdAt: 'desc' }},
                 fallOccurrences: { orderBy: { date: 'desc' }},
+                woundTrackings: { orderBy: { createdAt: 'desc' } },
               },
             },
             externalProfessional: true,
@@ -137,6 +138,14 @@ export const getProfileByToken = async (req: Request, res: Response): Promise<vo
         medications: elderly.medications,
         measurements: elderly.measurements,
         recentFalls: elderly.fallOccurrences,
+        recentWounds: (elderly.woundTrackings || []).map((wt: any) => ({
+          id: wt.id,
+          location: (wt.bodyLocations && wt.bodyLocations.length > 0)
+            ? wt.bodyLocations.join(', ')
+            : 'N/A',
+          status: wt.isResolved ? 'RESOLVED' : 'IN_PROGRESS',
+          lastUpdate: wt.createdAt,
+        })),
       },
     });
   } catch (error) {

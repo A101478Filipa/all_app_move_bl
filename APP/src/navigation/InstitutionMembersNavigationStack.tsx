@@ -28,6 +28,7 @@ import ElderlyFallsListScreen from "@src/screens/elderly/ElderlyFallsListScreen"
 import ElderlyWoundTrackingScreen from "@src/screens/elderly/ElderlyWoundTrackingScreen";
 import ElderlyMeasurementsListScreen from "@src/screens/elderly/ElderlyMeasurementsListScreen";
 import ElderlySOSListScreen from "@src/screens/elderly/ElderlySOSListScreen";
+import ElderlyDeviceTestsScreen from "@src/screens/elderly/ElderlyDeviceTestsScreen";
 import { getScreenOptionsWithNavigation } from "@src/utils/navigationHelper";
 import { Medication, FallOccurrence, Pathology, MeasurementType, UserRole, SosOccurrence, CalendarEvent } from "moveplus-shared";
 import { FallOccurrenceScreen } from "@src/screens/fallOccurrence/FallOccurrenceScreen";
@@ -135,6 +136,9 @@ export type InstitutionMembersNavigationStackParamList = {
   ElderlySOSList: {
     elderlyId: number;
   };
+  ElderlyDeviceTests: {
+    elderlyId: number;
+  };
   ProfessionalCalendar: {
     userId: number;
     professionalName?: string;
@@ -143,6 +147,7 @@ export type InstitutionMembersNavigationStackParamList = {
   SelectElderlyScreen: {
     calendarMode?: boolean;
     selectedDate?: string;
+    deviceTestMode?: boolean;
   } | undefined;
 };
 
@@ -313,6 +318,11 @@ export const InstitutionMembersNavigationStack = () => {
         name='SelectElderlyScreen'
         component={SelectElderlyScreen}
         options={{ title: t('navigation.selectPatient') }}
+      />
+      <Stack.Screen
+        name='ElderlyDeviceTests'
+        component={ElderlyDeviceTestsScreen}
+        options={{ title: t('deviceTests.title') }}
       />
     </Stack.Navigator>
   );

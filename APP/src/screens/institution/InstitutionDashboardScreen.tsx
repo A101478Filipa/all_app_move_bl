@@ -482,6 +482,10 @@ const InstitutionDashboardScreen: React.FC<Props> = ({ navigation }) => {
     console.log('Start session pressed');
   }, []);
 
+  const handleDeviceTests = useCallback(() => {
+    navigation.navigate('SelectElderlyScreen', { deviceTestMode: true });
+  }, [navigation]);
+
   const handleViewTimeline = useCallback(() => {
     navigation.push('InstitutionTimelineScreen');
   }, [navigation]);
@@ -611,6 +615,14 @@ const InstitutionDashboardScreen: React.FC<Props> = ({ navigation }) => {
               icon={<MaterialIcons name="timeline" size={24} color={Color.secondary} />}
               onPress={handleViewTimeline}
               color={Color.secondary}
+            />
+
+            <DashboardWidget
+              title={t('deviceTests.title')}
+              subtitle={t('deviceTests.dashboardSubtitle')}
+              icon={<MaterialIcons name="sensors" size={24} color="#0D7E6A" />}
+              onPress={handleDeviceTests}
+              color="#0D7E6A"
             />
 
             <DashboardWidget

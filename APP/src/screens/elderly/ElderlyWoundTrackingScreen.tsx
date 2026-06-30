@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, ScrollView, StyleSheet, Text, TouchableOpacity, ActivityIndicator,
-  Alert, TextInput, Modal, KeyboardAvoidingView, Platform, Switch, Image,
+  Alert, TextInput, Modal, KeyboardAvoidingView, Platform, Switch, Image, RefreshControl,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuthStore } from '@src/stores/authStore';
@@ -17,6 +17,9 @@ import { buildAvatarUrl } from '@src/services/ApiService';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import BodyLocationPicker from '@src/components/BodyLocationPicker';
+import { useFocusEffect } from '@react-navigation/native';
+import { externalAccessApi, ExternalElderlyWound } from '@src/api/endpoints/externalAccess';
+import { asyncStorageService } from '@src/services/AsyncStorageService';
 
 type Props = NativeStackScreenProps<any, 'ElderlyWoundTrackingScreen'>;
 type FilterTab = 'all' | 'ongoing' | 'resolved';
@@ -25,7 +28,7 @@ type UnifiedItem =
   | { kind: 'tracking'; item: WoundTracking; sortDate: string };
 
 const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { elderlyId } = route.params;
+  const { elderlyId, isExternalToken, initialData } = (route.params ?? {}) as any;
   const { user } = useAuthStore();
   const { t } = useTranslation();
   const role = user?.user?.role;
@@ -55,6 +58,36 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
   const [submitting, setSubmitting] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
 
+  // ─── External token state ───────────────────────────────────────────────────
+  const ONGOING_STATUSES = ['IN_PROGRESS', 'UNDER_TREATMENT'];
+  const [externalWounds, setExternalWounds] = useState<ExternalElderlyWound[]>(
+    isExternalToken && initialData
+      ? (initialData as ExternalElderlyWound[]).filter(w => ONGOING_STATUSES.includes(w.status ?? ''))
+      : []
+  );
+  const [externalLoading, setExternalLoading] = useState(false);
+
+  const loadExternalWounds = useCallback(async () => {
+    const token = await asyncStorageService.getExternalToken();
+    if (!token) return;
+    setExternalLoading(true);
+    try {
+      const res = await externalAccessApi.getProfileByToken(token);
+      const wounds = res.data.elderly.recentWounds || [];
+      setExternalWounds(wounds.filter(w => ONGOING_STATUSES.includes(w.status ?? '')));
+    } catch (error) {
+      console.error('Erro ao carregar feridas externas:', error);
+    } finally {
+      setExternalLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    if (isExternalToken) {
+      loadExternalWounds();
+    }
+  }, [isExternalToken, loadExternalWounds]));
+
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
@@ -69,7 +102,7 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [elderlyId]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => { if (!isExternalToken) { fetchAll(); } }, [fetchAll, isExternalToken]);
 
   // Combine + sort newest first
   const allItems: UnifiedItem[] = [
@@ -174,6 +207,28 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
     </View>
   );
 
+  const renderExternalWoundCard = (wound: ExternalElderlyWound, idx: number) => (
+    <View key={`ext-wound-${idx}`} style={styles.card}>
+      <View style={styles.cardHeader}>
+        <View style={styles.cardHeaderLeft}>
+          <View style={styles.typeRow}>
+            <MaterialIcons name="healing" size={14} color={Color.Gray.v500} />
+            <Text style={styles.typeLabel}>{wound.location}</Text>
+          </View>
+          <Text style={styles.dateText}>{formatDate(wound.lastUpdate)}</Text>
+        </View>
+        <View style={styles.cardHeaderRight}>
+          <View style={[styles.statusBadge, styles.statusOngoing]}>
+            <Text style={[styles.statusText, styles.statusOngoingText]}>{t('woundTracking.ongoing')}</Text>
+          </View>
+        </View>
+      </View>
+      {wound.status ? (
+        <Text style={styles.descriptionText}>{wound.status}</Text>
+      ) : null}
+    </View>
+  );
+
   const renderCaseItem = (woundCase: WoundCase, idx: number) => (
     <TouchableOpacity
       key={`case-${idx}`}
@@ -262,7 +317,15 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          isExternalToken
+            ? <RefreshControl refreshing={externalLoading} onRefresh={loadExternalWounds} />
+            : undefined
+        }
+      >
 
         {/* Header row: title only */}
         <View style={styles.headerLeft}>
@@ -270,42 +333,58 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.screenTitle}>{t('woundTracking.title')}</Text>
         </View>
 
-        {/* Unified filter tabs */}
-        {!loading && allItems.length > 0 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-            {(['all', 'ongoing', 'resolved'] as FilterTab[]).map(tab => (
-              <TouchableOpacity
-                key={tab}
-                style={[styles.filterTab, activeFilter === tab && styles.filterTabActive]}
-                onPress={() => setActiveFilter(tab)}
-              >
-                <Text style={[styles.filterTabText, activeFilter === tab && styles.filterTabTextActive]}>
-                  {t(`woundTracking.filter_${tab}`)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
-
-        {/* Unified list */}
-        {loading ? (
-          <ActivityIndicator size="small" color={Color.primary} style={{ marginVertical: Spacing.md_16 }} />
-        ) : filteredItems.length === 0 ? (
-          <Text style={styles.emptyText}>{t('woundTracking.noUpdates')}</Text>
+        {isExternalToken ? (
+          // ─── External view (only ongoing wounds) ───────────────────────────
+          externalLoading ? (
+            <ActivityIndicator size="small" color={Color.primary} style={{ marginVertical: Spacing.md_16 }} />
+          ) : externalWounds.length === 0 ? (
+            <Text style={styles.emptyText}>{t('woundTracking.noUpdates')}</Text>
+          ) : (
+            <View style={styles.list}>
+              {externalWounds.map((wound, idx) => renderExternalWoundCard(wound, idx))}
+            </View>
+          )
         ) : (
-          <View style={styles.list}>
-            {filteredItems.map((entry, idx) =>
-              entry.kind === 'case'
-                ? renderCaseItem(entry.item, idx)
-                : renderTrackingItem(entry.item, idx)
+          // ─── Normal view ────────────────────────────────────────────────────
+          <>
+            {/* Unified filter tabs */}
+            {!loading && allItems.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+                {(['all', 'ongoing', 'resolved'] as FilterTab[]).map(tab => (
+                  <TouchableOpacity
+                    key={tab}
+                    style={[styles.filterTab, activeFilter === tab && styles.filterTabActive]}
+                    onPress={() => setActiveFilter(tab)}
+                  >
+                    <Text style={[styles.filterTabText, activeFilter === tab && styles.filterTabTextActive]}>
+                      {t(`woundTracking.filter_${tab}`)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             )}
-          </View>
+
+            {/* Unified list */}
+            {loading ? (
+              <ActivityIndicator size="small" color={Color.primary} style={{ marginVertical: Spacing.md_16 }} />
+            ) : filteredItems.length === 0 ? (
+              <Text style={styles.emptyText}>{t('woundTracking.noUpdates')}</Text>
+            ) : (
+              <View style={styles.list}>
+                {filteredItems.map((entry, idx) =>
+                  entry.kind === 'case'
+                    ? renderCaseItem(entry.item, idx)
+                    : renderTrackingItem(entry.item, idx)
+                )}
+              </View>
+            )}
+          </>
         )}
 
       </ScrollView>
 
       {/* Add tracking modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
+      {!isExternalToken && <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
@@ -397,7 +476,7 @@ const ElderlyWoundTrackingScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           </View>
         </KeyboardAvoidingView>
-      </Modal>
+      </Modal>}
 
       {/* Fullscreen photo */}
       {fullscreenPhoto && (

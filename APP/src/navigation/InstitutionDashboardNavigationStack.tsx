@@ -27,6 +27,7 @@ import ElderlyFallsListScreen from "@src/screens/elderly/ElderlyFallsListScreen"
 import ElderlyWoundTrackingScreen from "@src/screens/elderly/ElderlyWoundTrackingScreen";
 import ElderlyMeasurementsListScreen from "@src/screens/elderly/ElderlyMeasurementsListScreen";
 import ElderlySOSListScreen from "@src/screens/elderly/ElderlySOSListScreen";
+import ElderlyDeviceTestsScreen from "@src/screens/elderly/ElderlyDeviceTestsScreen";
 import { getScreenOptionsWithNavigation } from "@src/utils/navigationHelper";
 import { useTranslation } from "@src/localization/hooks/useTranslation";
 import React from "react";
@@ -45,6 +46,7 @@ export type InstitutionDashboardNavigationStackParamList = {
   SelectElderlyScreen: {
     calendarMode?: boolean;
     selectedDate?: string;
+    deviceTestMode?: boolean;
   } | undefined;
   AddMeasurement: {
     elderlyId: number;
@@ -126,6 +128,9 @@ export type InstitutionDashboardNavigationStackParamList = {
     elderlyId: number;
   };
   ElderlySOSList: {
+    elderlyId: number;
+  };
+  ElderlyDeviceTests: {
     elderlyId: number;
   };
   ProfessionalCalendar: {
@@ -245,11 +250,6 @@ export const InstitutionDashboardNavigationStack = () => {
         options={{ title: t('navigation.measurementDetails') }}
       />
       <Stack.Screen
-        name='PathologyDetails'
-        component={PathologyDetailsScreen}
-        options={{ title: t('navigation.pathologyDetails') }}
-      />
-      <Stack.Screen
         name='EditPathology'
         component={EditPathologyScreen}
         options={{ title: t('navigation.editPathology') }}
@@ -310,6 +310,11 @@ export const InstitutionDashboardNavigationStack = () => {
         options={{ title: t('sosOccurrence.title') }}
       />
       <Stack.Screen
+        name='ElderlyDeviceTests'
+        component={ElderlyDeviceTestsScreen}
+        options={{ title: t('deviceTests.title') }}
+      />
+      <Stack.Screen
         name='BathSchedule'
         component={BathScheduleScreen}
         options={{ title: t('bath.title') }}
@@ -328,6 +333,11 @@ export const InstitutionDashboardNavigationStack = () => {
         name='ExternalProfessionalsManagement'
         component={ExternalProfessionalsManagementScreen}
         options={{ title: 'Profissionais Externos' }}
+      />
+      <Stack.Screen 
+      name="PathologyDetails" 
+      component={PathologyDetailsScreen} 
+      options={{ title: t('pathology.pathologyDetails') }}
       />
     </Stack.Navigator>
   );

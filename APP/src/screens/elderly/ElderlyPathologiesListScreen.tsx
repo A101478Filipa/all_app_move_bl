@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Pathology, UserRole } from 'moveplus-shared';
@@ -12,34 +12,44 @@ import { Border } from '@src/styles/borders';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from '@src/localization/hooks/useTranslation';
 import ScreenState from '@src/constants/screenState';
-import useFocusEffect from '@react-navigation/core/lib/typescript/src/useFocusEffect';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { externalAccessApi } from '@api/endpoints/externalAccess';
 import { asyncStorageService } from '@services/AsyncStorageService';
+import { ElderlyProfileStackParamList } from '@src/navigation/ElderlyProfileStackNavigator'; 
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+type NavigationProp = NativeStackNavigationProp<ElderlyProfileStackParamList, 'ElderlyPathologiesList'>;
 
 type Props = NativeStackScreenProps<any, 'ElderlyPathologiesList'>;
 
 const ElderlyPathologiesListScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { elderlyId, isExternalToken} = route.params ?? {};
+  const { elderlyId, initialData, isExternalToken} = route.params ?? {};
   const { t } = useTranslation();
   const { elderly, state, refreshElderly, fetchElderly } = useElderlyDetailsStore();
   const { user } = useAuthStore();
-  const [externalPaths, setExternalPaths] = useState<Pathology[]>([]);
+  const [externalPaths, setExternalPaths] = useState<Pathology[]>(initialData || []);
+  const [loading, setLoading] = useState(false);
 
-  const loadPathologiesList = useCallback(async () => {
+
+  const loadPathologies = useCallback(async () => {
     if (isExternalToken) {
+      setLoading(true);
       const token = await asyncStorageService.getExternalToken();
       if (token) {
         try {
           const res = await externalAccessApi.getProfileByToken(token);
           setExternalPaths(res.data.elderly.pathologies as Pathology[]);
-        } catch (error) { console.error(error); }
+        } catch (error) {
+          console.error('Erro ao refrescar patologias externas:', error);
+        }
       }
+      setLoading(false);
     } else {
       await refreshElderly(elderlyId);
     }
   }, [isExternalToken, elderlyId, refreshElderly]);
 
-  useFocusEffect(useCallback(() => { loadPathologiesList(); }, [loadPathologiesList]));
+  useFocusEffect(useCallback(() => { loadPathologies(); }, [loadPathologies]));
 
   useEffect(() => {
     if (!elderly || elderly.id !== elderlyId) {
@@ -66,10 +76,16 @@ const ElderlyPathologiesListScreen: React.FC<Props> = ({ route, navigation }) =>
     }
   }, [navigation, canAdd, elderlyId]);
 
-  const pathologies: Pathology[] = isExternalToken ? externalPaths : (elderly?.pathologies ?? []);
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: t('pathology.pathologyDetails'),
+    });
+  }, [navigation]);
+
+  const pathologies = isExternalToken ? externalPaths : (elderly?.pathologies ?? []);
 
   const handlePathologyPress = (pathology: Pathology) => {
-    navigation.push('PathologyDetails', { pathologyId: pathology.id });
+    navigation.navigate('PathologyDetails', { pathologyId: pathology.id, isExternalToken: isExternalToken });
   };
 
   return (
@@ -79,8 +95,8 @@ const ElderlyPathologiesListScreen: React.FC<Props> = ({ route, navigation }) =>
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={state === ScreenState.REFRESHING}
-            onRefresh={() => refreshElderly(elderlyId)}
+            refreshing={isExternalToken ? loading : state === ScreenState.REFRESHING}
+            onRefresh={loadPathologies}
           />
         }
       >

@@ -59,8 +59,12 @@ export const buildAvatarUrl = (avatar: string) => {
 };
 
 api.interceptors.request.use(async (config) => {
-  if (config.url?.includes('external-access')) {
-    return config; 
+  if (config.url?.includes('external-access/generate')) {
+     // A ROTA DE GERAR TOKEN PRECISA DO TOKEN DO ADMIN! 
+     // NÃO DEVEMOS IGNORAR O TOKEN AQUI.
+  } else if (config.url?.includes('external-access') && !config.url.includes('generate')) {
+     // Apenas rotas públicas de leitura de perfil externo devem ignorar o token
+     return config;
   }
 
   const token = await asyncStorageService.getAccessToken();
@@ -82,7 +86,7 @@ api.interceptors.response.use(
     // VERIFICAÇÃO DE SEGURANÇA: 
     // Se for uma rota externa, não fazemos NADA. Deixamos o erro passar para o catch da tela.
     if (originalRequest?.url?.includes('external-access')) {
-      console.log("DEBUG: Interceptor ignorou erro de rota externa:", originalRequest.url);
+
       return Promise.reject(error);
     }
     const data = error.response?.data as { message?: string; error?: string; code?: string } | undefined;

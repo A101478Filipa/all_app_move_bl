@@ -211,8 +211,9 @@ const ProfessionalCalendarScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       const res = await externalAccessApi.generateToken(ev.id);
       setEventToken(res.data);
-    } catch {
-      Alert.alert('Erro', 'Não foi possível gerar o código de acesso.');
+    } catch (error: any) {
+      console.log("DEBUG ERROR generateToken:", error.response?.status, error.response?.data);
+      Alert.alert('Erro', `Não foi possível gerar: ${error.message}`);
     } finally {
       setGeneratingToken(false);
     }

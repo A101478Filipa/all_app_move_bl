@@ -76,6 +76,7 @@ const SelectElderlyScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const calendarMode = (route.params as any)?.calendarMode as boolean | undefined;
   const selectedDate = (route.params as any)?.selectedDate as string | undefined;
+  const deviceTestMode = (route.params as any)?.deviceTestMode as boolean | undefined;
 
   useFocusEffect(
     useCallback(() => {
@@ -85,13 +86,15 @@ const SelectElderlyScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handleElderlySelect = useCallback(
     (elderly: Elderly) => {
-      if (calendarMode) {
+      if (deviceTestMode) {
+        (navigation as any).navigate('ElderlyDeviceTests', { elderlyId: elderly.id });
+      } else if (calendarMode) {
         navigation.navigate('AddCalendarEvent', { elderlyId: elderly.id, selectedDate });
       } else {
         navigation.navigate('AddMeasurement', { elderlyId: elderly.id });
       }
     },
-    [navigation, calendarMode, selectedDate]
+    [navigation, calendarMode, selectedDate, deviceTestMode]
   );
 
   const handleRefresh = useCallback(() => {

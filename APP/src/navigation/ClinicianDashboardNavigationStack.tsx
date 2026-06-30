@@ -19,6 +19,7 @@ import ElderlyFallsListScreen from "@src/screens/elderly/ElderlyFallsListScreen"
 import ElderlyWoundTrackingScreen from "@src/screens/elderly/ElderlyWoundTrackingScreen";
 import ElderlyMeasurementsListScreen from "@src/screens/elderly/ElderlyMeasurementsListScreen";
 import ElderlySOSListScreen from "@src/screens/elderly/ElderlySOSListScreen";
+import ElderlyDeviceTestsScreen from "@src/screens/elderly/ElderlyDeviceTestsScreen";
 import StaffScheduleManagementScreen from "@src/screens/professional/StaffScheduleManagementScreen";
 import { getScreenOptionsWithNavigation } from "@src/utils/navigationHelper";
 import { useTranslation } from "@src/localization/hooks/useTranslation";
@@ -33,6 +34,7 @@ export type ClinicianDashboardNavigationStackParamList = {
   SelectElderlyScreen: {
     calendarMode?: boolean;
     selectedDate?: string;
+    deviceTestMode?: boolean;
   } | undefined;
   ElderlyDetails: {
     name: string;
@@ -80,6 +82,9 @@ export type ClinicianDashboardNavigationStackParamList = {
     elderlyId: number;
   };
   ElderlySOSList: {
+    elderlyId: number;
+  };
+  ElderlyDeviceTests: {
     elderlyId: number;
   };
   ProfessionalCalendar: {
@@ -215,6 +220,11 @@ export const ClinicianDashboardNavigationStack = () => {
         name='ElderlySOSList'
         component={ElderlySOSListScreen}
         options={{ title: t('sosOccurrence.title') }}
+      />
+      <Stack.Screen
+        name='ElderlyDeviceTests'
+        component={ElderlyDeviceTestsScreen}
+        options={{ title: t('deviceTests.title') }}
       />
       <Stack.Screen
         name='StaffScheduleManagement'

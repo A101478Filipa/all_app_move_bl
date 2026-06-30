@@ -649,6 +649,7 @@
   },
   "pathology": {
     "title": "Pathology",
+    "pathologyDetails": "Pathology Details",
     "addPathology": "Add Pathology",
     "addNewPathology": "Add a new pathology or diagnosis",
     "pathologyName": "Pathology Name",
@@ -760,6 +761,18 @@
     "floorInvalid": "Floor must be a positive whole number",
     "addFall": "Register Fall",
     "addFallSubtitle": "Manually register a fall occurrence"
+  },
+  "deviceTests": {
+    "title": "Device Tests",
+    "dashboardSubtitle": "Start a device test for a patient",
+    "sessionControl": "Session Control",
+    "start": "Start",
+    "stop": "Stop",
+    "history": "Test History",
+    "noSessions": "No tests recorded yet",
+    "sessionRunning": "Running",
+    "status_completed": "Completed",
+    "status_interrupted": "Interrupted"
   },
   "caregiver": {
     "title": "Caregiver",

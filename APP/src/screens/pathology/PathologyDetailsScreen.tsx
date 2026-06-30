@@ -34,10 +34,10 @@ interface PathologyWithElderly extends Pathology {
 }
 
 const PathologyDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { pathologyId, isExternalToken }= route.params as any;
   const { t } = useTranslation();
   const { handleError } = useErrorHandler();
   const { user } = useAuthStore();
+  const { pathologyId, isExternalToken } = route.params as any;
 
   const [pathology, setPathology] = useState<PathologyWithElderly | null>(null);
   const [state, setState] = useState<ScreenState>(ScreenState.LOADING);
@@ -55,7 +55,7 @@ const PathologyDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             setState(ScreenState.IDLE);
             return;
           }
-        } catch (e) { setState(ScreenState.ERROR); }
+        } catch (e) { setState(ScreenState.ERROR); return;}
       }
     }
     try {
@@ -76,19 +76,18 @@ const PathologyDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     }, [pathologyId])
   );
 
-  const canEditPathology = user && (
+  const canEditPathology = isExternalToken || (user && (
     user.user.role === UserRole.INSTITUTION_ADMIN ||
     user.user.role === UserRole.CLINICIAN ||
     user.user.role === UserRole.PROGRAMMER
-  );
+  ));
 
   const handleEditPress = () => {
-    if (pathology?.elderlyId) {
+    if (pathology && pathology.elderlyId) {
       navigation.push('EditPathology', {
-        pathology,
+        pathology: pathology, // Agora o TS sabe que 'pathology' não é null
         elderlyId: pathology.elderlyId,
-        isExternalToken: isExternalToken, 
-        token: (route.params as any)?.token,
+        isExternalToken: (route.params as any).isExternalToken,
         onGoBack: () => fetchPathology()
       } as any);
     }
